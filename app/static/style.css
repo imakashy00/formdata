@@ -1,0 +1,86 @@
+[x-cloak] {
+  display: none !important;
+}
+
+/* Custom scrollbar styles */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: #f3f4f6; /* gray-100 */
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: #9ca3af; /* gray-400 */
+  border-radius: 3px;
+}
+/* For Firefox */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: #9ca3af #f3f4f6;
+}
+
+/* Toolbar container */
+/* Quill toolbar styling */
+.ql-toolbar {
+  border-top-left-radius: 0.5rem; /* rounded top-left */
+  border-top-right-radius: 0.5rem; /* rounded top-right */
+  border-bottom-left-radius: 0; /* flat bottom */
+  border-bottom-right-radius: 0; /* flat bottom */
+  border: 1px solid #b65cff; /* same as editor */
+  border-bottom: none; /* merge with editor */
+  background-color: rgb(255, 255, 255);
+}
+
+/* Quill editor styling */
+.ql-container {
+  border-top-left-radius: 0; /* flat top */
+  border-top-right-radius: 0; /* flat top */
+  border-bottom-left-radius: 0.5rem; /* rounded bottom-left */
+  border-bottom-right-radius: 0.5rem; /* rounded bottom-right */
+  border: 1px solid #b65cff;
+  margin-top: -1px; /* overlap border with toolbar */
+}
+.ql-container {
+  z-index: 0; /* make sure navbar is higher */
+}
+.ql-editor img {
+  display: block;
+  margin: 0 auto;
+}
+.ql-editor {
+  font-size: 16px;
+  line-height: 1.2;
+}
+.ql-editor h1 {
+  font-size: 32px;
+}
+.ql-editor h2 {
+  font-size: 28px;
+}
+.ql-editor h3 {
+  font-size: 24px;
+}
+
+.divider {
+  background: #bf74fd; /* tailwind-slate-300 */
+  transition: background 0.12s;
+}
+.divider:hover {
+  background: #7f16f7;
+} /* tailwind-slate-400 */
+.dragging {
+  user-select: none;
+}
+/* Small visual for panels */
+#left-panel {
+  min-height: 100%;
+}
+#top-right {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+#bottom-right {
+  overflow: auto;
+}

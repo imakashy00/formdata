@@ -1,0 +1,28 @@
+# robots.txt for YTNotes
+# Update the Sitemap URL below to your production domain.
+
+User-agent: *
+
+# Allow public pages
+Allow: /
+Allow: /static/
+
+# Block non-public or sensitive endpoints
+Disallow: /auth
+Disallow: /auth/
+Disallow: /auth/callback
+Disallow: /logout
+Disallow: /webhook/
+Disallow: /webhook/paddle
+Disallow: /subscription/
+Disallow: /modal
+Disallow: /users
+Disallow: /notes
+Disallow: /folders
+
+# Optional: reduce crawl pressure on APIs if any (most bots ignore Crawl-delay)
+# Crawl-delay: 5
+
+# Sitemap (replace with your live URL)
+Sitemap: https://your-domain.com/sitemap.xml
+
