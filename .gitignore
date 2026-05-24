@@ -58,8 +58,6 @@ logs/
 *.sqlite
 *.sqlite3
 
-# Docker
-docker-compose.override.yml
 
 # UV
 .uv/

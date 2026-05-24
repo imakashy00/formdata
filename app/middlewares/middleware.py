@@ -7,11 +7,8 @@ from app.services.auth import AuthService
 from app.services.cookies import clear_auth_cookies, set_auth_cookies
 
 
-allowed_paths = {
+PUBLIC_PATHS = {
     "/",
-    "/ytnote.png",
-    "/static/favicon.svg",
-    "/robots.txt",
     "/help",
     "/auth",
     "/auth/callback",
@@ -39,7 +36,7 @@ def register_middlewares(app):
 
     @app.middleware("http")
     async def protection_middleware(request: Request, call_next):
-        if request.url.path in allowed_paths:
+        if request.url.path.startswith("/static"):
             return await call_next(request)
 
         request.state.user = None
@@ -76,7 +73,7 @@ def register_middlewares(app):
                 log.error(f"❌ Unexpected error during refresh: {e}")
                 return redirect_home()
 
-        if request.state.user is None:
+        if request.state.user is None and request.url.path not in PUBLIC_PATHS:
             return redirect_home()
 
         response = await call_next(request)

@@ -4,11 +4,11 @@ from app.core.settings import settings
 
 
 engine = create_async_engine(
-    settings.DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://"),
-    echo=(settings.ENV == "development"),
-    pool_pre_ping=True,
-    pool_size=settings.DB_POOL_SIZE,
-    max_overflow=settings.DB_MAX_OVERFLOW,
+    str(settings.DATABASE_URL),
+    echo=(settings.ENV == "development"), # Prints generated SQL queries to the console/logs. in dev mode
+    pool_pre_ping=True, # Before using a DB connection from the pool, SQLAlchemy checks if it’s still alive.
+    pool_size=settings.DB_POOL_SIZE, # Number of persistent DB connections kept open.
+    max_overflow=settings.DB_MAX_OVERFLOW, # Allows temporary extra connections beyond pool_size.
 )
 
 AsyncSessionLocal = async_sessionmaker(
@@ -22,7 +22,4 @@ class Base(DeclarativeBase):
 
 async def get_db():
     async with AsyncSessionLocal() as db:
-        try:
-            yield db
-        finally:
-            await db.close()
+        yield db

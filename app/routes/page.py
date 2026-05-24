@@ -1,16 +1,17 @@
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, Request, Response
 from fastapi.responses import FileResponse, HTMLResponse
-from datetime import datetime, timezone
-from sqlalchemy.ext.asyncio import AsyncSession
+from loguru import logger as log
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.services.auth import AuthService
-from app.services.dependencies import current_user
 from app.core.db import get_db
 from app.core.templates import temp
 from app.models.user import User
 from app.schemas.user import DBUser
-from loguru import logger as log
+from app.services.auth import AuthService
+from app.services.dependencies import current_user
 
 page_router = APIRouter()
 
@@ -20,7 +21,7 @@ async def home(request: Request, db: AsyncSession = Depends(get_db)):
     # user_data = getattr(request.state, "user", None)
     access_token = request.cookies.get("access_token")
     if not access_token:
-        return temp.TemplateResponse("index.html", {"request": request})
+        return temp.TemplateResponse(request,"index.html")
 
     payload = await AuthService.validate_access(access_token)
 
@@ -28,11 +29,12 @@ async def home(request: Request, db: AsyncSession = Depends(get_db)):
     user_db = result.scalars().first()
 
     if not user_db:
-        return temp.TemplateResponse("index.html", {"request": request})
+        return temp.TemplateResponse(request,"index.html")
 
     return temp.TemplateResponse(
+        request,
         "home.html",
-        {"request": request, "email": user_db.email, "name": user_db.name},
+        { "email": user_db.email, "name": user_db.name},
     )
 
 
@@ -48,10 +50,10 @@ def robots_txt():
 
 @page_router.get("/help", response_class=HTMLResponse)
 async def help_page(
-    req: Request, user: DBUser = Depends(current_user), db: AsyncSession = Depends(get_db)
+    request: Request, user: DBUser = Depends(current_user), db: AsyncSession = Depends(get_db)
 ):
     log.info("Help page sending")
-    return temp.TemplateResponse("help.html", {"request": req})
+    return temp.TemplateResponse(request,"help.html", )
 
 
 @page_router.get("/blogs", response_class=HTMLResponse)
@@ -67,13 +69,13 @@ async def blog(req: Request, blog_id: str):
 @page_router.get("/privacy-policy", response_class=HTMLResponse)
 async def privacy_policy(request: Request):
     """Privacy Policy page"""
-    return temp.TemplateResponse("privacy.html", {"request": request})
+    return temp.TemplateResponse(request,"privacy.html")
 
 
 @page_router.get("/terms", response_class=HTMLResponse)
 async def terms_and_conditions(request: Request):
     """Terms and Conditions page"""
-    return temp.TemplateResponse("terms.html", {"request": request})
+    return temp.TemplateResponse(request,"terms.html")
 
 
 @page_router.get("/sitemap.xml", include_in_schema=False)

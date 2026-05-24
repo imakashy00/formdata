@@ -13,14 +13,13 @@ from app.schemas.user import DBUser, SubscriptionStatus
 from app.services.dependencies import current_user
 from app.models.user import Subscription
 from app.core.templates import temp
-from app.core.templates import temp
 from app.core.db import get_db
 from app.core.settings import settings
 
 user_router = APIRouter()
 
 headers = {
-    "Authorization": f"Bearer {settings.PADDLE_API_KEY}",
+    "Authorization": f"Bearer {str(settings.PADDLE_API_KEY)}",
     "Accept": "application/json",
 }
 
@@ -39,7 +38,7 @@ async def subscription_modal(
     template = (
         "components/manage_modal.html" if is_active else "components/pricing_modal.html"
     )
-    return temp.TemplateResponse(
+    return temp.TemplateResponse(request,
         template,
         {
             "request": request,

@@ -25,8 +25,6 @@ def create_token(
         uuid.uuid4()
     )  # a unique identifier for the token (usually a UUID). Used to track/revoke tokens individually.
     payload = {
-        "iss": settings.ISSUER,
-        "aud": settings.AUDIENCE,
         "sub": sub,
         "email": email,
         "type": type,
@@ -35,6 +33,6 @@ def create_token(
         "nbf": int(_now().timestamp()),
         "exp": _exp(ttl),
     }
-    token = jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGO)
+    token = jwt.encode(payload, str(settings.JWT_SECRET), algorithm=settings.JWT_ALGO)
     return token, jti, payload["exp"]
 

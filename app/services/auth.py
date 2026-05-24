@@ -12,10 +12,8 @@ class AuthService:
         try:
             return jwt.decode(
                 token,
-                settings.JWT_SECRET,
+                str(settings.JWT_SECRET),
                 algorithms=[settings.JWT_ALGO],
-                audience=settings.AUDIENCE,
-                issuer=settings.ISSUER,
                 options={"require": ["exp", "jti", "sub", "type"]},
             )
         except ExpiredSignatureError:

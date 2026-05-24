@@ -3,35 +3,35 @@ from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from loguru import logger as log
-import requests
+import httpx
 from app.core.settings import settings
 
 headers = {
-    "Authorization": f"Bearer {settings.PADDLE_API_KEY}",
+    "Authorization": f"Bearer {str(settings.PADDLE_API_KEY)}",
     "Accept": "application/json",
 }
 
 
-def get_customer_email(customer_id: str):
+async def get_customer_email(customer_id: str):
     try:
-        response = requests.get(
-            f"{settings.PADDLE_BASE_URL}/customers/{customer_id}", headers=headers
-        )
-        data = response.json()  # dict
-        customer = data.get("data") or {}
-        email = customer.get("email")
-        return email
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"{settings.PADDLE_BASE_URL}/customers/{customer_id}",
+                headers=headers
+            )
+            data = response.json()
+            return data.get("data", {}).get("email")
     except Exception as e:
         log.error(f"❌ Error from paddle: {e}")
-
+        return None
 
 async def activate_subscription(payload: dict, db: AsyncSession):
     sub = payload.get("data", {})
     subscription_id = sub.get("id")
     customer_id = sub.get("customer_id")
     status = sub.get("status")
-    price_id = (sub.get("items") or [])[0].get("price").get("id")
-    plan_inerval = sub.get("billing_cycle").get("interval")
+    price_id = (sub.get("items") or [])[0].get("price").get("id")  # 💥 if items is empty
+    plan_interval = sub.get("billing_cycle").get("interval")        # 💥 if billing_cycle is None
     current_period_start = sub.get("current_billing_period").get("starts_at")
     current_period_end = sub.get("current_billing_period").get("ends_at")
     user_email = get_customer_email(customer_id=customer_id)
@@ -52,7 +52,7 @@ async def activate_subscription(payload: dict, db: AsyncSession):
         subs.current_period_end = current_period_end
         subs.subscription_id = subscription_id
         subs.paddle_customer_id = customer_id
-        subs.plan_interval = plan_inerval
+        subs.plan_interval = plan_interval
         subs.price_id = price_id
         subs.status = status
         subs.updated_at = datetime.now(timezone.utc)
@@ -60,10 +60,24 @@ async def activate_subscription(payload: dict, db: AsyncSession):
         subs.canceled_at = None
     else:
         log.info("❌Subscription row not found")
+
+        subs = Subscription(
+            user_id=user.id,
+            subscription_id=subscription_id,
+            paddle_customer_id=customer_id,
+            status=status,
+            plan_interval=plan_interval,
+            price_id=price_id,
+            current_period_start=current_period_start,
+            current_period_end=current_period_end,
+        )
+        db.add(subs)
     try:
         await db.commit()
     except Exception as e:
-        log.error(f"❌ Error{e}")
+        await db.rollback()  # ← missing
+        log.error(f"❌ Error: {e}")
+        raise  # ← re-raise so webhook returns 500, not 200
 
 
 async def cancel_subscription(payload: dict, db: AsyncSession):
@@ -94,3 +108,11 @@ async def cancel_subscription(payload: dict, db: AsyncSession):
     except Exception as e:
         await db.rollback()
         log.error(f"❌ cancel commit error: {e}")
+
+
+# 📋 Missing Events for a Small SaaS
+# EventWhy you need it
+# subscription.updated - Plan upgrades/downgrades, billing cycle changes
+# subscription.past_duePayment failed — should restrict access
+# transaction.completedRecord payment history / invoices
+# transaction.payment_failedNotify user, send dunning email

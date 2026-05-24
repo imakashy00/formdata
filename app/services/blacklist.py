@@ -4,7 +4,7 @@ import redis.asyncio as redis
 from app.core.settings import settings
 
 # ✅ Use a single global Redis client (connection pool managed internally)
-redis_client = redis.from_url(settings.REDIS_URL, decode_responses=True)
+redis_client = redis.from_url(str(settings.REDIS_URL), decode_responses=True)
 
 
 async def is_revoked(jti: str) -> bool:

@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>YTNotes — AI Notes from YouTube</title>
+    <title>Formdata — AI Notes from YouTube</title>
 
     <!-- Tailwind CDN (plays nice for prototypes) -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -37,12 +37,12 @@
       >
         <div class="flex items-center gap-3">
           <img
-            src="./ytnote.png"
-            alt="YTNotes"
+            src="{{ url_for('static', path='ytnote.png') }}"
+            alt="Formdata"
             class="md:w-8 md:h-8 w-6 h-6 rounded-sm"
           />
           <span class="md:text-2xl text-gray-800 font-sans font-bold"
-            >YTNotes</span
+            >Formdata</span
           >
         </div>
 
@@ -200,10 +200,10 @@
         <div class="container px-4">
           <div class="text-center mb-16 max-w-3xl mx-auto">
             <h2 class="text-3xl md:text-4xl font-bold mb-4">
-              Why Choose YTNotes?
+              Why Choose Formdata?
             </h2>
             <p class="text-lg text-gray-600">
-              AI-powered YTNotes transforms how you learn from YouTube videos,
+              AI-powered Formdata transforms how you learn from YouTube videos,
               helping you save time and retain more information.
             </p>
           </div>
@@ -234,7 +234,7 @@
               </div>
               <h3 class="text-xl font-semibold mb-3">Save Hours of Time</h3>
               <p class="text-gray-600">
-                Stop taking notes from videos manually. YTNotes creates
+                Stop taking notes from videos manually. Formdata creates
                 comprehensive notes in seconds, letting you focus on learning.
               </p>
             </div>
@@ -318,7 +318,7 @@
               </div>
               <h3 class="text-xl font-semibold mb-3">Edit Anytime</h3>
               <p class="text-gray-600">
-                YTNotes' rich text editor lets you customize and enhance your
+                Formdata' rich text editor lets you customize and enhance your
                 notes. Add your own insights or reorganize content.
               </p>
             </div>
@@ -392,14 +392,14 @@
               Frequently Asked Questions
             </h2>
             <p class="text-lg text-gray-600">
-              Find answers to common questions about YTNotes
+              Find answers to common questions about Formdata
             </p>
           </div>
 
           <div class="space-y-6">
-            <!-- Category: About YTNotes -->
+            <!-- Category: About Formdata -->
             <div>
-              <h3 class="text-xl font-semibold mb-4">About YTNotes</h3>
+              <h3 class="text-xl font-semibold mb-4">About Formdata</h3>
 
               <div x-data="{sidebaropen:null}" class="space-y-2">
                 <div
@@ -410,7 +410,7 @@
                     class="w-full flex justify-between items-center p-4 text-left bg-white hover:bg-gray-50 transition-colors"
                   >
                     <span class="font-medium text-gray-900"
-                      >What is YTNotes?</span
+                      >What is Formdata?</span
                     >
                     <svg
                       :class="sidebaropen === 1 ? 'rotate-180' : ''"
@@ -434,7 +434,7 @@
                     class="p-4 bg-gray-50 border-t border-[#5d3fd3]/20"
                   >
                     <p class="text-gray-700">
-                      YTNotes is an AI-powered tool that automatically converts
+                      Formdata is an AI-powered tool that automatically converts
                       YouTube videos into structured, well-organized notes.
                     </p>
                   </div>
@@ -448,7 +448,7 @@
                     class="w-full flex justify-between items-center p-4 text-left bg-white hover:bg-gray-50 transition-colors"
                   >
                     <span class="font-medium text-gray-900"
-                      >How does YTNotes work?</span
+                      >How does Formdata work?</span
                     >
                     <svg
                       :class="sidebaropen === 2 ? 'rotate-180' : ''"
@@ -886,13 +886,13 @@
             <div>
               <a href="/" class="flex items-center gap-2 mb-5">
                 <img
-                  src="./ytnote.png"
-                  alt="YTNotes"
+                  src="{{ url_for('static', path='ytnote.png') }}"
+                  alt="Formdata"
                   width="28"
                   height="28"
                   class="rounded-sm"
                 />
-                <span class="text-xl font-bold text-gray-800">YTNotes</span>
+                <span class="text-xl font-bold text-gray-800">Formdata</span>
               </a>
               <p class="text-gray-600 mb-5">
                 YouTube videos to smart notes in seconds.
@@ -906,7 +906,7 @@
                   >Twitter</a
                 >
                 <a
-                  href="https://instagram.com/ytnotes.co"
+                  href="https://instagram.com/Formdata.co"
                   target="_blank"
                   rel="noopener"
                   class="text-gray-500 hover:text-[#5d3fd3]"
@@ -967,7 +967,7 @@
             class="border-t border-gray-200 pt-8 flex flex-col md:flex-row justify-between items-center"
           >
             <p class="text-gray-500 text-sm mb-4 md:mb-0">
-              &copy; <span id="yr"></span> YTNotes. All rights reserved.
+              &copy; <span id="yr"></span> Formdata. All rights reserved.
             </p>
             <p class="text-gray-500 text-sm">Made with ❤️ by Akash Yadav</p>
           </div>
