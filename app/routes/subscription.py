@@ -4,11 +4,11 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from pydantic import BaseModel
-import requests
+import httpx
 import json
 
 
-from app.services.subscription import activate_subscription, cancel_subscription
+from app.services.subscription import handle_paddle_webhook
 from app.schemas.user import DBUser, SubscriptionStatus
 from app.services.dependencies import current_user
 from app.models.user import Subscription
@@ -20,6 +20,7 @@ user_router = APIRouter()
 
 headers = {
     "Authorization": f"Bearer {str(settings.PADDLE_API_KEY)}",
+    "Content-Type": "application/json",
     "Accept": "application/json",
 }
 
@@ -82,28 +83,31 @@ async def cancel_subscription_req(
     subs = result.scalars().first()
     if not subs or not subs.subscription_id:
         raise HTTPException(status_code=404, detail="Active subscription not found")
-
+    if subs.status == SubscriptionStatus.CANCELED: 
+        raise HTTPException( status_code=400, detail="Subscription already canceled", )
+    
     url = f"{settings.PADDLE_BASE_URL}/subscriptions/{subs.subscription_id}/cancel"
 
     try:
-        response = requests.post(
-            url, headers=headers, json={"effective_from": "immediately"}
-        )
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                url,
+                headers=headers)
 
-        if response.status_code == 200:
-            # ✅ Just log & acknowledge request
-            # print(
-            #     f"🟡 Paddle cancellation requested for subscription {subs.subscription_id}"
-            # )
-            # print(f"📝 Reason: {reason}")
-
-            # return {
-            #     "status": "pending",
-            #     "message": "Cancellation request sent to Paddle",
-            # }
-            pass
+        if response.status_code not in [200,201]:
+            # log.error( f"Paddle cancel failed: " f"{response.status_code} " f"{response.text}" ) 
+            raise HTTPException( status_code=response.status_code, detail="Failed to cancel subscription", )
         else:
-            raise HTTPException(status_code=response.status_code, detail=response.text)
+            return JSONResponse( 
+                status_code=200, 
+                content={ 
+                    "success": True, 
+                    "message": ( 
+                        "Subscription cancellation scheduled " 
+                        "for the end of the billing period." 
+                    ), 
+                }, 
+            )
 
     except Exception as e:
         print(f"❌ Error canceling subscription: {e}")
@@ -142,15 +146,5 @@ async def manage_subs(
         raise HTTPException(status_code=400, detail="Invalid Paddle webhook signature")
     payload = json.loads(raw.decode("utf-8"))
     event_type = payload.get("event_type")
-    try:
-        match event_type:
-            case "subscription.activated":
-                await activate_subscription(payload, db)
-            case "subscription.canceled":
-                await cancel_subscription(payload, db)
-                print("🛑 Subscription canceled")
-            case _:
-                print("do not know what to do")
-    except Exception as e:
-        return JSONResponse(status_code=500, content=f"Something went wrong {e}")
+    await handle_paddle_webhook(event_type,payload,db)
     return JSONResponse({"ok": True}, status_code=200)
