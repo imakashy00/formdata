@@ -1,3 +1,7 @@
+from typing import Optional
+
+from pydantic import BaseModel, ValidationError
+
 from app.models.user import Subscription, User
 from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -6,6 +10,7 @@ from loguru import logger as log
 import httpx
 
 from app.core.settings import settings
+from app.routes import subscription
 from app.schemas.user import SubscriptionStatus
 
 headers = {
@@ -13,33 +18,42 @@ headers = {
     "Accept": "application/json",
 }
 
+class PaddleCustomerDetails(BaseModel):
+    email: Optional[str] = None
+
+class PaddleCustomerResponse(BaseModel):
+    data: Optional[PaddleCustomerDetails] = None
 
 # =========================================================
 # HELPERS
 # =========================================================
 
-async def get_customer_email(customer_id: str):
-    """
-    TODO:
-    - Call Paddle customer API using customer_id
-    - Extract customer email from response
-    - Return email string
-    - Return None if request fails
-    """
-
+async def get_customer_email(customer_id: str)-> str| None:
     try:
         async with httpx.AsyncClient() as client:
             response = await client.get(
                 f"{settings.PADDLE_BASE_URL}/customers/{customer_id}",
                 headers=headers
             )
+            # https own module to check for response status and throw error
+            response.raise_for_status() 
 
-            data = response.json()
+            payload = PaddleCustomerResponse.model_validate(response.json())
+            if payload.data:
+                return payload.data.email
+            return None
 
-            return data.get("data", {}).get("email")
-
+    except httpx.HTTPStatusError as e:
+        log.error(f"❌ Paddle API error ({e.response.status_code}): {e.response.text}")
+        return None
+    except httpx.RequestError as e:
+        log.error(f"❌ Paddle network/timeout error: {e}")
+        return None
+    except ValidationError as e:
+        log.error(f"❌ Paddle data validation failed: {e.json()}")
+        return None
     except Exception as e:
-        log.error(f"❌ Error from paddle: {e}")
+        log.error(f"❌ Unexpected error fetching Paddle customer: {e}")
         return None
 
 
@@ -47,58 +61,69 @@ async def get_user_by_customer_id(
     customer_id: str,
     db: AsyncSession
 ):
-    """
-    TODO:
-    - Get customer email from Paddle
-    - Query User table using email
-    - Raise error if user not found
-    - Return user object
-    """
+    try:
+        user_email = await get_customer_email(customer_id)
+        if not user_email: 
+            return None
 
-    pass
+        query_result = await db.execute(select(User).where(User.email == user_email))
+        return query_result.scalars().first()
+    except Exception as e:
+        log.error(f"Error finding user by Paddle customer id {customer_id}: {e} ")
+        return None
+
+
 
 
 async def get_subscription_by_user_id(
     user_id: str,
     db: AsyncSession
 ):
-    """
-    TODO:
-    - Query Subscription table using user_id
-    - Return subscription row
-    - Return None if subscription not found
-    """
 
-    pass
+    try:
+        query_result = await db.execute(select(Subscription).where(Subscription.user_id == user_id))
+        return query_result.scalars().first()
+    except Exception as e:
+        log.error(f"Error finding Subscription by user id {user_id}: {e} ")
+        return None
 
 
 def extract_subscription_data(payload: dict):
-    """
-    TODO:
-    - Extract reusable fields from Paddle webhook payload
 
-    Suggested fields:
-    - subscription_id
-    - customer_id
-    - status
-    - price_id
-    - plan_interval
-    - current_period_start
-    - current_period_end
+    subscription_data = payload.get("data",{}) or {}
+    subscription_id = subscription_data.get("id")
+    customer_id = subscription_data.get("customer_id")        
+    status = subscription_data.get("status")
+    items = subscription_data.get("items") or []
+    first_item = items[0] if items else {}
+    price_id = first_item.get("price",{}).get("id")
+    
+    billing_cycle = first_item.get("billling_cycle") or {}
+    interval = billing_cycle.get("interval")
+    current_billing_period = subscription_data.get("current_billing_period") or {}
 
-    IMPORTANT:
-    - Handle missing nested keys safely
-    - items can be empty
-    - billing_cycle can be None
-    - current_billing_period can be None
+    def parse_dt(value):
+        if not value:
+            return None
+        if isinstance(value, datetime):
+            return value
+        try:
+            return datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except Exception:
+            return None
 
-    Return:
-    {
-        ...
+
+    return {
+        "subscription_id": subscription_id,
+        "customer_id": customer_id,
+        "status": status,
+        "price_id": price_id,
+        "plan_interval": interval,
+        "current_period_start": parse_dt(current_billing_period.get("starts_at")),
+        "current_period_end": parse_dt(current_billing_period.get("ends_at")),
+        "cancel_at": parse_dt(subscription_data.get("scheduled_change", {}).get("effective_at")),
+        "canceled_at": parse_dt(subscription_data.get("canceled_at")),
     }
-    """
-
-    pass
 
 
 # =========================================================
