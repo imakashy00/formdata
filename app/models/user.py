@@ -76,7 +76,7 @@ class Subscription(Base):
     )
     # Status (align with Paddle statuses you map in webhooks)
     status: Mapped[str] = mapped_column(
-        String(30), default=SubscriptionStatus.TRIAL
+        String(30), default=SubscriptionStatus.TRIAL, nullable= False
     )  # trial | active | canceled
 
     trial_end: Mapped[datetime] = mapped_column(
@@ -116,11 +116,11 @@ class Subscription(Base):
         now = datetime.now(timezone.utc)
 
         # 1️⃣ Trial period — valid until trial_end
-        if self.status == SubscriptionStatus.TRIAL:
+        if self.status == SubscriptionStatus.TRIAL.value:
             return self.trial_end and now < self.trial_end
 
         # 2️⃣ Active subscription — valid until the end of the billing period
-        if self.status == SubscriptionStatus.ACTIVE:
+        if self.status == SubscriptionStatus.ACTIVE.value:
             # If current_period_end is known, enforce it
             if self.current_period_end:
                 return now < self.current_period_end
@@ -128,7 +128,7 @@ class Subscription(Base):
             return True
 
         # 3️⃣ Canceled subscription — access until cancel_at (end of billing period)
-        if self.status == SubscriptionStatus.CANCELED and self.cancel_at:
+        if self.status == SubscriptionStatus.CANCELED.value and self.cancel_at:
             return now < self.cancel_at
 
         # ❌ Otherwise, access revoked

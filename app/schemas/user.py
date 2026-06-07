@@ -1,5 +1,6 @@
 from pydantic import BaseModel, EmailStr, Field
-from sqlalchemy import Enum
+# from sqlalchemy import Enum
+from enum import Enum
 
 
 class RegisterUser(BaseModel):
@@ -18,4 +19,6 @@ class DBUser(BaseModel):
 class SubscriptionStatus(Enum):
     TRIAL = "trial"
     ACTIVE = "active"
-    CANCELED = "canceled"
+    CANCELED = "canceled"        
+
+
