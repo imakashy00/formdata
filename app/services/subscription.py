@@ -1,10 +1,7 @@
 from datetime import datetime, timezone
-from typing import Optional
 from fastapi import status as FastApiStatus
 from fastapi import HTTPException
-import httpx
 from loguru import logger as log
-from pydantic import BaseModel, ValidationError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -18,45 +15,29 @@ headers = {
 }
 
 
-class PaddleCustomerDetails(BaseModel):
-    email: Optional[str] = None
-
-
-class PaddleCustomerResponse(BaseModel):
-    data: Optional[PaddleCustomerDetails] = None
-
-
 # =========================================================
 # HELPERS
 # =========================================================
 
 
-async def get_customer_email(customer_id: str) -> str | None:
-    try:
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                f"{settings.PADDLE_BASE_URL}/customers/{customer_id}", headers=headers
-            )
-            # https own module to check for response status and throw error
-            response.raise_for_status()
+def map_status(
+    paddle_status: str | None,
+) -> SubscriptionStatus:
 
-            payload = PaddleCustomerResponse.model_validate(response.json())
-            if payload.data:
-                return payload.data.email
-            return None
-
-    except httpx.HTTPStatusError as e:
-        log.error(f"❌ Paddle API error ({e.response.status_code}): {e.response.text}")
-        return None
-    except httpx.RequestError as e:
-        log.error(f"❌ Paddle network/timeout error: {e}")
-        return None
-    except ValidationError as e:
-        log.error(f"❌ Paddle data validation failed: {e.json()}")
-        return None
-    except Exception as e:
-        log.error(f"❌ Unexpected error fetching Paddle customer: {e}")
-        return None
+    if not paddle_status:
+        return SubscriptionStatus.TRIAL
+    paddle_status = paddle_status.lower()
+    if paddle_status == "trialing":
+        return SubscriptionStatus.TRIAL
+    if paddle_status == "active":
+        return SubscriptionStatus.ACTIVE
+    if paddle_status == "paused":
+        return SubscriptionStatus.PAUSED
+    if paddle_status == "canceled":
+        return SubscriptionStatus.CANCELED
+    if paddle_status == "past_due":
+        return SubscriptionStatus.PAST_DUE
+    return SubscriptionStatus.TRIAL
 
 
 async def get_user_by_id(user_id: str, db: AsyncSession):
@@ -89,7 +70,7 @@ def extract_subscription_data(payload: dict):
     first_item = items[0] if items else {}
     price_id = first_item.get("price", {}).get("id")
 
-    billing_cycle = payload.get("billling_cycle") or {}
+    billing_cycle = payload.get("billing_cycle") or {}
     interval = billing_cycle.get("interval")
     current_billing_period = payload.get("current_billing_period") or {}
     scheduled_change = payload.get("scheduled_change", {})
@@ -127,6 +108,7 @@ def extract_subscription_data(payload: dict):
 # =========================================================
 
 
+# =========================== Subscription Created or Activated ============================== #
 async def handle_subscription_activated(payload: dict, db: AsyncSession):
 
     # Extract values from the incoming Paddle payload
@@ -207,8 +189,8 @@ async def handle_subscription_activated(payload: dict, db: AsyncSession):
             subscription.current_period_end = (
                 current_period_end or subscription.current_period_end
             )
-            subscription.cancel_at = cancel_at or subscription.cancel_at
-            subscription.canceled_at = canceled_at or subscription.canceled_at
+            subscription.cancel_at = cancel_at
+            subscription.canceled_at = canceled_at
             subscription.updated_at = now
 
             try:
@@ -263,6 +245,7 @@ async def handle_subscription_activated(payload: dict, db: AsyncSession):
         return None
 
 
+# =========================== Subscription Updated ============================== #
 async def handle_subscription_updated(
     payload: dict,
     db: AsyncSession,
@@ -310,38 +293,6 @@ async def handle_subscription_updated(
             )
 
             subscription = result.scalar_one_or_none()
-
-        def map_status(
-            paddle_status: str | None,
-        ) -> SubscriptionStatus:
-
-            if not paddle_status:
-                return SubscriptionStatus.TRIAL
-
-            paddle_status = paddle_status.lower()
-
-            if paddle_status in (
-                "trial",
-                "trialing",
-            ):
-                return SubscriptionStatus.TRIAL
-
-            if paddle_status in (
-                "active",
-                "activated",
-            ):
-                return SubscriptionStatus.ACTIVE
-
-            if paddle_status in (
-                "canceled",
-                "cancelled",
-            ):
-                return SubscriptionStatus.CANCELED
-
-            # if paddle_status == "past_due":
-            #     return SubscriptionStatus.PAST_DUE
-
-            return SubscriptionStatus.TRIAL
 
         status_enum = map_status(status)
 
@@ -413,6 +364,9 @@ async def handle_subscription_updated(
         return None
 
 
+# =========================== Subscription Cancelled ============================== #
+
+
 async def handle_subscription_canceled(
     payload: dict,
     db: AsyncSession,
@@ -460,13 +414,11 @@ async def handle_subscription_canceled(
             return None
 
         now = datetime.now(timezone.utc)
-
         subscription.status = SubscriptionStatus.CANCELED.value
 
         # Access remains valid until period end
-        subscription.cancel_at = cancel_at or now
-
-        subscription.canceled_at = cancel_at or now
+        subscription.cancel_at = cancel_at
+        subscription.canceled_at = cancel_at
         subscription.updated_at = now
 
         try:
@@ -493,29 +445,33 @@ async def handle_subscription_canceled(
         return None
 
 
+# =========================== Payment Failed ============================== #
+
+
 async def handle_payment_failed(
     payload: dict,
     db: AsyncSession,
 ):
-    subscription_data = payload.get("data", {})
-
-    subscription_id = subscription_data.get("subscription_id")
+    subscription_id = payload.get("id") 
+    if str(subscription_id).startswith('txn'):
+        subscription_id = payload.get("subscription_id")
 
     try:
         if not subscription_id:
-            log.warning("payment_failed missing subscription_id")
+            log.warning("Payment_failed missing subscription_id")
             return None
 
         result = await db.execute(
             select(Subscription).where(Subscription.subscription_id == subscription_id)
         )
 
-        subscription = result.scalars().first()
+        subscription = result.scalar_one_or_none()
 
         if not subscription:
             log.warning(f"No subscription found for payment failure {subscription_id}")
             return None
 
+        subscription.status = SubscriptionStatus.PAST_DUE.value
         subscription.updated_at = datetime.now(timezone.utc)
 
         try:
@@ -527,7 +483,7 @@ async def handle_payment_failed(
 
             return None
 
-        log.warning(f"Payment failed for subscription {subscription.subscription_id}")
+        log.warning(f"Subscription {subscription.subscription_id} successfully marked PAST_DUE due to a bounced invoice payment.")
 
         return subscription
 
@@ -574,17 +530,8 @@ async def handle_paddle_webhook(
                     db,
                 )
 
-            case "subscription.past_due":
-                return await handle_payment_failed(
-                    payload,
-                    db,
-                )
-
-            case "transaction.payment_failed":
-                return await handle_payment_failed(
-                    payload,
-                    db,
-                )
+            case "subscription.past_due" | "transaction.payment_failed":
+                return await handle_payment_failed(payload, db)
 
             case _:
                 log.warning(f"Unhandled Paddle webhook: {event_type}")

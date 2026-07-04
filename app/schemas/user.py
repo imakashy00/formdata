@@ -19,6 +19,8 @@ class DBUser(BaseModel):
 class SubscriptionStatus(Enum):
     TRIAL = "trial"
     ACTIVE = "active"
-    CANCELED = "canceled"        
+    PAUSED = "paused"
+    CANCELED = "canceled"
+    PAST_DUE = "past_due"        
 
 
