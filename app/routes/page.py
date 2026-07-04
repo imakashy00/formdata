@@ -21,7 +21,7 @@ async def home(request: Request, db: AsyncSession = Depends(get_db)):
     # user_data = getattr(request.state, "user", None)
     access_token = request.cookies.get("access_token")
     if not access_token:
-        return temp.TemplateResponse(request,"index.html")
+        return temp.TemplateResponse(request, "index.html")
 
     payload = await AuthService.validate_access(access_token)
 
@@ -29,12 +29,12 @@ async def home(request: Request, db: AsyncSession = Depends(get_db)):
     user_db = result.scalars().first()
 
     if not user_db:
-        return temp.TemplateResponse(request,"index.html")
+        return temp.TemplateResponse(request, "index.html")
 
     return temp.TemplateResponse(
         request,
         "home.html",
-        { "email": user_db.email, "name": user_db.name},
+        {"email": user_db.email, "name": user_db.name, "user_id": user_db.id},
     )
 
 
@@ -50,10 +50,15 @@ def robots_txt():
 
 @page_router.get("/help", response_class=HTMLResponse)
 async def help_page(
-    request: Request, user: DBUser = Depends(current_user), db: AsyncSession = Depends(get_db)
+    request: Request,
+    user: DBUser = Depends(current_user),
+    db: AsyncSession = Depends(get_db),
 ):
     log.info("Help page sending")
-    return temp.TemplateResponse(request,"help.html", )
+    return temp.TemplateResponse(
+        request,
+        "help.html",
+    )
 
 
 @page_router.get("/blogs", response_class=HTMLResponse)
@@ -69,13 +74,13 @@ async def blog(req: Request, blog_id: str):
 @page_router.get("/privacy-policy", response_class=HTMLResponse)
 async def privacy_policy(request: Request):
     """Privacy Policy page"""
-    return temp.TemplateResponse(request,"privacy.html")
+    return temp.TemplateResponse(request, "privacy.html")
 
 
 @page_router.get("/terms", response_class=HTMLResponse)
 async def terms_and_conditions(request: Request):
     """Terms and Conditions page"""
-    return temp.TemplateResponse(request,"terms.html")
+    return temp.TemplateResponse(request, "terms.html")
 
 
 @page_router.get("/sitemap.xml", include_in_schema=False)

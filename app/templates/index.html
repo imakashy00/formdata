@@ -3,980 +3,456 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Formdata — AI Notes from YouTube</title>
+    <title>Formdata — Form Backend for Developers</title>
 
-    <!-- Tailwind CDN (plays nice for prototypes) -->
     <script src="https://cdn.tailwindcss.com"></script>
-
-    <!-- Alpine.js for interactivity -->
-    <script
-      defer
-      src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"
-    ></script>
-
-    <!-- htmx for progressive enhancement (Sign-in demo hooks) -->
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://unpkg.com/htmx.org@1.9.2"></script>
-    <!-- <link rel="icon" type="image/svg+xml" href="{{ url_for('static', path='favicon.svg') }}"> -->
-
 
     <style>
-      /* tiny polished touches */
-      .container {
-        max-width: 1100px;
-        margin-left: auto;
-        margin-right: auto;
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+      :root {
+        --red: #dc2626;
+        --red-dark: #b91c1c;
+        --red-light: #fef2f2;
+        --red-mid: #fee2e2;
       }
+
+      * { font-family: 'Inter', sans-serif; }
+      .mono { font-family: 'JetBrains Mono', monospace; }
+
+      .container { max-width: 1100px; margin-left: auto; margin-right: auto; }
+
+      .code-block {
+        background: #0f172a;
+        border-radius: 10px;
+        padding: 1.5rem;
+        color: #e2e8f0;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 0.82rem;
+        line-height: 1.7;
+        overflow-x: auto;
+      }
+
+      .code-block .comment { color: #64748b; }
+      .code-block .keyword { color: #f472b6; }
+      .code-block .string { color: #86efac; }
+      .code-block .attr { color: #93c5fd; }
+
+      .gradient-hero {
+        background: linear-gradient(135deg, #fff 60%, #fef2f2 100%);
+      }
+
+      .badge {
+        display: inline-block;
+        background: var(--red-mid);
+        color: var(--red-dark);
+        font-size: 0.72rem;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        padding: 0.25rem 0.75rem;
+        border-radius: 999px;
+      }
+
+      /* Animated endpoint pill */
+      @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+      .live-dot { animation: blink 1.8s ease-in-out infinite; }
     </style>
   </head>
   <body class="antialiased bg-gray-50 text-gray-800">
-    <!-- wrapper -->
-    <div class="md:p-5 h-auto sm:space-y-10 w-full flex flex-col">
-      <!-- NAVBAR -->
-      <header
-        class="w-full sticky top-0 bg-white z-50 shadow-sm flex justify-between items-center md:px-5 py-3 rounded-md"
-      >
-        <div class="flex items-center gap-3">
-          <img
-            src="{{ url_for('static', path='ytnote.png') }}"
-            alt="Formdata"
-            class="md:w-8 md:h-8 w-6 h-6 rounded-sm"
-          />
-          <span class="md:text-2xl text-gray-800 font-sans font-bold"
-            >Formdata</span
-          >
-        </div>
+    <div class="flex flex-col min-h-screen">
 
-        <nav class="hidden md:flex items-center gap-8">
-          <button
-            class="text-gray-700 hover:text-[#5d3fd3] transition-colors"
-            onclick="document.getElementById('features').scrollIntoView({behavior:'smooth'})"
-          >
-            Features
-          </button>
-          <button
-            class="text-gray-700 hover:text-[#5d3fd3] transition-colors"
-            onclick="document.getElementById('pricing').scrollIntoView({behavior:'smooth'})"
-          >
-            Pricing
-          </button>
-        </nav>
-
-        <div class="flex items-center gap-3">
-          <!-- Sign-in button uses htmx as a placeholder to post to /signin -->
-          <form action="/auth" method="post">
-            <button
-              class="bg-gray-100 hover:bg-gray-200 px-4 w-28 py-2 rounded-lg flex gap-2"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                x="0px"
-                y="0px"
-                width="20"
-                height="20"
-                viewBox="0 0 48 48"
-              >
-                <path
-                  fill="#fbc02d"
-                  d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12	s5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24s8.955,20,20,20	s20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"
-                ></path>
-                <path
-                  fill="#e53935"
-                  d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039	l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"
-                ></path>
-                <path
-                  fill="#4caf50"
-                  d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36	c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"
-                ></path>
-                <path
-                  fill="#1565c0"
-                  d="M43.611,20.083L43.595,20L42,20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571	c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"
-                ></path>
+      <!-- ── NAVBAR ── -->
+      <header class="w-full sticky top-0 bg-white z-50 border-b border-gray-100 shadow-sm">
+        <div class="container px-4 md:px-6 flex justify-between items-center py-3">
+          <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-md flex items-center justify-center" style="background:var(--red)">
+              <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-3-3v6M3 7l2 13h14l2-13H3z"/>
               </svg>
-              <span>Sign in</span>
-            </button>
-          </form>
+            </div>
+            <span class="text-xl font-bold text-gray-900">Formdata</span>
+          </div>
 
-          <!-- mobile menu -->
-          <div class="md:hidden" x-data="{ sidebaropen:false }">
-            <button @click="sidebaropen=!sidebaropen" class="p-2 rounded-md bg-gray-100">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class="h-5 w-5 text-gray-700"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M4 6h16M4 12h16M4 18h16"
-                />
-              </svg>
-            </button>
+          <nav class="hidden md:flex items-center gap-8">
+            <button class="text-sm text-gray-600 hover:text-red-600 transition-colors" onclick="document.getElementById('how-it-works').scrollIntoView({behavior:'smooth'})">How it works</button>
+            <button class="text-sm text-gray-600 hover:text-red-600 transition-colors" onclick="document.getElementById('features').scrollIntoView({behavior:'smooth'})">Features</button>
+            <button class="text-sm text-gray-600 hover:text-red-600 transition-colors" onclick="document.getElementById('pricing').scrollIntoView({behavior:'smooth'})">Pricing</button>
+          </nav>
 
-            <div
-              x-show="sidebaropen"
-              @click.outside="sidebaropen=false"
-              x-transition
-              class="absolute right-4 mt-2 w-40 bg-white shadow-md rounded-md py-2"
-            >
-              <button
-                class="w-full text-left px-4 py-2 hover:bg-gray-50"
-                onclick="document.getElementById('features').scrollIntoView({behavior:'smooth'})"
-              >
-                Features
+          <div class="flex items-center gap-3">
+            <form action="/auth" method="post">
+              <button class="hidden md:flex items-center gap-2 text-sm text-gray-700 border border-gray-200 hover:border-red-300 px-4 py-2 rounded-lg transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 48 48">
+                  <path fill="#fbc02d" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12s5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24s8.955,20,20,20s20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/>
+                  <path fill="#e53935" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"/>
+                  <path fill="#4caf50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"/>
+                  <path fill="#1565c0" d="M43.611,20.083L43.595,20L42,20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"/>
+                </svg>
+                Sign in
               </button>
-              <button
-                class="w-full text-left px-4 py-2 hover:bg-gray-50"
-                onclick="document.getElementById('pricing').scrollIntoView({behavior:'smooth'})"
-              >
-                Pricing
+            </form>
+
+            <!-- mobile menu -->
+            <div class="md:hidden" x-data="{ open: false }">
+              <button @click="open=!open" class="p-2 rounded-md bg-gray-100">
+                <svg class="h-5 w-5 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                </svg>
               </button>
-              <form action="/auth" method="post">
-                <button class="w-full text-left px-4 py-2 hover:bg-gray-50">
-                  SignIn
-                </button>
-              </form>
+              <div x-show="open" @click.outside="open=false" x-transition class="absolute right-4 mt-2 w-44 bg-white shadow-lg rounded-lg py-2 border border-gray-100">
+                <button class="w-full text-left text-sm px-4 py-2 hover:bg-gray-50" onclick="document.getElementById('how-it-works').scrollIntoView({behavior:'smooth'})">How it works</button>
+                <button class="w-full text-left text-sm px-4 py-2 hover:bg-gray-50" onclick="document.getElementById('features').scrollIntoView({behavior:'smooth'})">Features</button>
+                <button class="w-full text-left text-sm px-4 py-2 hover:bg-gray-50" onclick="document.getElementById('pricing').scrollIntoView({behavior:'smooth'})">Pricing</button>
+                <div class="border-t border-gray-100 mt-1 pt-1">
+                  <form action="/auth" method="post"><button class="w-full text-left text-sm px-4 py-2 hover:bg-gray-50">Sign in</button></form>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </header>
 
-      <!-- HERO -->
-      <section
-        class="flex flex-col md:flex-row items-center py-20 md:px-5 px-4 gap-8"
-      >
-        <div class="flex flex-col max-w-2xl">
-          <span class="text-sm font-semibold tracking-wider text-[#5d3fd3] mb-2"
-            >Your note-taking assistant ✍️</span
-          >
-          <h1 class="text-4xl md:text-6xl font-bold text-gray-800 mb-6">
-            Get Structured Notes from YouTube URL
-          </h1>
-          <p class="md:text-xl text-gray-600 mb-6 md:w-2/3">
-            Save hours with AI-powered note-taking that automatically generates
-            structured notes, organizes them in folders, and lets you edit
-            anytime.
-          </p>
-
-          <div class="flex gap-4 items-start">
-            <div>
-              <button
-                hx-post="/auth"
-                class="bg-[#5d3fd3] text-white px-5 py-3 rounded-md shadow"
-              >
-                Start 15 days Free Trial
+      <!-- ── HERO ── -->
+      <section class="gradient-hero py-20 md:py-28 px-4">
+        <div class="container md:px-6 flex flex-col md:flex-row items-center gap-12">
+          <div class="flex-1 max-w-xl">
+            <span class="badge mb-4">Form backend for developers</span>
+            <h1 class="text-4xl md:text-5xl font-extrabold text-gray-900 leading-tight mb-5">
+              Add forms to any site.<br/>
+              <span style="color:var(--red)">No backend needed.</span>
+            </h1>
+            <p class="text-lg text-gray-500 mb-8 leading-relaxed">
+              Point your HTML form at a Formdata endpoint and get submissions straight to your inbox — with spam filtering, file uploads, Slack alerts, and a full dashboard.
+            </p>
+            <div class="flex flex-col sm:flex-row gap-3">
+              <button hx-post="/auth" class="text-white font-semibold px-6 py-3 rounded-lg shadow-sm text-sm" style="background:var(--red)">
+                Start for free — no credit card
               </button>
-              <p class="text-xs text-gray-500 mt-1 text-center">
-                No credit card required
-              </p>
+              <button class="border border-gray-300 text-gray-700 hover:border-red-300 font-medium px-6 py-3 rounded-lg text-sm" onclick="document.getElementById('how-it-works').scrollIntoView({behavior:'smooth'})">
+                See how it works
+              </button>
             </div>
-            <button
-              class="border border-[#5d3fd3] text-[#5d3fd3] hover:bg-[#5d3fd318] px-4 py-3 rounded-md"
-              onclick="document.getElementById('working').scrollIntoView({behavior:'smooth'})"
-            >
-              See How It Works
-            </button>
-          </div>
-        </div>
-
-        <!-- Visual demo placeholder -->
-        <div
-          class="w-full md:w-auto bg-white rounded-lg p-4 shadow-sm border border-gray-200"
-        >
-          <div
-            class="w-[340px] h-[220px] md:w-[460px] md:h-[300px] bg-gray-100 rounded-md flex items-center justify-center"
-          >
-            <div class="text-center text-gray-500">
-              Visual demo (replace with image / iframe)
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- FEATURES -->
-      <section id="features" class="py-10 bg-white">
-        <div class="container px-4">
-          <div class="text-center mb-16 max-w-3xl mx-auto">
-            <h2 class="text-3xl md:text-4xl font-bold mb-4">
-              Why Choose Formdata?
-            </h2>
-            <p class="text-lg text-gray-600">
-              AI-powered Formdata transforms how you learn from YouTube videos,
-              helping you save time and retain more information.
-            </p>
+            <p class="text-xs text-gray-400 mt-3">Free tier: 50 submissions/month · no time limit</p>
           </div>
 
-          <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <!-- Feature cards -->
-            <div
-              class="bg-white p-6 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow"
-            >
-              <div
-                class="w-12 h-12 bg-[#5d3fd3] bg-opacity-10 rounded-full flex items-center justify-center mb-5"
-              >
-                <!-- icon -->
-                <svg
-                  class="h-6 w-6 text-[#5d3fd3]"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M12 8v4l3 3"
-                  />
-                </svg>
+          <!-- Code demo -->
+          <div class="flex-1 w-full max-w-lg">
+            <div class="code-block shadow-xl">
+              <div class="flex items-center gap-2 mb-4">
+                <span class="w-3 h-3 rounded-full bg-red-400"></span>
+                <span class="w-3 h-3 rounded-full bg-yellow-400"></span>
+                <span class="w-3 h-3 rounded-full bg-green-400"></span>
+                <span class="ml-3 text-xs text-slate-500">contact.html</span>
               </div>
-              <h3 class="text-xl font-semibold mb-3">Save Hours of Time</h3>
-              <p class="text-gray-600">
-                Stop taking notes from videos manually. Formdata creates
-                comprehensive notes in seconds, letting you focus on learning.
-              </p>
+              <span class="comment">&lt;!-- That's literally it 👇 --&gt;</span><br/>
+              <span class="keyword">&lt;form</span> <span class="attr">action</span>=<span class="string">"https://formdata.co/f/your-id"</span><br/>
+              &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="attr">method</span>=<span class="string">"POST"</span><span class="keyword">&gt;</span><br/>
+              <br/>
+              &nbsp;&nbsp;<span class="keyword">&lt;input</span> <span class="attr">type</span>=<span class="string">"text"</span> <span class="attr">name</span>=<span class="string">"name"</span><span class="keyword">/&gt;</span><br/>
+              &nbsp;&nbsp;<span class="keyword">&lt;input</span> <span class="attr">type</span>=<span class="string">"email"</span> <span class="attr">name</span>=<span class="string">"email"</span><span class="keyword">/&gt;</span><br/>
+              &nbsp;&nbsp;<span class="keyword">&lt;textarea</span> <span class="attr">name</span>=<span class="string">"message"</span><span class="keyword">&gt;&lt;/textarea&gt;</span><br/>
+              <br/>
+              &nbsp;&nbsp;<span class="keyword">&lt;button</span> <span class="attr">type</span>=<span class="string">"submit"</span><span class="keyword">&gt;</span>Send<span class="keyword">&lt;/button&gt;</span><br/>
+              <span class="keyword">&lt;/form&gt;</span>
             </div>
-
-            <div
-              class="bg-white p-6 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow"
-            >
-              <div
-                class="w-12 h-12 bg-[#5d3fd3] bg-opacity-10 rounded-full flex items-center justify-center mb-5"
-              >
-                <svg
-                  class="h-6 w-6 text-[#5d3fd3]"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V7"
-                  />
-                </svg>
-              </div>
-              <h3 class="text-xl font-semibold mb-3">Stay Organized</h3>
-              <p class="text-gray-600">
-                Keep all your video notes neatly organized in folders. Create
-                your personal knowledge library that grows as you learn.
-              </p>
-            </div>
-
-            <div
-              class="bg-white p-6 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow"
-            >
-              <div
-                class="w-12 h-12 bg-[#5d3fd3] bg-opacity-10 rounded-full flex items-center justify-center mb-5"
-              >
-                <svg
-                  class="h-6 w-6 text-[#5d3fd3]"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M8 10h.01M12 10h.01M16 10h.01M21 12.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 11-3.1-11.6"
-                  />
-                </svg>
-              </div>
-              <h3 class="text-xl font-semibold mb-3">AI Video Chatbot</h3>
-              <p class="text-gray-600">
-                Ask questions about the video and get instant answers from our
-                AI chatbot — clear doubts without rewatching.
-              </p>
-            </div>
-
-            <div
-              class="bg-white p-6 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow"
-            >
-              <div
-                class="w-12 h-12 bg-[#5d3fd3] bg-opacity-10 rounded-full flex items-center justify-center mb-5"
-              >
-                <svg
-                  class="h-6 w-6 text-[#5d3fd3]"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M11 5h6M11 9h6M7 5v14a2 2 0 002 2h6"
-                  />
-                </svg>
-              </div>
-              <h3 class="text-xl font-semibold mb-3">Edit Anytime</h3>
-              <p class="text-gray-600">
-                Formdata' rich text editor lets you customize and enhance your
-                notes. Add your own insights or reorganize content.
-              </p>
-            </div>
-
-            <div
-              class="bg-white p-6 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow"
-            >
-              <div
-                class="w-12 h-12 bg-[#5d3fd3] bg-opacity-10 rounded-full flex items-center justify-center mb-5"
-              >
-                <svg
-                  class="h-6 w-6 text-[#5d3fd3]"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M12 8c1.657 0 3 .895 3 2v1a3 3 0 11-6 0V10c0-1.105 1.343-2 3-2z"
-                  />
-                </svg>
-              </div>
-              <h3 class="text-xl font-semibold mb-3">AI-Powered Insights</h3>
-              <p class="text-gray-600">
-                Our AI structures information into organized, easy-to-understand
-                notes with key concepts highlighted.
-              </p>
-            </div>
-
-            <div
-              class="bg-white p-6 rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow"
-            >
-              <div
-                class="w-12 h-12 bg-[#5d3fd3] bg-opacity-10 rounded-full flex items-center justify-center mb-5"
-              >
-                <svg
-                  class="h-6 w-6 text-[#5d3fd3]"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M9 12l2 2 4-4"
-                  />
-                </svg>
-              </div>
-              <h3 class="text-xl font-semibold mb-3">
-                Better Learning Retention
-              </h3>
-              <p class="text-gray-600">
-                Structured notes improve retention — learn more effectively with
-                our organized note format.
-              </p>
+            <div class="mt-3 flex items-center gap-2 text-xs text-gray-500 px-1">
+              <span class="live-dot w-2 h-2 rounded-full bg-green-500 inline-block"></span>
+              Submissions arrive in your dashboard instantly
             </div>
           </div>
         </div>
       </section>
 
-      <!-- FAQ (Alpine accordion) -->
-      <section id="faq" class="py-16 bg-white">
-        <div class="container px-4 max-w-3xl mx-auto">
-          <div class="text-center mb-8">
-            <h2 class="text-3xl md:text-4xl font-bold mb-4">
-              Frequently Asked Questions
-            </h2>
-            <p class="text-lg text-gray-600">
-              Find answers to common questions about Formdata
-            </p>
+      <!-- ── HOW IT WORKS ── -->
+      <section id="how-it-works" class="py-20 bg-white px-4">
+        <div class="container md:px-6">
+          <div class="text-center mb-14">
+            <span class="badge mb-3">Dead simple setup</span>
+            <h2 class="text-3xl md:text-4xl font-bold">Up and running in 60 seconds</h2>
           </div>
 
-          <div class="space-y-6">
-            <!-- Category: About Formdata -->
-            <div>
-              <h3 class="text-xl font-semibold mb-4">About Formdata</h3>
-
-              <div x-data="{sidebaropen:null}" class="space-y-2">
-                <div
-                  class="border border-[#5d3fd3]/20 rounded-lg overflow-hidden"
-                >
-                  <button
-                    @click="sidebaropen === 1 ? sidebaropen = null : sidebaropen = 1"
-                    class="w-full flex justify-between items-center p-4 text-left bg-white hover:bg-gray-50 transition-colors"
-                  >
-                    <span class="font-medium text-gray-900"
-                      >What is Formdata?</span
-                    >
-                    <svg
-                      :class="sidebaropen === 1 ? 'rotate-180' : ''"
-                      class="w-5 h-5 text-[#5d3fd3]/50 transition-transform"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M19 9l-7 7-7-7"
-                      />
-                    </svg>
-                  </button>
-                  <div
-                    x-show="sidebaropen === 1"
-                    x-collapse
-                    class="p-4 bg-gray-50 border-t border-[#5d3fd3]/20"
-                  >
-                    <p class="text-gray-700">
-                      Formdata is an AI-powered tool that automatically converts
-                      YouTube videos into structured, well-organized notes.
-                    </p>
-                  </div>
-                </div>
-
-                <div
-                  class="border border-[#5d3fd3]/20 rounded-lg overflow-hidden"
-                >
-                  <button
-                    @click="sidebaropen === 2 ? sidebaropen = null : sidebaropen = 2"
-                    class="w-full flex justify-between items-center p-4 text-left bg-white hover:bg-gray-50 transition-colors"
-                  >
-                    <span class="font-medium text-gray-900"
-                      >How does Formdata work?</span
-                    >
-                    <svg
-                      :class="sidebaropen === 2 ? 'rotate-180' : ''"
-                      class="w-5 h-5 text-[#5d3fd3]/50 transition-transform"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M19 9l-7 7-7-7"
-                      />
-                    </svg>
-                  </button>
-                  <div
-                    x-show="sidebaropen === 2"
-                    x-collapse
-                    class="p-4 bg-gray-50 border-t border-[#5d3fd3]/20"
-                  >
-                    <p class="text-gray-700">
-                      Paste a YouTube URL and our AI analyses the video to
-                      generate comprehensive, structured notes with headings and
-                      bullet points.
-                    </p>
-                  </div>
-                </div>
-
-                <div
-                  class="border border-[#5d3fd3]/20 rounded-lg overflow-hidden"
-                >
-                  <button
-                    @click="sidebaropen === 3 ? sidebaropen = null : sidebaropen = 3"
-                    class="w-full flex justify-between items-center p-4 text-left bg-white hover:bg-gray-50 transition-colors"
-                  >
-                    <span class="font-medium text-gray-900"
-                      >What types of videos work best?</span
-                    >
-                    <svg
-                      :class="sidebaropen === 3 ? 'rotate-180' : ''"
-                      class="w-5 h-5 text-[#5d3fd3]/50 transition-transform"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M19 9l-7 7-7-7"
-                      />
-                    </svg>
-                  </button>
-                  <div
-                    x-show="sidebaropen === 3"
-                    x-collapse
-                    class="p-4 bg-gray-50 border-t border-[#5d3fd3]/20"
-                  >
-                    <p class="text-gray-700">
-                      Works best with clear, educational videos like lectures,
-                      tutorials, and talks. Clear speech and structure give the
-                      best results.
-                    </p>
-                  </div>
-                </div>
-              </div>
+          <div class="grid md:grid-cols-3 gap-6">
+            <div class="relative p-6 border border-gray-100 rounded-xl bg-gray-50">
+              <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm mb-4" style="background:var(--red)">1</div>
+              <h3 class="font-semibold text-lg mb-2">Create an endpoint</h3>
+              <p class="text-gray-500 text-sm leading-relaxed">Sign up, name your form, and copy the unique URL. Takes under 30 seconds.</p>
             </div>
-
-            <!-- Features & Usage -->
-            <div>
-              <h3 class="text-xl font-semibold mb-4">Features & Usage</h3>
-
-              <div x-data="{sidebaropen:null}" class="space-y-2">
-                <div
-                  class="border border-[#5d3fd3]/20 rounded-lg overflow-hidden"
-                >
-                  <button
-                    @click="sidebaropen === 4 ? sidebaropen = null : sidebaropen = 4"
-                    class="w-full flex justify-between items-center p-4 text-left bg-white hover:bg-gray-50 transition-colors"
-                  >
-                    <span class="font-medium text-gray-900"
-                      >Can I edit generated notes?</span
-                    >
-                    <svg
-                      :class="sidebaropen === 4 ? 'rotate-180' : ''"
-                      class="w-5 h-5 text-[#5d3fd3]/50 transition-transform"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M19 9l-7 7-7-7"
-                      />
-                    </svg>
-                  </button>
-                  <div
-                    x-show="sidebaropen === 4"
-                    x-collapse
-                    class="p-4 bg-gray-50 border-t border-[#5d3fd3]/20"
-                  >
-                    <p class="text-gray-700">
-                      Yes — everything is editable. Add comments, reorganize,
-                      and personalize your notes.
-                    </p>
-                  </div>
-                </div>
-
-                <div
-                  class="border border-[#5d3fd3]/20 rounded-lg overflow-hidden"
-                >
-                  <button
-                    @click="sidebaropen === 5 ? sidebaropen = null : sidebaropen = 5"
-                    class="w-full flex justify-between items-center p-4 text-left bg-white hover:bg-gray-50 transition-colors"
-                  >
-                    <span class="font-medium text-gray-900"
-                      >Can I organize notes into folders?</span
-                    >
-                    <svg
-                      :class="sidebaropen === 5 ? 'rotate-180' : ''"
-                      class="w-5 h-5 text-[#5d3fd3]/50 transition-transform"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M19 9l-7 7-7-7"
-                      />
-                    </svg>
-                  </button>
-                  <div
-                    x-show="sidebaropen === 5"
-                    x-collapse
-                    class="p-4 bg-gray-50 border-t border-[#5d3fd3]/20"
-                  >
-                    <p class="text-gray-700">
-                      Absolutely. Create custom folders so your notes stay
-                      organized by topic or course.
-                    </p>
-                  </div>
-                </div>
-              </div>
+            <div class="relative p-6 border border-gray-100 rounded-xl bg-gray-50">
+              <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm mb-4" style="background:var(--red)">2</div>
+              <h3 class="font-semibold text-lg mb-2">Point your form at it</h3>
+              <p class="text-gray-500 text-sm leading-relaxed">Set <span class="mono text-xs bg-white border border-gray-200 px-1 rounded">action="https://formdata.co/f/your-id"</span> on any HTML form. No JavaScript required.</p>
             </div>
-
-            <!-- Other -->
-            <div>
-              <h3 class="text-xl font-semibold mb-4">Other</h3>
-
-              <div x-data="{sidebaropen:null}" class="space-y-2">
-                <div
-                  class="border border-[#5d3fd3]/20 rounded-lg overflow-hidden"
-                >
-                  <button
-                    @click="sidebaropen === 6 ? sidebaropen = null : sidebaropen = 6"
-                    class="w-full flex justify-between items-center p-4 text-left bg-white hover:bg-gray-50 transition-colors"
-                  >
-                    <span class="font-medium text-gray-900"
-                      >Is there a free trial?</span
-                    >
-                    <svg
-                      :class="sidebaropen === 6 ? 'rotate-180' : ''"
-                      class="w-5 h-5 text-[#5d3fd3]/50 transition-transform"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M19 9l-7 7-7-7"
-                      />
-                    </svg>
-                  </button>
-                  <div
-                    x-show="sidebaropen === 6"
-                    x-collapse
-                    class="p-4 bg-gray-50 border-t border-[#5d3fd3]/20"
-                  >
-                    <p class="text-gray-700">
-                      Yes — a 15-day free trial with no credit card required.
-                    </p>
-                  </div>
-                </div>
-
-                <div
-                  class="border border-[#5d3fd3]/20 rounded-lg overflow-hidden"
-                >
-                  <button
-                    @click="sidebaropen === 7 ? sidebaropen = null : sidebaropen = 7"
-                    class="w-full flex justify-between items-center p-4 text-left bg-white hover:bg-gray-50 transition-colors"
-                  >
-                    <span class="font-medium text-gray-900"
-                      >How do I get help?</span
-                    >
-                    <svg
-                      :class="sidebaropen === 7 ? 'rotate-180' : ''"
-                      class="w-5 h-5 text-[#5d3fd3]/50 transition-transform"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        stroke-width="2"
-                        d="M19 9l-7 7-7-7"
-                      />
-                    </svg>
-                  </button>
-                  <div
-                    x-show="sidebaropen === 7"
-                    x-collapse
-                    class="p-4 bg-gray-50 border-t border-[#5d3fd3]/20"
-                  >
-                    <p class="text-gray-700">
-                      Contact support at
-                      <a
-                        href="mailto:yakashadav26@gmail.com"
-                        class="text-[#5d3fd3] underline"
-                        >yakashadav26@gmail.com</a
-                      >. We typically respond within 24 business hours.
-                    </p>
-                  </div>
-                </div>
-              </div>
+            <div class="relative p-6 border border-gray-100 rounded-xl bg-gray-50">
+              <div class="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm mb-4" style="background:var(--red)">3</div>
+              <h3 class="font-semibold text-lg mb-2">Receive submissions</h3>
+              <p class="text-gray-500 text-sm leading-relaxed">Every submission lands in your dashboard and your inbox. Filter spam, export CSV, trigger webhooks.</p>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- PRICING (Alpine) -->
-      <section id="pricing" class="py-24 bg-white">
-        <div class="container px-4">
-          <div class="text-center mb-12 max-w-3xl mx-auto">
-            <h2 class="text-3xl md:text-4xl font-bold mb-4">Simple Pricing</h2>
-            <p class="text-lg text-gray-600">
-              One plan with everything you need to boost your learning from
-              YouTube videos
-            </p>
+      <!-- ── FEATURES ── -->
+      <section id="features" class="py-20 bg-gray-50 px-4">
+        <div class="container md:px-6">
+          <div class="text-center mb-14 max-w-2xl mx-auto">
+            <span class="badge mb-3">Everything included</span>
+            <h2 class="text-3xl md:text-4xl font-bold mb-3">All the pieces, none of the plumbing</h2>
+            <p class="text-gray-500 text-lg">Stop wiring together email, spam, storage, and webhooks. Formdata handles it.</p>
           </div>
 
-          <div
-            class="max-w-4xl mx-auto bg-white rounded-xl overflow-hidden shadow-lg border border-gray-200"
-            x-data="{ yearly:true }"
-          >
-            <div class="p-8 md:flex">
-              <!-- left -->
-              <div class="md:w-1/2 p-6 bg-gray-50">
-                <h3 class="text-xl font-bold mb-6">Everything included</h3>
-                <ul class="space-y-4 text-gray-700">
-                  <li class="flex items-center gap-3">
-                    <span
-                      class="w-5 h-5 rounded-full bg-[#5d3fd3]/10 flex items-center justify-center"
-                      ><svg
-                        class="h-3 w-3 text-[#5d3fd3]"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M5 13l4 4L19 7"
-                        /></svg>
-                  </span>
-                    Unlimited AI-generated notes
-                  </li>
-                  <li class="flex items-center gap-3">
-                    <span
-                      class="w-5 h-5 rounded-full bg-[#5d3fd3]/10 flex items-center justify-center"
-                      ><svg
-                        class="h-3 w-3 text-[#5d3fd3]"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M5 13l4 4L19 7"
-                        /></svg>
-                      </span>
-                    Folder organization
-                  </li>
-                  <li class="flex items-center gap-3">
-                    <span
-                      class="w-5 h-5 rounded-full bg-[#5d3fd3]/10 flex items-center justify-center"
-                      ><svg
-                        class="h-3 w-3 text-[#5d3fd3]"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M5 13l4 4L19 7"
-                        /></svg>
-                      </span>
-                    Rich-text editor
-                  </li>
-                  <li class="flex items-center gap-3">
-                    <span
-                      class="w-5 h-5 rounded-full bg-[#5d3fd3]/10 flex items-center justify-center"
-                      ><svg
-                        class="h-3 w-3 text-[#5d3fd3]"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M5 13l4 4L19 7"
-                        /></svg>
-                  </span>
-                    AI chatbot
-                  </li>
-                  <li class="flex items-center gap-3">
-                    <span
-                      class="w-5 h-5 rounded-full bg-[#5d3fd3]/10 flex items-center justify-center"
-                      ><svg
-                        class="h-3 w-3 text-[#5d3fd3]"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M5 13l4 4L19 7"
-                        /></svg>
-                      </span>
-                    Priority support & PDF export
-                  </li>
-                </ul>
+          <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Feature card macro -->
+            <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+              <div class="w-11 h-11 rounded-lg flex items-center justify-center mb-4" style="background:var(--red-light)">
+                <svg class="h-5 w-5" style="color:var(--red)" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                </svg>
               </div>
+              <h3 class="font-semibold text-base mb-1">Email notifications</h3>
+              <p class="text-gray-500 text-sm">Get an email the moment a form is submitted. Customize the template to match your brand.</p>
+            </div>
 
-              <!-- right -->
-              <div class="md:w-1/2 p-6 flex flex-col items-center">
-                <h3 class="text-2xl font-bold mb-2">Premium Plan</h3>
-                <p class="text-gray-500 mb-6">All features included</p>
-
-                <!-- toggle -->
-                <div class="flex items-center justify-center mb-6">
-                  <span
-                    :class="!yearly ? 'text-[#5d3fd3]' : 'text-gray-500'"
-                    class="mr-3"
-                    >Monthly</span
-                  >
-                  <button
-                    @click="yearly = !yearly"
-                    class="relative inline-flex h-6 w-11 items-center rounded-full"
-                    :class="yearly ? 'bg-[#5d3fd3]/80' : 'bg-gray-300'"
-                  >
-                    <span class="sr-only">Toggle billing</span>
-                    <span
-                      :class=" yearly ? 'translate-x-6' : 'translate-x-1' "
-                      class="inline-block h-4 w-4 transform rounded-full bg-white transition"
-                    ></span>
-                  </button>
-                  <span
-                    :class="yearly ? 'text-[#5d3fd3]' : 'text-gray-500'"
-                    class="ml-3"
-                    >Yearly</span
-                  >
-                </div>
-
-                <div class="text-center mb-6 text-[#5d3fd3]">
-                  <div class="flex items-center justify-center mb-2">
-                    <span class="text-4xl font-bold"
-                      >$<span x-text="yearly ? 199 : 19"></span
-                    ></span>
-                    <span
-                      class="text-lg text-gray-500 font-normal ml-2"
-                      x-text="yearly ? '/year' : '/month'"
-                    ></span>
-                  </div>
-
-                  <div class="h-8 flex items-center justify-center">
-                    <div
-                      x-show="yearly"
-                      class="text-sm bg-[#5d3fd3]/10 text-[#5d3fd3] py-1 px-3 rounded-full inline-block"
-                    >
-                      Save $<span x-text="(19*12) - 199"></span> per year
-                    </div>
-                  </div>
-                </div>
-
-                <div class="w-full">
-                  <button
-                    hx-post="/auth"
-                    hx-vals='{"billing":"monthly_or_yearly"}'
-                    class="w-full bg-[#5d3fd3] text-white px-4 py-3 rounded-md"
-                  >
-                    Get Started for free
-                  </button>
-                  <p class="text-xs text-gray-500 mt-3 text-center">
-                    Start 15 day trial. No credit card required.
-                  </p>
-                </div>
+            <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+              <div class="w-11 h-11 rounded-lg flex items-center justify-center mb-4" style="background:var(--red-light)">
+                <svg class="h-5 w-5" style="color:var(--red)" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                </svg>
               </div>
+              <h3 class="font-semibold text-base mb-1">Spam filtering</h3>
+              <p class="text-gray-500 text-sm">reCAPTCHA and hCaptcha support built in. Honeypot fields catch bots automatically.</p>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+              <div class="w-11 h-11 rounded-lg flex items-center justify-center mb-4" style="background:var(--red-light)">
+                <svg class="h-5 w-5" style="color:var(--red)" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                </svg>
+              </div>
+              <h3 class="font-semibold text-base mb-1">Slack & webhook alerts</h3>
+              <p class="text-gray-500 text-sm">Post submissions to any Slack channel or fire a webhook to Zapier, Make, or your own server.</p>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+              <div class="w-11 h-11 rounded-lg flex items-center justify-center mb-4" style="background:var(--red-light)">
+                <svg class="h-5 w-5" style="color:var(--red)" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/>
+                </svg>
+              </div>
+              <h3 class="font-semibold text-base mb-1">File uploads</h3>
+              <p class="text-gray-500 text-sm">Accept attachments directly. Files are stored securely and linked in your submission view.</p>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+              <div class="w-11 h-11 rounded-lg flex items-center justify-center mb-4" style="background:var(--red-light)">
+                <svg class="h-5 w-5" style="color:var(--red)" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+              </div>
+              <h3 class="font-semibold text-base mb-1">CSV & JSON export</h3>
+              <p class="text-gray-500 text-sm">Download all your submissions any time — no lock-in, your data is always yours.</p>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+              <div class="w-11 h-11 rounded-lg flex items-center justify-center mb-4" style="background:var(--red-light)">
+                <svg class="h-5 w-5" style="color:var(--red)" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"/>
+                </svg>
+              </div>
+              <h3 class="font-semibold text-base mb-1">AJAX & REST API</h3>
+              <p class="text-gray-500 text-sm">Submit via <span class="mono text-xs">fetch()</span> and stay on-page. Full JSON API for headless and SPA workflows.</p>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- FOOTER -->
-      <footer class="bg-white border-t border-gray-200 pt-12 pb-8">
-        <div class="container px-4">
-          <div class="grid grid-cols-1 md:grid-cols-4 gap-10 mb-12">
-            <div>
-              <a href="/" class="flex items-center gap-2 mb-5">
-                <img
-                  src="{{ url_for('static', path='ytnote.png') }}"
-                  alt="Formdata"
-                  width="28"
-                  height="28"
-                  class="rounded-sm"
-                />
-                <span class="text-xl font-bold text-gray-800">Formdata</span>
-              </a>
-              <p class="text-gray-600 mb-5">
-                YouTube videos to smart notes in seconds.
-              </p>
-              <div class="flex space-x-4">
-                <a
-                  href="https://twitter.com/imakashy00"
-                  target="_blank"
-                  rel="noopener"
-                  class="text-gray-500 hover:text-[#5d3fd3]"
-                  >Twitter</a
-                >
-                <a
-                  href="https://instagram.com/Formdata.co"
-                  target="_blank"
-                  rel="noopener"
-                  class="text-gray-500 hover:text-[#5d3fd3]"
-                  >Instagram</a
-                >
-                <a
-                  href="mailto:yakashadav26@gmail.com"
-                  class="text-gray-500 hover:text-[#5d3fd3]"
-                  >Email</a
-                >
+      <!-- ── FAQ ── -->
+      <section id="faq" class="py-20 bg-white px-4">
+        <div class="container md:px-6 max-w-3xl mx-auto">
+          <div class="text-center mb-12">
+            <h2 class="text-3xl md:text-4xl font-bold mb-3">Frequently asked questions</h2>
+            <p class="text-gray-500">Quick answers about Formdata</p>
+          </div>
+
+          <div class="space-y-5">
+            <div x-data="{open:null}" class="space-y-3">
+
+              <!-- Q block -->
+              <template x-for="(q, i) in [
+                {q:'Do I need to write any backend code?', a:'No. Just set the action attribute on your HTML form. Formdata receives the POST, processes it, and stores the data. Zero server-side code.'},
+                {q:'Which site builders does Formdata work with?', a:'Anything that outputs HTML — Webflow, Framer, GitHub Pages, Hugo, Next.js, plain HTML files. If it can render a form, Formdata handles it.'},
+                {q:'How is spam handled?', a:'Every endpoint includes a honeypot field. You can optionally enable reCAPTCHA v3 or hCaptcha from the dashboard in one click.'},
+                {q:'Can I redirect after submission?', a:'Yes. Add a hidden input named _next with your redirect URL. Or handle the AJAX response yourself with our JSON API.'},
+                {q:'Is there a free tier?', a:'Yes — 50 submissions per month across all your forms, free forever. No credit card required to start.'},
+                {q:'Where is my data stored?', a:'Submissions are stored encrypted at rest in EU-West data centres. You can export or delete all data at any time.'}
+              ]" :key="i">
+                <div class="border border-gray-200 rounded-xl overflow-hidden">
+                  <button @click="open === i ? open = null : open = i"
+                    class="w-full flex justify-between items-center p-4 text-left bg-white hover:bg-gray-50 transition-colors">
+                    <span class="font-medium text-gray-900 text-sm" x-text="q.q"></span>
+                    <svg :class="open === i ? 'rotate-180' : ''" class="w-4 h-4 text-gray-400 transition-transform flex-shrink-0 ml-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                  </button>
+                  <div x-show="open === i" x-collapse class="px-4 pb-4 bg-gray-50 border-t border-gray-100">
+                    <p class="text-gray-600 text-sm pt-3" x-text="q.a"></p>
+                  </div>
+                </div>
+              </template>
+
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── PRICING ── -->
+      <section id="pricing" class="py-20 px-4" style="background:var(--red-light)">
+        <div class="container md:px-6">
+          <div class="text-center mb-12">
+            <span class="badge mb-3">Pricing</span>
+            <h2 class="text-3xl md:text-4xl font-bold mb-3">Simple, honest pricing</h2>
+            <p class="text-gray-500">Start free. Upgrade when you need more.</p>
+          </div>
+
+          <div class="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto" x-data="{ yearly: true }">
+
+            <!-- Free -->
+            <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col">
+              <h3 class="font-bold text-lg mb-1">Free</h3>
+              <p class="text-gray-400 text-sm mb-5">For personal projects</p>
+              <div class="text-3xl font-extrabold text-gray-900 mb-5">$0</div>
+              <ul class="space-y-3 text-sm text-gray-600 mb-8 flex-1">
+                <li class="flex gap-2"><span class="text-green-500 font-bold">✓</span> 50 submissions / month</li>
+                <li class="flex gap-2"><span class="text-green-500 font-bold">✓</span> 2 forms</li>
+                <li class="flex gap-2"><span class="text-green-500 font-bold">✓</span> Email notifications</li>
+                <li class="flex gap-2"><span class="text-green-500 font-bold">✓</span> Dashboard</li>
+                <li class="flex gap-2 text-gray-300"><span>✗</span> File uploads</li>
+                <li class="flex gap-2 text-gray-300"><span>✗</span> Webhooks</li>
+              </ul>
+              <form action="/auth" method="post">
+                <button class="w-full border-2 font-semibold py-2.5 rounded-lg text-sm transition-colors hover:bg-gray-50" style="border-color:var(--red);color:var(--red)">
+                  Get started free
+                </button>
+              </form>
+            </div>
+
+            <!-- Pro (highlighted) -->
+            <div class="bg-white p-6 rounded-xl border-2 shadow-lg flex flex-col relative" style="border-color:var(--red)">
+              <span class="absolute -top-3 left-1/2 -translate-x-1/2 text-xs font-semibold text-white px-3 py-1 rounded-full" style="background:var(--red)">Most popular</span>
+              <h3 class="font-bold text-lg mb-1">Pro</h3>
+              <p class="text-gray-400 text-sm mb-4">For freelancers & small teams</p>
+
+              <!-- toggle -->
+              <div class="flex items-center gap-3 mb-4 text-sm">
+                <span :class="!yearly ? 'font-semibold' : 'text-gray-400'">Monthly</span>
+                <button @click="yearly=!yearly" class="relative h-5 w-9 rounded-full transition-colors" :style="yearly ? 'background:var(--red)' : 'background:#d1d5db'">
+                  <span :class="yearly ? 'translate-x-4' : 'translate-x-1'" class="inline-block h-3.5 w-3.5 rounded-full bg-white transition transform absolute top-0.5"></span>
+                </button>
+                <span :class="yearly ? 'font-semibold' : 'text-gray-400'">Yearly <span class="text-xs text-green-600 font-medium">–20%</span></span>
+              </div>
+
+              <div class="text-3xl font-extrabold text-gray-900 mb-1">
+                $<span x-text="yearly ? 15 : 19"></span><span class="text-base font-normal text-gray-400">/mo</span>
+              </div>
+              <p class="text-xs text-gray-400 mb-5" x-text="yearly ? 'Billed $180/year' : 'Billed monthly'"></p>
+
+              <ul class="space-y-3 text-sm text-gray-600 mb-8 flex-1">
+                <li class="flex gap-2"><span class="text-green-500 font-bold">✓</span> 1,000 submissions / month</li>
+                <li class="flex gap-2"><span class="text-green-500 font-bold">✓</span> Unlimited forms</li>
+                <li class="flex gap-2"><span class="text-green-500 font-bold">✓</span> File uploads (1 GB)</li>
+                <li class="flex gap-2"><span class="text-green-500 font-bold">✓</span> Webhooks & Slack</li>
+                <li class="flex gap-2"><span class="text-green-500 font-bold">✓</span> CSV / JSON export</li>
+                <li class="flex gap-2"><span class="text-green-500 font-bold">✓</span> Custom redirect & email</li>
+              </ul>
+              <button hx-post="/auth" class="w-full text-white font-semibold py-2.5 rounded-lg text-sm" style="background:var(--red)">
+                Start 14-day free trial
+              </button>
+              <p class="text-xs text-gray-400 text-center mt-2">No credit card required</p>
+            </div>
+
+            <!-- Business -->
+            <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col">
+              <h3 class="font-bold text-lg mb-1">Business</h3>
+              <p class="text-gray-400 text-sm mb-5">For agencies & high-volume</p>
+              <div class="text-3xl font-extrabold text-gray-900 mb-5">
+                $<span x-text="yearly ? 49 : 59"></span><span class="text-base font-normal text-gray-400">/mo</span>
+              </div>
+              <ul class="space-y-3 text-sm text-gray-600 mb-8 flex-1">
+                <li class="flex gap-2"><span class="text-green-500 font-bold">✓</span> 10,000 submissions / month</li>
+                <li class="flex gap-2"><span class="text-green-500 font-bold">✓</span> Unlimited forms & files</li>
+                <li class="flex gap-2"><span class="text-green-500 font-bold">✓</span> Team members (5 seats)</li>
+                <li class="flex gap-2"><span class="text-green-500 font-bold">✓</span> Priority support</li>
+                <li class="flex gap-2"><span class="text-green-500 font-bold">✓</span> White-label redirects</li>
+                <li class="flex gap-2"><span class="text-green-500 font-bold">✓</span> API access</li>
+              </ul>
+              <button hx-post="/auth" class="w-full border-2 font-semibold py-2.5 rounded-lg text-sm transition-colors hover:bg-gray-50" style="border-color:var(--red);color:var(--red)">
+                Start 14-day free trial
+              </button>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- ── FOOTER ── -->
+      <footer class="bg-white border-t border-gray-100 pt-12 pb-8 px-4">
+        <div class="container md:px-6">
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10">
+            <div class="col-span-2 md:col-span-1">
+              <div class="flex items-center gap-2 mb-3">
+                <div class="w-7 h-7 rounded-md flex items-center justify-center" style="background:var(--red)">
+                  <svg class="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-3-3v6M3 7l2 13h14l2-13H3z"/>
+                  </svg>
+                </div>
+                <span class="font-bold text-gray-900">Formdata</span>
+              </div>
+              <p class="text-sm text-gray-500 mb-4">Form submissions, handled.</p>
+              <div class="flex gap-4 text-sm">
+                <a href="https://twitter.com/imakashy00" target="_blank" rel="noopener" class="text-gray-400 hover:text-red-600">Twitter</a>
+                <a href="mailto:yakashadav26@gmail.com" class="text-gray-400 hover:text-red-600">Email</a>
               </div>
             </div>
 
             <div>
-              <h3 class="text-sm font-semibold uppercase tracking-wider mb-4">
-                Product
-              </h3>
-              <ul class="space-y-3 text-gray-600">
-                <li>
-                  <a href="#features" class="hover:text-[#5d3fd3]">Features</a>
-                </li>
-                <li>
-                  <a href="#pricing" class="hover:text-[#5d3fd3]">Pricing</a>
-                </li>
+              <h4 class="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Product</h4>
+              <ul class="space-y-2 text-sm text-gray-500">
+                <li><a href="#features" class="hover:text-red-600">Features</a></li>
+                <li><a href="#pricing" class="hover:text-red-600">Pricing</a></li>
+                <li><a href="#" class="hover:text-red-600">Docs</a></li>
+                <li><a href="#" class="hover:text-red-600">Changelog</a></li>
               </ul>
             </div>
 
             <div>
-              <h3 class="text-sm font-semibold uppercase tracking-wider mb-4">
-                Support
-              </h3>
-              <ul class="space-y-3 text-gray-600">
-                <li><a href="#" class="hover:text-[#5d3fd3]">Guides</a></li>
-                <li><a href="#faq" class="hover:text-[#5d3fd3]">FAQ</a></li>
+              <h4 class="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Support</h4>
+              <ul class="space-y-2 text-sm text-gray-500">
+                <li><a href="#faq" class="hover:text-red-600">FAQ</a></li>
+                <li><a href="#" class="hover:text-red-600">Guides</a></li>
+                <li><a href="mailto:yakashadav26@gmail.com" class="hover:text-red-600">Contact</a></li>
               </ul>
             </div>
 
             <div>
-              <h3 class="text-sm font-semibold uppercase tracking-wider mb-4">
-                Legal
-              </h3>
-              <ul class="space-y-3 text-gray-600">
-                <li>
-                  <a href="/terms" class="hover:text-[#5d3fd3]"
-                    >Terms of Service</a
-                  >
-                </li>
-                <li>
-                  <a href="/privacy-policy" class="hover:text-[#5d3fd3]"
-                    >Privacy Policy</a
-                  >
-                </li>
+              <h4 class="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Legal</h4>
+              <ul class="space-y-2 text-sm text-gray-500">
+                <li><a href="/privacy-policy" class="hover:text-red-600">Privacy Policy</a></li>
+                <li><a href="/terms" class="hover:text-red-600">Terms of Service</a></li>
               </ul>
             </div>
           </div>
 
-          <div
-            class="border-t border-gray-200 pt-8 flex flex-col md:flex-row justify-between items-center"
-          >
-            <p class="text-gray-500 text-sm mb-4 md:mb-0">
-              &copy; <span id="yr"></span> Formdata. All rights reserved.
-            </p>
-            <p class="text-gray-500 text-sm">Made with ❤️ by Akash Yadav</p>
+          <div class="border-t border-gray-100 pt-6 flex flex-col md:flex-row justify-between items-center gap-2">
+            <p class="text-gray-400 text-xs">&copy; <span id="yr"></span> Formdata. All rights reserved.</p>
+            <p class="text-gray-400 text-xs">Made with ❤️ by Akash Yadav</p>
           </div>
         </div>
       </footer>
     </div>
 
     <script>
-      // set current year
       document.getElementById("yr").textContent = new Date().getFullYear();
     </script>
   </body>

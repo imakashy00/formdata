@@ -1,12 +1,59 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
 </head>
+
 <body>
     <H1>Hello {{name}}</H1>
     <h4>Your email is: {{email}}</h4>
+    <script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
+    <script type="text/javascript">
+        Paddle.Environment.set("sandbox");
+        Paddle.Initialize({ token: "test_925224efe3fbbe342e5bb6f88d5" });
+
+        // Define your dashboard Price IDs
+        const MONTHLY_PRICE_ID = "pri_01kwhvyj0hfbj2919wqk70h15x";
+        const YEARLY_PRICE_ID = "pri_01kwhvxjre9b0hbjvnfwhe69bp";
+
+        // Track which plan is active
+        function isYearlyActive() {
+            return document.getElementById("billingToggle").checked;
+        }
+
+        // Optional UI visual feedback
+        function updatePriceDisplay() {
+            document.getElementById("cycleLabel").innerText = isYearlyActive() ? "Billed Annually" : "Billed Monthly";
+        }
+
+        // Opens the modal with the user's preferred cycle
+        function handleCheckout() {
+            const activePriceId = isYearlyActive() ? YEARLY_PRICE_ID : MONTHLY_PRICE_ID;
+
+            Paddle.Checkout.open({
+                items: [{ priceId: activePriceId, quantity: 1 }],
+                customData: {
+                    user_id: "{{ user_id }}" // Sent from your subscription_modal router context
+                }
+            });
+        }
+    </script>
+    <div class="pricing-card">
+        <h3>Pro Plan</h3>
+
+        <!-- Toggle Switch -->
+        <label class="switch">
+            <input type="checkbox" id="billingToggle" onchange="updatePriceDisplay()">
+            <span class="slider"></span>
+        </label>
+        <span id="cycleLabel">Billed Monthly</span>
+
+        <!-- Single dynamic checkout button -->
+        <button onclick="handleCheckout()">Subscribe Now</button>
+    </div>
 </body>
+
 </html>

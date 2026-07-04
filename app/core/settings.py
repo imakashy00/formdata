@@ -29,8 +29,8 @@ class Settings(BaseSettings):
     REDIS_URL: RedisDsn 
 
     # Paddle
-    PADDLE_API_KEY: SecretStr
-    PADDLE_WEBHOOK_SECRET: SecretStr
+    PADDLE_API_KEY: str
+    PADDLE_WEBHOOK_SECRET: str
     PADDLE_BASE_URL: str = "https://sandbox-api.paddle.com"
     PADDLE_MONTHLY_PRICE_ID: str
     PADDLE_YEARLY_PRICE_ID: str

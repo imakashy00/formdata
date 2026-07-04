@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from typing import Optional
-
+from fastapi import status as FastApiStatus
+from fastapi import HTTPException
 import httpx
 from loguru import logger as log
 from pydantic import BaseModel, ValidationError
@@ -58,16 +59,12 @@ async def get_customer_email(customer_id: str) -> str | None:
         return None
 
 
-async def get_user_by_customer_id(customer_id: str, db: AsyncSession):
+async def get_user_by_id(user_id: str, db: AsyncSession):
     try:
-        user_email = await get_customer_email(customer_id)
-        if not user_email:
-            return None
-
-        query_result = await db.execute(select(User).where(User.email == user_email))
-        return query_result.scalars().first()
+        query_result = await db.execute(select(User).where(User.id == user_id))
+        return query_result.scalar_one_or_none()
     except Exception as e:
-        log.error(f"Error finding user by Paddle customer id {customer_id}: {e} ")
+        log.error(f"Error finding user by user_id {user_id}: {e} ")
         return None
 
 
@@ -77,25 +74,29 @@ async def get_subscription_by_user_id(user_id: str, db: AsyncSession):
         query_result = await db.execute(
             select(Subscription).where(Subscription.user_id == user_id)
         )
-        return query_result.scalars().first()
+        return query_result.scalar_one_or_none()
     except Exception as e:
         log.error(f"Error finding Subscription by user id {user_id}: {e} ")
         return None
 
 
 def extract_subscription_data(payload: dict):
-
-    subscription_data = payload.get("data", {}) or {}
-    subscription_id = subscription_data.get("id")
-    customer_id = subscription_data.get("customer_id")
-    status = subscription_data.get("status")
-    items = subscription_data.get("items") or []
+    subscription_id = payload.get("id")
+    items = payload.get("items") or []
+    status = payload.get("status")
+    customer_id = payload.get("customer_id")
+    user_id = payload.get("custom_data", {}).get("user_id")
     first_item = items[0] if items else {}
     price_id = first_item.get("price", {}).get("id")
 
-    billing_cycle = first_item.get("billling_cycle") or {}
+    billing_cycle = payload.get("billling_cycle") or {}
     interval = billing_cycle.get("interval")
-    current_billing_period = subscription_data.get("current_billing_period") or {}
+    current_billing_period = payload.get("current_billing_period") or {}
+    scheduled_change = payload.get("scheduled_change", {})
+    cancel_at_raw = None
+
+    if scheduled_change and isinstance(scheduled_change, dict):
+        cancel_at_raw = scheduled_change.get("effective_at")
 
     def parse_dt(value):
         if not value:
@@ -110,15 +111,14 @@ def extract_subscription_data(payload: dict):
     return {
         "subscription_id": subscription_id,
         "customer_id": customer_id,
+        "user_id": user_id,
         "status": status,
         "price_id": price_id,
         "plan_interval": interval,
         "current_period_start": parse_dt(current_billing_period.get("starts_at")),
         "current_period_end": parse_dt(current_billing_period.get("ends_at")),
-        "cancel_at": parse_dt(
-            subscription_data.get("scheduled_change", {}).get("effective_at")
-        ),
-        "canceled_at": parse_dt(subscription_data.get("canceled_at")),
+        "cancel_at": parse_dt(cancel_at_raw) if cancel_at_raw else None,
+        "canceled_at": parse_dt(payload.get("canceled_at")),
     }
 
 
@@ -127,13 +127,13 @@ def extract_subscription_data(payload: dict):
 # =========================================================
 
 
-async def handle_subscription_created(payload: dict, db: AsyncSession):
+async def handle_subscription_activated(payload: dict, db: AsyncSession):
 
     # Extract values from the incoming Paddle payload
     data = extract_subscription_data(payload)
-
     subscription_id = data.get("subscription_id")
     customer_id = data.get("customer_id")
+    user_id = data.get("user_id")
     status = data.get("status")
     price_id = data.get("price_id")
     plan_interval = data.get("plan_interval")
@@ -141,7 +141,6 @@ async def handle_subscription_created(payload: dict, db: AsyncSession):
     current_period_end = data.get("current_period_end")
     cancel_at = data.get("cancel_at")
     canceled_at = data.get("canceled_at")
-
     try:
         if not customer_id:
             log.warning(
@@ -149,16 +148,30 @@ async def handle_subscription_created(payload: dict, db: AsyncSession):
             )
             return None
 
-        # Resolve user via Paddle customer id -> email -> user
-        user = await get_user_by_customer_id(customer_id, db)
+        # Resolve user via Id
+        if not user_id or not isinstance(user_id, str):
+            log.error(
+                f"Cannot process webhook. user_id is missing or invalid type in custom_data for sub: {subscription_id}"
+            )
+            return None
+        user = await get_user_by_id(user_id, db)
         if not user:
             log.warning(
                 f"No user found for Paddle customer {customer_id} (subscription {subscription_id})"
             )
-            return None
+            raise HTTPException(
+                status_code=FastApiStatus.HTTP_400_BAD_REQUEST,
+                detail=f"No user found for Paddle customer {customer_id} (subscription {subscription_id})",
+            )
+        query = select(Subscription).where(
+            Subscription.subscription_id == subscription_id
+        )
+        result = await db.execute(query)
+        subscription = result.scalar_one_or_none()
 
-        # Find existing subscription for user
-        subscription = await get_subscription_by_user_id(user.id, db)
+        if not subscription:
+            # Find existing subscription for user
+            subscription = await get_subscription_by_user_id(user.id, db)
 
         # Map Paddle status string to SubscriptionStatus enum
         def _map_status(s: str | None) -> SubscriptionStatus:
@@ -216,7 +229,7 @@ async def handle_subscription_created(payload: dict, db: AsyncSession):
             user_id=user.id,
             subscription_id=subscription_id,
             paddle_customer_id=customer_id,
-            status=status_enum,
+            status=status_enum.value,
             price_id=price_id,
             plan_interval=plan_interval,
             current_period_start=current_period_start,
@@ -250,36 +263,6 @@ async def handle_subscription_created(payload: dict, db: AsyncSession):
         return None
 
 
-async def handle_subscription_activated(payload: dict, db: AsyncSession):
-    """
-    EVENT:
-    subscription.activated
-
-    WHAT THIS EVENT MEANS:
-    - Subscription became active
-    - First payment succeeded
-    - User should now have premium access
-
-    TODO:
-    - Extract subscription data
-    - Find user
-    - Find existing subscription row
-    - Update:
-        - status -> ACTIVE
-        - current_period_start
-        - current_period_end
-        - price_id
-        - plan_interval
-        - updated_at
-    - Clear:
-        - cancel_at
-        - canceled_at
-    - Commit transaction
-    """
-
-    pass
-
-
 async def handle_subscription_updated(
     payload: dict,
     db: AsyncSession,
@@ -288,6 +271,7 @@ async def handle_subscription_updated(
 
     subscription_id = data.get("subscription_id")
     customer_id = data.get("customer_id")
+    user_id = data.get("user_id")
     status = data.get("status")
     price_id = data.get("price_id")
     plan_interval = data.get("plan_interval")
@@ -303,11 +287,12 @@ async def handle_subscription_updated(
 
         user = None
 
-        if customer_id:
-            user = await get_user_by_customer_id(
-                customer_id,
-                db,
+        if not user_id or not isinstance(user_id, str):
+            log.error(
+                f"Cannot process webhook. user_id is missing or invalid type in custom_data for sub: {subscription_id}"
             )
+            return None
+        user = await get_user_by_id(user_id, db)
 
         subscription = None
 
@@ -324,7 +309,7 @@ async def handle_subscription_updated(
                 )
             )
 
-            subscription = result.scalars().first()
+            subscription = result.scalar_one_or_none()
 
         def map_status(
             paddle_status: str | None,
@@ -367,7 +352,7 @@ async def handle_subscription_updated(
                 user_id=user.id if user else None,
                 subscription_id=subscription_id,
                 paddle_customer_id=customer_id,
-                status=status_enum,
+                status=status_enum.value,
                 price_id=price_id,
                 plan_interval=plan_interval,
                 current_period_start=current_period_start,
@@ -392,21 +377,15 @@ async def handle_subscription_updated(
 
         subscription.status = status_enum.value
         subscription.price_id = price_id or subscription.price_id
-
         subscription.plan_interval = plan_interval or subscription.plan_interval
-
         subscription.current_period_start = (
             current_period_start or subscription.current_period_start
         )
-
         subscription.current_period_end = (
             current_period_end or subscription.current_period_end
         )
-
-        subscription.cancel_at = cancel_at or subscription.cancel_at
-
-        subscription.canceled_at = canceled_at or subscription.canceled_at
-
+        subscription.cancel_at = cancel_at
+        subscription.canceled_at = canceled_at
         subscription.updated_at = now
 
         try:
@@ -432,17 +411,17 @@ async def handle_subscription_updated(
         log.exception(f"Unhandled error in handle_subscription_updated: {e}")
 
         return None
-    
-    
+
+
 async def handle_subscription_canceled(
     payload: dict,
     db: AsyncSession,
 ):
     data = extract_subscription_data(payload)
-
+    user_id = data.get("user_id")
     subscription_id = data.get("subscription_id")
     customer_id = data.get("customer_id")
-    current_period_end = data.get("current_period_end")
+    # current_period_end = data.get("current_period_end")
     cancel_at = data.get("cancel_at")
 
     try:
@@ -452,11 +431,12 @@ async def handle_subscription_canceled(
 
         user = None
 
-        if customer_id:
-            user = await get_user_by_customer_id(
-                customer_id,
-                db,
+        if not user_id or not isinstance(user_id, str):
+            log.error(
+                f"Cannot process webhook. user_id is missing or invalid type in custom_data for sub: {subscription_id}"
             )
+            return None
+        user = await get_user_by_id(user_id, db)
 
         subscription = None
 
@@ -473,7 +453,7 @@ async def handle_subscription_canceled(
                 )
             )
 
-            subscription = result.scalars().first()
+            subscription = result.scalar_one_or_none()
 
         if not subscription:
             log.warning(f"Subscription not found (subscription_id={subscription_id})")
@@ -484,11 +464,9 @@ async def handle_subscription_canceled(
         subscription.status = SubscriptionStatus.CANCELED.value
 
         # Access remains valid until period end
-        subscription.cancel_at = (
-            current_period_end or cancel_at or subscription.cancel_at
-        )
+        subscription.cancel_at = cancel_at or now
 
-        subscription.canceled_at = now
+        subscription.canceled_at = cancel_at or now
         subscription.updated_at = now
 
         try:
@@ -498,7 +476,6 @@ async def handle_subscription_canceled(
             await db.rollback()
 
             log.exception("Failed committing subscription.canceled")
-
             return None
 
         log.info(f"Subscription canceled {subscription.subscription_id}")
@@ -564,9 +541,11 @@ async def handle_payment_failed(
 
         return None
 
+
 # =========================================================
 # MAIN WEBHOOK ROUTER
 # =========================================================
+
 
 async def handle_paddle_webhook(
     event_type: str,
@@ -575,36 +554,20 @@ async def handle_paddle_webhook(
 ):
     try:
         match event_type:
-            case "subscription.created":
-                return await handle_subscription_created(
-                    payload,
-                    db,
-                )
-
-            case "subscription.activated":
+            case "subscription.created" | "subscription.activated":
                 return await handle_subscription_activated(
                     payload,
                     db,
                 )
 
-            case "subscription.updated":
-                return await handle_subscription_updated(
-                    payload,
-                    db,
-                )
-            
-            case "subscription.resumed":
+            case (
+                "subscription.updated" | "subscription.resumed" | "subscription.paused"
+            ):
                 return await handle_subscription_updated(
                     payload,
                     db,
                 )
 
-            case "subscription.paused":
-                return await handle_subscription_updated(
-                    payload,
-                    db,
-                )
-            
             case "subscription.canceled":
                 return await handle_subscription_canceled(
                     payload,
