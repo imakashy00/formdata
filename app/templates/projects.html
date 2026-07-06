@@ -1,0 +1,106 @@
+<!-- projects.html -->
+{% extends 'base.html' %}
+
+{% block title %}Dashboard — Formdata{% endblock %}
+
+{% block content %}
+<div class="page animate-slide-up" id="page-projects">
+    <div class="p-5 md:p-7">
+        <p class="text-sm text-gray-400 mb-5">Each project groups your forms by site or product.</p>
+
+        <!-- Project grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+
+            <div
+                class="bg-white rounded-xl border border-gray-100 shadow-sm p-5 cursor-pointer hover:shadow-md hover:border-brand-mid transition-all">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-9 h-9 rounded-lg bg-brand-light flex items-center justify-center">
+                        <svg class="w-4 h-4 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                            stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-semibold text-gray-900">Personal site</p>
+                        <p class="text-xs text-gray-400 font-mono">formdata.co/f/abc123</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span
+                        class="text-xs font-semibold bg-emerald-50 text-emerald-600 px-2.5 py-0.5 rounded-full">Active</span>
+                    <span class="text-xs text-gray-400">186 submissions</span>
+                </div>
+            </div>
+
+            <div
+                class="bg-white rounded-xl border border-gray-100 shadow-sm p-5 cursor-pointer hover:shadow-md hover:border-brand-mid transition-all">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-9 h-9 rounded-lg bg-green-50 flex items-center justify-center">
+                        <svg class="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                            stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-semibold text-gray-900">Client — Acme Co</p>
+                        <p class="text-xs text-gray-400 font-mono">formdata.co/f/xyz789</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span
+                        class="text-xs font-semibold bg-emerald-50 text-emerald-600 px-2.5 py-0.5 rounded-full">Active</span>
+                    <span class="text-xs text-gray-400">62 submissions</span>
+                </div>
+            </div>
+
+            <!-- Add new project -->
+            <div onclick="showToast('New project — coming soon!')"
+                class="border-2 border-dashed border-gray-200 bg-gray-50 rounded-xl p-5 flex flex-col items-center justify-center gap-2 text-gray-400 hover:border-brand hover:text-brand cursor-pointer transition-colors min-h-[120px]">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                <span class="text-sm font-medium">New project</span>
+            </div>
+        </div>
+
+        <!-- Endpoint snippet -->
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+            <div class="flex items-center justify-between px-5 py-4 border-b border-gray-50">
+                <p class="text-sm font-semibold text-gray-900">Your form endpoint</p>
+                <span class="text-xs font-semibold bg-emerald-50 text-emerald-600 px-2.5 py-0.5 rounded-full">●
+                    Live</span>
+            </div>
+            <div class="p-5">
+                <p class="text-xs text-gray-400 mb-3">Point any HTML form at this URL — no backend code
+                    needed.</p>
+                <div
+                    class="relative bg-slate-900 rounded-xl p-5 font-mono text-xs leading-relaxed text-slate-200 overflow-x-auto">
+                    <button onclick="copyEndpoint()"
+                        class="absolute top-3 right-3 text-[10px] bg-white/10 hover:bg-white/20 text-slate-400 hover:text-white px-2.5 py-1 rounded-md transition-colors">
+                        Copy
+                    </button>
+                    <span class="text-pink-300">&lt;form</span>
+                    <span class="text-blue-300"> action</span>=<span class="text-green-300">"https://formdata.co/f/<span
+                            class="text-yellow-300">your-id</span>"</span>
+                    <span class="text-blue-300"> method</span>=<span class="text-green-300">"POST"</span><span
+                        class="text-pink-300">&gt;</span><br />
+                    &nbsp;&nbsp;<span class="text-pink-300">&lt;input</span> <span
+                        class="text-blue-300">type</span>=<span class="text-green-300">"text"</span> <span
+                        class="text-blue-300">name</span>=<span class="text-green-300">"name"</span> <span
+                        class="text-pink-300">/&gt;</span><br />
+                    &nbsp;&nbsp;<span class="text-pink-300">&lt;input</span> <span
+                        class="text-blue-300">type</span>=<span class="text-green-300">"email"</span> <span
+                        class="text-blue-300">name</span>=<span class="text-green-300">"email"</span> <span
+                        class="text-pink-300">/&gt;</span><br />
+                    &nbsp;&nbsp;<span class="text-pink-300">&lt;button</span> <span
+                        class="text-blue-300">type</span>=<span class="text-green-300">"submit"</span><span
+                        class="text-pink-300">&gt;</span>Send<span class="text-pink-300">&lt;/button&gt;</span><br />
+                    <span class="text-pink-300">&lt;/form&gt;</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

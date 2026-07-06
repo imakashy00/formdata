@@ -1,0 +1,17 @@
+<header
+    class="sticky top-0 z-30 bg-white border-b border-gray-100 px-5 md:px-7 py-4 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+        <!-- Hamburger (mobile) -->
+        <button onclick="toggleSidebar()"
+            class="md:hidden p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 transition-colors">
+            <svg class="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+        </button>
+        <span id="topbarTitle" class="font-bold text-gray-900 text-base">{{page}}</span>
+    </div>
+    <button onclick="navigate('projects', document.querySelector('[data-page=projects]'))"
+        class="bg-brand hover:bg-brand-dark text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors">
+        + New form
+    </button>
+</header>

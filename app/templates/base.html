@@ -1,0 +1,59 @@
+<!-- base.html -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Dynamic Title fallback if child template doesn't specify one -->
+    <title>{% block title %}Formdata{% endblock %}</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { DEFAULT: '#dc2626', dark: '#b91c1c', light: '#fef2f2', mid: '#fee2e2' }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://googleapis.com" rel="stylesheet" />
+    <!-- Placeholder if specific pages need custom head scripts/styles -->
+    {% block head %}{% endblock %}
+</head>
+
+<body class="bg-gray-50 text-gray-800 font-sans antialiased">
+
+    <div class="flex min-h-screen">
+        <!-- Automatically includes your sidebar and topbar across all templates inheriting base.html -->
+        {% include 'sidebar.html' %}
+
+        <!-- Right Column Section (Topbar + Main Interactive Body Content) -->
+        <div class="flex-1 flex flex-col md:pl-56">
+
+            <!-- Top Navigation Banner Content Area -->
+            {% include 'topbar.html' %}
+
+            <!-- Dynamic Content Window Slot Component -->
+            <main class="flex-1 p-4">
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+    <!-- Toast -->
+    <div id="toast" class="fixed bottom-6 right-6 z-50 bg-gray-900 text-white text-sm font-medium px-5 py-3 rounded-xl shadow-xl
+             opacity-0 translate-y-2 transition-all duration-200 pointer-events-none">
+    </div>
+
+    <!-- Placeholder if specific pages need script elements right before </body> closure -->
+    {% block scripts %}{% endblock %}
+</body>
+
+</html>
