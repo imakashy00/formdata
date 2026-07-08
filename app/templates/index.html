@@ -275,25 +275,27 @@
             <h2 class="text-3xl md:text-4xl font-bold mb-3">Frequently asked questions</h2>
             <p class="text-gray-500">Quick answers about Formdata</p>
           </div>
-
+      
           <div class="space-y-5">
             <div x-data="{open:null}" class="space-y-3">
-
+      
               <!-- Q block -->
               <template x-for="(q, i) in [
-                {q:'Do I need to write any backend code?', a:'No. Just set the action attribute on your HTML form. Formdata receives the POST, processes it, and stores the data. Zero server-side code.'},
-                {q:'Which site builders does Formdata work with?', a:'Anything that outputs HTML — Webflow, Framer, GitHub Pages, Hugo, Next.js, plain HTML files. If it can render a form, Formdata handles it.'},
-                {q:'How is spam handled?', a:'Every endpoint includes a honeypot field. You can optionally enable reCAPTCHA v3 or hCaptcha from the dashboard in one click.'},
-                {q:'Can I redirect after submission?', a:'Yes. Add a hidden input named _next with your redirect URL. Or handle the AJAX response yourself with our JSON API.'},
-                {q:'Is there a free tier?', a:'Yes — 50 submissions per month across all your forms, free forever. No credit card required to start.'},
-                {q:'Where is my data stored?', a:'Submissions are stored encrypted at rest in EU-West data centres. You can export or delete all data at any time.'}
-              ]" :key="i">
+                      {q:'Do I need to write any backend code?', a:'No. Just set the action attribute on your HTML form. Formdata receives the POST, processes it, and stores the data. Zero server-side code.'},
+                      {q:'Which site builders does Formdata work with?', a:'Anything that outputs HTML — Webflow, Framer, GitHub Pages, Hugo, Next.js, plain HTML files. If it can render a form, Formdata handles it.'},
+                      {q:'How is spam handled?', a:'Every endpoint includes a honeypot field. You can optionally enable reCAPTCHA v3 or hCaptcha from the dashboard in one click.'},
+                      {q:'Can I redirect after submission?', a:'Yes. Add a hidden input named _next with your redirect URL. Or handle the AJAX response yourself with our JSON API.'},
+                      {q:'Is there a free tier?', a:'Yes — 50 submissions per month across all your forms, free forever. No credit card required to start.'},
+                      {q:'Where is my data stored?', a:'Submissions are stored encrypted at rest in EU-West data centres. You can export or delete all data at any time.'}
+                    ]" :key="i">
                 <div class="border border-gray-200 rounded-xl overflow-hidden">
                   <button @click="open === i ? open = null : open = i"
                     class="w-full flex justify-between items-center p-4 text-left bg-white hover:bg-gray-50 transition-colors">
                     <span class="font-medium text-gray-900 text-sm" x-text="q.q"></span>
-                    <svg :class="open === i ? 'rotate-180' : ''" class="w-4 h-4 text-gray-400 transition-transform flex-shrink-0 ml-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    <svg :class="open === i ? 'rotate-180' : ''"
+                      class="w-4 h-4 text-gray-400 transition-transform flex-shrink-0 ml-4" fill="none" viewBox="0 0 24 24"
+                      stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                     </svg>
                   </button>
                   <div x-show="open === i" x-collapse class="px-4 pb-4 bg-gray-50 border-t border-gray-100">
@@ -301,100 +303,415 @@
                   </div>
                 </div>
               </template>
-
+      
             </div>
           </div>
         </div>
       </section>
 
-      <!-- ── PRICING ── -->
-      <section id="pricing" class="py-20 px-4" style="background:var(--red-light)">
-        <div class="container md:px-6">
-          <div class="text-center mb-12">
-            <span class="badge mb-3">Pricing</span>
-            <h2 class="text-3xl md:text-4xl font-bold mb-3">Simple, honest pricing</h2>
-            <p class="text-gray-500">Start free. Upgrade when you need more.</p>
+      <!-- ── Pricing ── -->
+      <section id="pricing" class="py-24 bg-red-50 px-4">
+        <div class="container mx-auto max-w-7xl">
+      
+          <div class="text-center mb-16">
+            <span class="badge mb-4">Pricing</span>
+      
+            <h2 class="text-4xl font-bold text-gray-900 mb-4">
+              Two plans. No hidden tiers.
+            </h2>
+      
+            <p class="text-lg text-gray-500 max-w-2xl mx-auto">
+              Every plan includes spam filtering, email notifications,
+              searchable submissions, CSV export and zero Formdata branding.
+            </p>
           </div>
-
-          <div class="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto" x-data="{ yearly: true }">
-
-            <!-- Free -->
-            <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col">
-              <h3 class="font-bold text-lg mb-1">Free</h3>
-              <p class="text-gray-400 text-sm mb-5">For personal projects</p>
-              <div class="text-3xl font-extrabold text-gray-900 mb-5">$0</div>
-              <ul class="space-y-3 text-sm text-gray-600 mb-8 flex-1">
-                <li class="flex gap-2"><span class="text-green-500 font-bold">✓</span> 50 submissions / month</li>
-                <li class="flex gap-2"><span class="text-green-500 font-bold">✓</span> 2 forms</li>
-                <li class="flex gap-2"><span class="text-green-500 font-bold">✓</span> Email notifications</li>
-                <li class="flex gap-2"><span class="text-green-500 font-bold">✓</span> Dashboard</li>
-                <li class="flex gap-2 text-gray-300"><span>✗</span> File uploads</li>
-                <li class="flex gap-2 text-gray-300"><span>✗</span> Webhooks</li>
+      
+          <!-- Pricing Cards -->
+      
+          <div class="grid lg:grid-cols-2 gap-8 max-w-6xl mx-auto">
+      
+            <!-- SOLO -->
+      
+            <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+      
+              <div class="p-8">
+      
+                <p class="uppercase tracking-widest text-sm font-semibold text-red-600">
+                  Solo
+                </p>
+      
+                <div class="mt-3 flex items-end gap-2">
+                  <span class="text-6xl font-extrabold text-gray-900">$5</span>
+                  <span class="text-gray-500 mb-2">/month</span>
+                </div>
+      
+                <p class="mt-5 text-gray-500">
+                  Perfect for personal websites, portfolios and waitlists.
+                </p>
+      
+              </div>
+      
+              <div class="border-t border-gray-100"></div>
+      
+              <ul class="p-8 space-y-5">
+      
+                <li class="flex gap-3">
+                  <span class="text-green-500 font-bold">✓</span>
+                  <div>
+                    <p class="font-medium">1,000 submissions / month</p>
+                    <p class="text-sm text-gray-500">$1 per extra 200 submissions</p>
+                  </div>
+                </li>
+      
+                <li class="flex gap-3"><span class="text-green-500">✓</span>Email notifications</li>
+      
+                <li class="flex gap-3"><span class="text-green-500">✓</span>Spam filtering</li>
+      
+                <li class="flex gap-3"><span class="text-green-500">✓</span>Dashboard & search</li>
+      
+                <li class="flex gap-3"><span class="text-green-500">✓</span>Lead status tracking</li>
+      
+                <li class="flex gap-3"><span class="text-green-500">✓</span>No Formdata branding</li>
+      
+                <li class="flex gap-3"><span class="text-green-500">✓</span>Works with every framework</li>
+      
+                <li class="flex gap-3 text-gray-400">
+                  <span>✕</span>
+                  File uploads
+                </li>
+      
+                <li class="flex gap-3 text-gray-400">
+                  <span>✕</span>
+                  Slack, Zapier & Webhooks
+                </li>
+      
               </ul>
-              <form action="/auth" method="post">
-                <button class="w-full border-2 font-semibold py-2.5 rounded-lg text-sm transition-colors hover:bg-gray-50" style="border-color:var(--red);color:var(--red)">
-                  Get started free
+      
+              <div class="px-8 pb-8">
+      
+                <button hx-post="/auth"
+                  class="w-full py-3 rounded-xl border-2 border-red-600 text-red-600 font-semibold hover:bg-red-50 transition">
+      
+                  Start Free
+      
                 </button>
-              </form>
+      
+              </div>
+      
             </div>
-
-            <!-- Pro (highlighted) -->
-            <div class="bg-white p-6 rounded-xl border-2 shadow-lg flex flex-col relative" style="border-color:var(--red)">
-              <span class="absolute -top-3 left-1/2 -translate-x-1/2 text-xs font-semibold text-white px-3 py-1 rounded-full" style="background:var(--red)">Most popular</span>
-              <h3 class="font-bold text-lg mb-1">Pro</h3>
-              <p class="text-gray-400 text-sm mb-4">For freelancers & small teams</p>
-
-              <!-- toggle -->
-              <div class="flex items-center gap-3 mb-4 text-sm">
-                <span :class="!yearly ? 'font-semibold' : 'text-gray-400'">Monthly</span>
-                <button @click="yearly=!yearly" class="relative h-5 w-9 rounded-full transition-colors" :style="yearly ? 'background:var(--red)' : 'background:#d1d5db'">
-                  <span :class="yearly ? 'translate-x-4' : 'translate-x-1'" class="inline-block h-3.5 w-3.5 rounded-full bg-white transition transform absolute top-0.5"></span>
+      
+            <!-- STUDIO -->
+      
+            <div class="relative bg-white rounded-2xl border-2 border-red-600 shadow-xl overflow-hidden">
+      
+              <div class="absolute top-5 right-5 bg-red-600 text-white text-xs px-3 py-1 rounded-full">
+                MOST POPULAR
+              </div>
+      
+              <div class="p-8">
+      
+                <p class="uppercase tracking-widest text-sm font-semibold text-red-600">
+                  Studio
+                </p>
+      
+                <div class="mt-3 flex items-end gap-2">
+                  <span class="text-6xl font-extrabold text-gray-900">$10</span>
+                  <span class="text-gray-500 mb-2">/month</span>
+                </div>
+      
+                <p class="mt-5 text-gray-500">
+                  Everything in Solo plus attachments and integrations.
+                </p>
+      
+              </div>
+      
+              <div class="border-t border-gray-100"></div>
+      
+              <ul class="p-8 space-y-5">
+      
+                <li class="flex gap-3">
+                  <span class="text-green-500 font-bold">✓</span>
+                  <div>
+                    <p class="font-medium">2,000 submissions / month</p>
+                    <p class="text-sm text-gray-500">$1 per extra 200 submissions</p>
+                  </div>
+                </li>
+      
+                <li class="flex gap-3"><span class="text-green-500">✓</span>Email notifications</li>
+      
+                <li class="flex gap-3"><span class="text-green-500">✓</span>Spam filtering</li>
+      
+                <li class="flex gap-3"><span class="text-green-500">✓</span>Dashboard & search</li>
+      
+                <li class="flex gap-3"><span class="text-green-500">✓</span>Lead status tracking</li>
+      
+                <li class="flex gap-3"><span class="text-green-500">✓</span>No Formdata branding</li>
+      
+                <li class="flex gap-3"><span class="text-green-500">✓</span>Works with every framework</li>
+      
+                <li class="flex gap-3">
+                  <span class="text-green-500">✓</span>
+      
+                  <div>
+                    <p>File uploads</p>
+                    <p class="text-sm text-gray-500">
+                      2GB included • $1/GB extra
+                    </p>
+                  </div>
+      
+                </li>
+      
+                <li class="flex gap-3">
+                  <span class="text-green-500">✓</span>
+                  Slack • Zapier • Sheets • Webhooks
+                </li>
+      
+              </ul>
+      
+              <div class="px-8 pb-8">
+      
+                <button hx-post="/auth"
+                  class="w-full py-3 rounded-xl bg-red-600 text-white font-semibold hover:bg-red-700 transition">
+      
+                  Start 30-Day Free Trial
+      
                 </button>
-                <span :class="yearly ? 'font-semibold' : 'text-gray-400'">Yearly <span class="text-xs text-green-600 font-medium">–20%</span></span>
+      
               </div>
-
-              <div class="text-3xl font-extrabold text-gray-900 mb-1">
-                $<span x-text="yearly ? 15 : 19"></span><span class="text-base font-normal text-gray-400">/mo</span>
-              </div>
-              <p class="text-xs text-gray-400 mb-5" x-text="yearly ? 'Billed $180/year' : 'Billed monthly'"></p>
-
-              <ul class="space-y-3 text-sm text-gray-600 mb-8 flex-1">
-                <li class="flex gap-2"><span class="text-green-500 font-bold">✓</span> 1,000 submissions / month</li>
-                <li class="flex gap-2"><span class="text-green-500 font-bold">✓</span> Unlimited forms</li>
-                <li class="flex gap-2"><span class="text-green-500 font-bold">✓</span> File uploads (1 GB)</li>
-                <li class="flex gap-2"><span class="text-green-500 font-bold">✓</span> Webhooks & Slack</li>
-                <li class="flex gap-2"><span class="text-green-500 font-bold">✓</span> CSV / JSON export</li>
-                <li class="flex gap-2"><span class="text-green-500 font-bold">✓</span> Custom redirect & email</li>
-              </ul>
-              <button hx-post="/auth" class="w-full text-white font-semibold py-2.5 rounded-lg text-sm" style="background:var(--red)">
-                Start 14-day free trial
-              </button>
-              <p class="text-xs text-gray-400 text-center mt-2">No credit card required</p>
+      
             </div>
-
-            <!-- Business -->
-            <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col">
-              <h3 class="font-bold text-lg mb-1">Business</h3>
-              <p class="text-gray-400 text-sm mb-5">For agencies & high-volume</p>
-              <div class="text-3xl font-extrabold text-gray-900 mb-5">
-                $<span x-text="yearly ? 49 : 59"></span><span class="text-base font-normal text-gray-400">/mo</span>
-              </div>
-              <ul class="space-y-3 text-sm text-gray-600 mb-8 flex-1">
-                <li class="flex gap-2"><span class="text-green-500 font-bold">✓</span> 10,000 submissions / month</li>
-                <li class="flex gap-2"><span class="text-green-500 font-bold">✓</span> Unlimited forms & files</li>
-                <li class="flex gap-2"><span class="text-green-500 font-bold">✓</span> Team members (5 seats)</li>
-                <li class="flex gap-2"><span class="text-green-500 font-bold">✓</span> Priority support</li>
-                <li class="flex gap-2"><span class="text-green-500 font-bold">✓</span> White-label redirects</li>
-                <li class="flex gap-2"><span class="text-green-500 font-bold">✓</span> API access</li>
-              </ul>
-              <button hx-post="/auth" class="w-full border-2 font-semibold py-2.5 rounded-lg text-sm transition-colors hover:bg-gray-50" style="border-color:var(--red);color:var(--red)">
-                Start 14-day free trial
-              </button>
-            </div>
-
+      
           </div>
+      
+          <!-- Rate Card -->
+      
+          <div class="mt-20">
+      
+            <div class="text-center mb-10">
+      
+              <h3 class="text-3xl font-bold">
+                Overage Pricing
+              </h3>
+      
+              <p class="text-gray-500 mt-3">
+                Only pay when you exceed your included limits.
+              </p>
+      
+            </div>
+      
+            <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+      
+              <table class="w-full">
+      
+                <thead class="bg-gray-50">
+      
+                  <tr class="text-left">
+      
+                    <th class="px-6 py-4">Resource</th>
+                    <th class="px-6 py-4">Included</th>
+                    <th class="px-6 py-4">Extra Usage</th>
+      
+                  </tr>
+      
+                </thead>
+      
+                <tbody>
+      
+                  <tr class="border-t">
+      
+                    <td class="px-6 py-5">Submissions</td>
+      
+                    <td class="px-6 py-5">
+                      1,000 (Solo)<br>
+                      2,000 (Studio)
+                    </td>
+      
+                    <td class="px-6 py-5 text-red-600 font-medium">
+                      $1 / 200 submissions
+                    </td>
+      
+                  </tr>
+      
+                  <tr class="border-t">
+      
+                    <td class="px-6 py-5">
+                      File Storage
+                    </td>
+      
+                    <td class="px-6 py-5">
+                      2 GB (Studio)
+                    </td>
+      
+                    <td class="px-6 py-5 text-red-600 font-medium">
+                      $1 / GB
+                    </td>
+      
+                  </tr>
+      
+                </tbody>
+      
+              </table>
+      
+            </div>
+      
+          </div>
+      
+          <!-- Storage Policy -->
+      
+          <div class="mt-20">
+      
+            <div class="text-center mb-12">
+      
+              <h3 class="text-3xl font-bold">
+                What happens when storage is full?
+              </h3>
+      
+              <p class="text-gray-500 mt-3">
+                Nothing is deleted automatically.
+              </p>
+      
+            </div>
+      
+            <div class="grid md:grid-cols-3 gap-6">
+      
+              <div class="bg-white rounded-2xl border p-8">
+      
+                <div class="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center font-bold mb-6">
+                  1
+                </div>
+      
+                <h4 class="font-semibold text-lg mb-3">
+                  We'll notify you
+                </h4>
+      
+                <p class="text-gray-500">
+                  You'll receive emails at 80% and again at 100% storage usage.
+                </p>
+      
+              </div>
+      
+              <div class="bg-white rounded-2xl border p-8">
+      
+                <div class="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center font-bold mb-6">
+                  2
+                </div>
+      
+                <h4 class="font-semibold text-lg mb-3">
+                  You decide
+                </h4>
+      
+                <p class="text-gray-500">
+                  Buy additional storage or keep your current limit.
+                </p>
+      
+              </div>
+      
+              <div class="bg-white rounded-2xl border p-8">
+      
+                <div class="w-12 h-12 rounded-full bg-red-100 text-red-600 flex items-center justify-center font-bold mb-6">
+                  3
+                </div>
+      
+                <h4 class="font-semibold text-lg mb-3">
+                  Nothing gets deleted
+                </h4>
+      
+                <p class="text-gray-500">
+                  Existing files stay forever. New uploads pause until space is available.
+                </p>
+      
+              </div>
+      
+            </div>
+      
+            <div class="mt-8 bg-white border-l-4 border-red-600 rounded-xl p-6 shadow-sm">
+      
+              <strong class="text-red-600">
+                No auto charges.
+              </strong>
+      
+              <p class="text-gray-600 mt-2">
+                Storage only increases when you choose. Existing submissions are never deleted automatically.
+              </p>
+      
+            </div>
+      
+          </div>
+      
         </div>
       </section>
+
+      <!-- ── FAQ ── -->
+    <section id="faq" class="py-20 bg-white px-4">
+      <div class="container md:px-6 max-w-3xl mx-auto">
+        <div class="text-center mb-12">
+          <h2 class="text-3xl md:text-4xl font-bold mb-3">
+            Questions people actually ask
+          </h2>
+          <p class="text-gray-500">
+            Everything you need to know about Formdata pricing.
+          </p>
+        </div>
+    
+        <div class="space-y-5">
+          <div x-data="{open:null}" class="space-y-3">
+    
+            <template x-for="(q, i) in [
+              {
+                q:'What happens if I go over my submission limit?',
+                a:'Your forms continue accepting submissions without interruption. Additional submissions are billed at $1 per 200 submissions at the end of your billing cycle.'
+              },
+              {
+                q:'What happens when my file storage is full?',
+                a:'We email you before it becomes a problem. If you do not add storage, new file uploads are rejected, but form submissions and notifications continue working normally.'
+              },
+              {
+                q:'Is my data ever deleted to free up storage?',
+                a:'No. Existing submissions and uploaded files are never deleted automatically. We never remove your data to make room for new uploads.'
+              },
+              {
+                q:'Do I need a credit card for the 30-day trial?',
+                a:'No. You get full access to every feature for 30 days without entering a credit card.'
+              },
+              {
+                q:'Can I switch plans or cancel anytime?',
+                a:'Yes. You can upgrade, downgrade or cancel whenever you like. Changes take effect on your next billing cycle.'
+              }
+            ]" :key="i">
+    
+              <div class="border border-gray-200 rounded-xl overflow-hidden">
+    
+                <button @click="open === i ? open = null : open = i"
+                  class="w-full flex justify-between items-center p-4 text-left bg-white hover:bg-gray-50 transition-colors">
+    
+                  <span class="font-medium text-gray-900 text-sm" x-text="q.q">
+                  </span>
+    
+                  <svg :class="open === i ? 'rotate-180' : ''"
+                    class="w-4 h-4 text-gray-400 transition-transform flex-shrink-0 ml-4" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+    
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+    
+                  </svg>
+    
+                </button>
+    
+                <div x-show="open === i" x-collapse class="px-4 pb-4 bg-gray-50 border-t border-gray-100">
+    
+                  <p class="text-gray-600 text-sm pt-3" x-text="q.a">
+                  </p>
+    
+                </div>
+    
+              </div>
+    
+            </template>
+    
+          </div>
+        </div>
+      </div>
+    </section>
 
       <!-- ── FOOTER ── -->
       <footer class="bg-white border-t border-gray-100 pt-12 pb-8 px-4">
