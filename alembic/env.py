@@ -7,7 +7,14 @@ from alembic import context
 
 from app.core.settings import settings
 from app.core.db import Base
-from app.models.user import User, Subscription  # noqa: F401
+from app.models.user import (
+    User,  # noqa: F401
+    Subscription,  # noqa: F401
+    ProcessedWebhook,  # noqa: F401
+    OverageCharge,  # noqa: F401
+    Project,  # noqa: F401
+    Form,  # noqa: F401
+)  # noqa: F401
 
 DATABASE_URL = settings.DATABASE_URL
 

@@ -5,6 +5,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from pydantic import BaseModel
+from loguru import logger as log
 import hashlib
 import httpx
 import hmac
@@ -13,7 +14,7 @@ import hmac
 from app.services.subscription import handle_paddle_webhook
 from app.schemas.user import DBUser, SubscriptionStatus
 from app.services.dependencies import current_user
-from app.models.user import Subscription
+from app.models.user import ProcessedWebhook, Subscription
 from app.core.templates import temp
 from app.core.db import get_db
 from app.core.settings import settings
@@ -49,8 +50,8 @@ async def subscription_modal(
             "email": user.email,
             "user_id": user.id,
             # pricing values only used by pricing modal
-            "monthly_price_id": settings.PADDLE_MONTHLY_PRICE_ID,
-            "yearly_price_id": settings.PADDLE_YEARLY_PRICE_ID,
+            "monthly_price_id": settings.PADDLE_PRICE_ID_SOLO,
+            "yearly_price_id": settings.PADDLE_PRICE_ID_STUDIO,
             "monthly_amount": 1900,
             "yearly_amount": 19900,
             "currency": "USD",
@@ -154,9 +155,10 @@ def verify_signature(sig_header: str, raw_body: bytes) -> bool:
     except Exception:
         return False
 
+
 @user_router.post("/webhook/paddle")
 async def process_webhook(
-    request:Request,
+    request: Request,
     db: AsyncSession = Depends(get_db),
     paddle_signature: Annotated[str | None, Header()] = None,
 ):
@@ -168,9 +170,26 @@ async def process_webhook(
     if not verify_signature(paddle_signature, raw_body):
         raise HTTPException(status_code=401, detail="Invalid signature")
 
+    webhook_data = Webhook.model_validate_json(raw_body)
     try:
-        webhook_data = Webhook.model_validate_json(raw_body)
+        query = select(ProcessedWebhook).where(
+            ProcessedWebhook.event_id == webhook_data.event_id
+        )
+        result = await db.execute(query)
+        already_processed = result.scalar_one_or_none()
+        if already_processed:
+            log.info(
+                f"Duplicate webhook detected. Event {webhook_data.event_id} already processed. Skipping."
+            )
+            return {"status": "skipped", "message": "Duplicate event"}
+        new_guard = ProcessedWebhook(
+            event_id=webhook_data.event_id, event_type=webhook_data.event_type
+        )
+        db.add(new_guard)
+        await handle_paddle_webhook(webhook_data.event_type, webhook_data.data, db)
+        await db.commit()
+        return JSONResponse({"ok": True}, status_code=200)
     except Exception as e:
+        await db.rollback()
+        log.exception(f"Webhook processing crashed for event {webhook_data.event_id}")
         raise HTTPException(status_code=400, detail=f"Invalid payload schema: {e}")
-    await handle_paddle_webhook(webhook_data.event_type, webhook_data.data, db)
-    return JSONResponse({"ok": True}, status_code=200)

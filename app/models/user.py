@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import List, Optional
 import uuid
 from datetime import datetime, timedelta, timezone
 
@@ -7,7 +7,9 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Index,
+    Integer,
     String,
+    Text,
     UniqueConstraint,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -33,7 +35,11 @@ class User(Base):
         DateTime(timezone=True), nullable=True
     )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-
+    projects: Mapped[List["Project"]] = relationship(
+        "Project",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
     subscription: Mapped["Subscription"] = relationship(  # noqa: F821 # type: ignore
         "Subscription",
         back_populates="user",
@@ -74,9 +80,15 @@ class Subscription(Base):
     plan_interval: Mapped[Optional[str]] = mapped_column(  # 'monthly' or 'yearly'
         String(10), nullable=True
     )
+    submissions_used: Mapped[int] = mapped_column(
+        default=0, nullable=False
+    )  # resets each period
+    storage_bytes_used: Mapped[int] = mapped_column(
+        default=0, nullable=False
+    )  # running total, not reset
     # Status (align with Paddle statuses you map in webhooks)
     status: Mapped[str] = mapped_column(
-        String(30), default=SubscriptionStatus.TRIAL, nullable= False
+        String(30), default=SubscriptionStatus.TRIAL, nullable=False
     )  # trial | active | canceled
 
     trial_end: Mapped[datetime] = mapped_column(
@@ -133,3 +145,89 @@ class Subscription(Base):
 
         # ❌ Otherwise, access revoked
         return False
+
+
+class ProcessedWebhook(Base):
+    __tablename__ = "processed_webhooks"
+
+    # Paddle's root 'event_id' is a completely unique string (e.g., 'evt_01kwq...')
+    event_id: Mapped[str] = mapped_column(String(255), primary_key=True)
+
+    # Helpful metadata for debugging or clean-up crons later
+    event_type: Mapped[str] = mapped_column(String(100), nullable=False)
+    processed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+
+
+class OverageCharge(Base):
+    __tablename__ = "overage_charges"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    subscription_id: Mapped[str] = mapped_column(String)
+    submission_blocks: Mapped[int] = mapped_column(Integer)
+    storage_gb: Mapped[int] = mapped_column(Integer)
+    amount_cents: Mapped[int] = mapped_column(Integer)
+    billed_at: Mapped[datetime] = mapped_column(DateTime)
+
+
+class Project(Base):
+    __tablename__ = "projects"
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    # Connect project directly to the parent User
+    user_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+    # Relationships
+    user: Mapped["User"] = relationship(back_populates="projects")  # Link to User model
+    forms: Mapped[List["Form"]] = relationship(
+        "Form",
+        back_populates="project",
+        cascade="all, delete-orphan",  # Deleting a project automatically wipes its forms
+    )
+
+
+class Form(Base):
+    __tablename__ = "forms"
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    # Forms belong to a Project, which implicitly links them to a User
+    project_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False
+    )
+
+    title: Mapped[str] = mapped_column(String(150), nullable=False)
+    # Store form structures, fields, inputs, or schemas easily using raw strings or a JSON block
+    schema_definition: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    is_published: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+    # Relationships
+    project: Mapped["Project"] = relationship(back_populates="forms")

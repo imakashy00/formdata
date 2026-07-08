@@ -32,8 +32,11 @@ class Settings(BaseSettings):
     PADDLE_API_KEY: str
     PADDLE_WEBHOOK_SECRET: str
     PADDLE_BASE_URL: str = "https://sandbox-api.paddle.com"
-    PADDLE_MONTHLY_PRICE_ID: str
-    PADDLE_YEARLY_PRICE_ID: str
+    PADDLE_PRICE_ID_SOLO: str
+    PADDLE_PRICE_ID_STUDIO: str
+
+    PADDLE_PRICE_ID_EXTRA_SUBMISSIONS: str   # pri_xxx — $1 per 200-submission block
+    PADDLE_PRICE_ID_EXTRA_STORAGE: str       # pri_xxx — $1 per GB
 
     # Rate Limiting
     RATE_LIMIT_ENABLED: bool = True

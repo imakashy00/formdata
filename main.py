@@ -13,6 +13,9 @@ from app.middlewares.middleware import register_middlewares
 from app.middlewares.rate_limit import setup_rate_limiting
 from app.routes.auth import router
 from app.routes.page import page_router
+from app.routes.project import project_router
+from app.routes.form import form_router
+from app.routes.account import account_router
 from app.routes.subscription import user_router
 from app.services.blacklist import redis_client
 
@@ -29,7 +32,7 @@ async def verify_services() -> None:
         raise
 
     try:
-        await redis_client.ping()
+        await redis_client.ping() # type: ignore
         log.info("✅ Redis is reachable.")
     except Exception as exc:
         log.error(f"❌ Redis is not reachable: {exc}")
@@ -69,6 +72,9 @@ app.add_middleware(SessionMiddleware, secret_key=settings.SECRET)
 app.include_router(router=router)
 app.include_router(router=page_router)
 app.include_router(router=user_router)
+app.include_router(router=account_router)
+app.include_router(router=form_router)
+app.include_router(router=project_router)
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 

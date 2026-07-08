@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.settings import settings
 from app.models.user import Subscription, User
 from app.schemas.user import SubscriptionStatus
+from app.services.bill_calculation import bill_overage, calculate_overage
 
 headers = {
     "Authorization": f"Bearer {str(settings.PADDLE_API_KEY)}",
@@ -19,11 +20,13 @@ headers = {
 
 class SubscriptionNotFoundError(Exception):
     """Raised when a subscription does not exist."""
+
     pass
 
 
 class InvalidWebhookPayloadError(Exception):
     """Raised when InvalidWebhookPayloadError occurs."""
+
     pass
 
 
@@ -277,6 +280,14 @@ async def save(
         raise
 
 
+def _period_rolled_over(subscription: Subscription, data: SubscriptionWebhook) -> bool:
+    return bool(
+        subscription.current_period_start
+        and data.current_period_start
+        and data.current_period_start > subscription.current_period_start
+    )
+
+
 # =========================================================
 # EVENT HANDLERS
 # =========================================================
@@ -289,6 +300,19 @@ async def handle_subscription_sync(payload: dict, db: AsyncSession):
         # Extract values from the incoming Paddle payload
         data = SubscriptionWebhook.from_payload(payload)
         ctx = await resolve_subscription_context(data, db)
+        
+        if ctx.subscription is not None and _period_rolled_over(ctx.subscription, data):
+            overage = calculate_overage(ctx.subscription)
+            billed_ok = await bill_overage(ctx.subscription.subscription_id, overage)
+
+            if billed_ok:
+                ctx.subscription.submissions_used = 0
+            else:
+                log.warning(
+                    f"Overage charge failed for {ctx.subscription.subscription_id} — "
+                    f"leaving submissions_used unreset, will retry next sync"
+                )
+
         if ctx.subscription is None:
             subscription = create_subscription(ctx, data, db)
         else:

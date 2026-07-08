@@ -10,93 +10,64 @@ from app.core.db import get_db
 from app.core.templates import temp
 from app.models.user import User
 from app.schemas.user import DBUser
-from app.services.auth import AuthService
 from app.services.dependencies import current_user
 
 page_router = APIRouter()
 
 
-async def get_authenticated_user(request: Request, db: AsyncSession):
-    """Helper function to reuse your authentication logic across routes."""
-    access_token = request.cookies.get("access_token")
-    if not access_token:
+async def get_current_user(
+    request: Request, db: AsyncSession = Depends(get_db)
+) -> User | None:
+    """FastAPI Dependency to retrieve the logged-in user from request state."""
+    payload = getattr(request.state, "user", None)
+    if not payload:
         return None
 
-    try:
-        payload = await AuthService.validate_access(access_token)
-        result = await db.execute(select(User).filter(User.id == payload["sub"]))
-        return result.scalars().first()
-    except Exception:
-        return None
+    result = await db.execute(select(User).filter(User.id == payload["sub"]))
+    return result.scalars().first()
 
 
 @page_router.get("/", response_class=HTMLResponse)
-async def home(request: Request, db: AsyncSession = Depends(get_db)):
-    user_db = await get_authenticated_user(request, db)
-    if not user_db:
+async def home(request: Request, user: User | None = Depends(get_current_user)):
+    if not user:
         return temp.TemplateResponse(request, "index.html")
-
     return temp.TemplateResponse(
         request,
         "dashboard.html",
         {
-            "email": user_db.email,
-            "name": user_db.name,
-            "user_id": user_db.id,
+            "email": user.email,
+            "name": user.name,
+            "user_id": user.id,
             "page": "dashboard",
         },
     )
 
 
-@page_router.get("/projects", response_class=HTMLResponse)
-async def projects(request: Request, db: AsyncSession = Depends(get_db)):
-    user_db = await get_authenticated_user(request, db)
-    if not user_db:
-        return temp.TemplateResponse(request, "index.html")
-
-    return temp.TemplateResponse(
-        request,
-        "projects.html",
-        {
-            "email": user_db.email,
-            "name": user_db.name,
-            "user_id": user_db.id,
-            "page": "projects",
-        },
-    )
-
-
 @page_router.get("/account", response_class=HTMLResponse)
-async def account(request: Request, db: AsyncSession = Depends(get_db)):
-    user_db = await get_authenticated_user(request, db)
-    if not user_db:
-        return temp.TemplateResponse(request, "index.html")
+async def account(request: Request, user: User = Depends(get_current_user)):
 
     return temp.TemplateResponse(
         request,
         "account.html",
         {
-            "email": user_db.email,
-            "name": user_db.name,
-            "user_id": user_db.id,
+            "email": user.email,
+            "name": user.name,
+            "user_id": user.id,
             "page": "account",
         },
     )
 
 
 @page_router.get("/billing", response_class=HTMLResponse)
-async def billing(request: Request, db: AsyncSession = Depends(get_db)):
-    user_db = await get_authenticated_user(request, db)
-    if not user_db:
-        return temp.TemplateResponse(request, "index.html")
+async def billing(request: Request, user: User = Depends(get_current_user)):
 
     return temp.TemplateResponse(
         request,
         "billing.html",
         {
-            "email": user_db.email,
-            "name": user_db.name,
-            "user_id": user_db.id,
+            "email": user.email,
+            "name": user.name,
+            "user_id": user.id,
             "page": "billing",
         },
     )

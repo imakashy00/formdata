@@ -6,13 +6,18 @@ from fastapi import HTTPException, Request
 from app.services.auth import AuthService
 from app.services.cookies import clear_auth_cookies, set_auth_cookies
 
-
+PUBLIC_PREFIXES = ("/static", "/blogs")
 PUBLIC_PATHS = {
     "/",
     "/help",
     "/auth",
     "/auth/callback",
     "/webhook/paddle",
+    "/privacy-policy",
+    "/terms",
+    "/robots.txt",
+    "/sitemap.xml",
+    "/favicon.ico",
 }
 
 
@@ -73,7 +78,11 @@ def register_middlewares(app):
                 log.error(f"❌ Unexpected error during refresh: {e}")
                 return redirect_home()
 
-        if request.state.user is None and request.url.path not in PUBLIC_PATHS:
+        is_public = request.url.path in PUBLIC_PATHS or request.url.path.startswith(
+            PUBLIC_PREFIXES
+        )
+
+        if request.state.user is None and not is_public:
             return redirect_home()
 
         response = await call_next(request)
