@@ -23,11 +23,11 @@ export class FormWidget {
 
     constructor(form) {
 
-        const { formId, endpoint } = validateForm(form);
+        const { formId, formAction } = validateForm(form);
 
         this.form = form;
         this.formId = formId;
-        this.endpoint = endpoint;
+        this.formAction = formAction;
 
         this.config = null;
         this.provider = null;
@@ -52,7 +52,7 @@ export class FormWidget {
 
             // Load configuration
             const config = await API.getConfig(
-                this.endpoint,
+                this.formAction,
                 this.formId
             );
 
@@ -119,7 +119,7 @@ export class FormWidget {
         if (this.submitting) {
             return;
         }
-
+        console.log("Submitting....")
         this.submitting = true;
 
         disableSubmit(this.form);
@@ -132,8 +132,8 @@ export class FormWidget {
             this.abortController?.abort();
 
             this.abortController = new AbortController();
-
-            // Verify CAPTCHA (ALTCHA, Turnstile, etc.)
+            console.log("Going to veriy the altcha...")
+            // Verify CAPTCHA (ALTCHA, Turnstile, etc.) 
             await this.provider.verify();
 
             // Collect form data
@@ -141,7 +141,7 @@ export class FormWidget {
 
             // Submit to backend
             const result = await API.submit(
-                this.endpoint,
+                this.formAction,
                 this.formId,
                 formData,
                 this.abortController.signal
@@ -163,7 +163,7 @@ export class FormWidget {
             showSuccess(
                 this.status,
                 result.message ??
-                "Thanks! Your message has been sent."
+                "Thanks! Your response has been sent."
             );
 
             this.form.reset();

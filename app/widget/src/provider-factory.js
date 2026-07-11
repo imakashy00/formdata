@@ -17,7 +17,6 @@ export class ProviderFactory {
                 throw new Error(
                     `Unknown provider: ${config.provider}`
                 );
-
         }
 
     }

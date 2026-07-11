@@ -15,20 +15,20 @@ export function validateForm(form) {
         throw new Error("Expected an HTMLFormElement.");
     }
 
-    const formId = form.dataset.frmId;
-    const endpoint = form.dataset.frmEndpoint;
+    const formId  = form.dataset.formId;
+    const formAction = form.dataset.formAction;
 
     if (!formId) {
-        throw new Error("Missing data-frm-id attribute.");
+        throw new Error("Missing data-form-id attribute.");
     }
 
-    if (!endpoint) {
-        throw new Error("Missing data-frm-endpoint attribute.");
+    if (!formAction) {
+        throw new Error("Missing data-form-action attribute.");
     }
 
     return {
         formId,
-        endpoint: endpoint.replace(/\/$/, "")
+        formAction: formAction.replace(/\/$/, "")
     };
 }
 

@@ -2,8 +2,9 @@
 
 import { FormWidget } from "./form-widget.js";
 
+// A WeakSet is a special type of collection in JavaScript that stores unique objects.
+// If user leaves the page the initializedform is removed from computer's form
 const initializedForms = new WeakSet();
-
 /**
  * Initialize a single form.
  * Prevents the same form from being initialized twice.
@@ -27,7 +28,7 @@ async function initializeForm(form) {
  * Initialize all supported forms on the page.
  */
 function initializeAllForms(root = document) {
-    const forms = root.querySelectorAll("form[data-frm-id]");
+    const forms = root.querySelectorAll("form[data-form-id]");
 
     forms.forEach(initializeForm);
 }
@@ -47,14 +48,14 @@ function boot() {
                 // If the added node itself is a form.
                 if (
                     node.matches &&
-                    node.matches("form[data-frm-id]")
+                    node.matches("form[data-form-id]")
                 ) {
                     initializeForm(node);
                 }
 
                 // Or if forms exist inside the added node.
                 node
-                    .querySelectorAll?.("form[data-frm-id]")
+                    .querySelectorAll?.("form[data-form-id]")
                     .forEach(initializeForm);
             });
         }

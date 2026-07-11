@@ -6,7 +6,7 @@
 export function createStatusElement() {
     const status = document.createElement("div");
 
-    status.className = "frm-status";
+    status.className = "form-status";
     status.setAttribute("role", "status");
     status.setAttribute("aria-live", "polite");
 
@@ -20,7 +20,7 @@ export function createStatusElement() {
 export function createBotContainer() {
     const container = document.createElement("div");
 
-    container.className = "frm-bot-check";
+    container.className = "form-bot-check";
 
     return container;
 }
@@ -49,7 +49,6 @@ export function createHoneypot(name) {
     input.tabIndex = -1;
     input.autocomplete = "off";
     input.setAttribute("aria-hidden", "true");
-
     Object.assign(input.style, {
         position: "absolute",
         left: "-9999px",
@@ -112,7 +111,7 @@ export function clearStatus(statusElement) {
  */
 export function showSuccess(statusElement, message) {
     statusElement.textContent = message;
-    statusElement.className = "frm-status frm-success";
+    statusElement.className = "form-status form-success";
 }
 
 /**
@@ -120,5 +119,5 @@ export function showSuccess(statusElement, message) {
  */
 export function showError(statusElement, message) {
     statusElement.textContent = message;
-    statusElement.className = "frm-status frm-error";
+    statusElement.className = "form-status form-error";
 }

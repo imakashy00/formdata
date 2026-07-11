@@ -3,7 +3,7 @@ import { resolve } from "path";
 
 export default defineConfig({
     build: {
-        outDir: "dist",
+        outDir: resolve(__dirname, "../static/widget"),
 
         emptyOutDir: true,
 
