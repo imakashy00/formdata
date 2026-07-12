@@ -1,11 +1,13 @@
 import re
+import json
 
 from fastapi import APIRouter, Depends, Form, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import BaseModel, Field, ValidationError, field_validator
 from loguru import logger as log
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import desc, select
+from sqlalchemy.orm import selectinload
 
 from app.core.db import get_db
 from app.models.user import Project, User
@@ -45,8 +47,12 @@ async def get_projects(
     db: AsyncSession = Depends(get_db),
 ):
     try:
-        results = await db.execute(select(Project).where(Project.user_id == user.id))
-        projects = results.scalars().all()
+        result = await db.execute(
+            select(Project)
+            .where(Project.user_id == user.id)
+            .order_by(desc(Project.updated_at), desc(Project.created_at))
+        )
+        projects = result.scalars().all()
         return temp.TemplateResponse(
             request,
             "projects.html",
@@ -74,11 +80,24 @@ async def create_project(
         new_project = Project(name=project.name, user_id=user.id)
         db.add(new_project)
         await db.commit()
+
+        result = await db.execute(
+            select(Project)
+            .where(Project.user_id == user.id)
+            .order_by(desc(Project.updated_at), desc(Project.created_at))
+        )
+        projects = result.scalars().all()
+        trigger_payload = json.dumps(
+            {"showToast": f"Project '{new_project.name}' created successfully!"}
+        )
         # return RedirectResponse(url="/projects", status_code=status.HTTP_303_SEE_OTHER)
         return temp.TemplateResponse(
             request,
-            "project_success.html",
-            {"request": request, "project": new_project},
+            "projects.html",
+            {"request": request, "projects": projects},
+            headers={
+                "HX-Trigger": trigger_payload
+            },  # 👈 HTMX automatically listens to this
         )
 
     except ValidationError as exc:
@@ -100,16 +119,47 @@ async def create_project(
         log.error(f"Failed to create new Project due to system error: {exc}")
         return temp.TemplateResponse(
             request,
-            "project.html",
+            "projects.html",
             {"request": request, "error": "Something went wrong on our end."},
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
 
+@project_router.get("/projects/{project_id}", response_class=HTMLResponse)
+async def get_project(
+    request: Request,
+    project_id: str,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        result = await db.execute(
+            select(Project)
+            .options(selectinload(Project.forms))
+            .where(Project.user_id == user.id)
+            .where(Project.id == project_id)
+        )
+        project = result.scalar_one_or_none()
+        # print(project)
+        return temp.TemplateResponse(
+            request,
+            "forms.html",
+            {
+                "project": project,
+                "email": user.email,
+                "name": user.name,
+                "user_id": user.id,
+                "page": "projects",
+            },
+        )
+    except Exception as e:
+        log.warning(f"Errror fetching Project{e}")
+
+
 @project_router.post("/projects/{project_id}/update", response_class=HTMLResponse)
 async def update_project(
     request: Request,
-    project_id: int,
+    project_id: str,
     name: str = Form(...),
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),

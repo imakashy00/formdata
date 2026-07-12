@@ -1,13 +1,14 @@
+import json
 import secrets
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Form, status, Request
 from fastapi.responses import HTMLResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError, field_validator
 
 import hmac
 import hashlib
 import time
-
+from loguru import logger as log
 import re
 import uuid
 from typing import Literal
@@ -19,11 +20,16 @@ from altcha import (
 )
 import httpx
 import redis.asyncio as redis
-
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi.responses import JSONResponse
 
 
+from app.core.db import get_db
 from app.core.templates import temp
+from app.models.user import User, Form as FormDB
+from app.routes.page import get_current_user
+
 
 form_router = APIRouter()
 
@@ -81,6 +87,29 @@ HONEYPOT_FIELD = "_hp"
 r = redis.Redis(host="localhost", port=6379, decode_responses=True)
 
 
+class NewForm(BaseModel):
+    name: str = Field(..., min_length=3, max_length=50)
+
+    @field_validator("name")
+    @classmethod
+    def validate_project_name(cls, value: str) -> str:
+        # 2. Strip leading/trailing whitespace
+        value = value.strip()
+
+        # 3. Reject names that are just special characters or numbers (Optional)
+        if value.isdigit():
+            raise ValueError("Project name cannot contain only numbers.")
+
+        # 4. Enforce character safety (Alphanumeric, spaces, hyphens, underscores)
+        # Prevents XSS, SQL injection risks, and URL breaking
+        if not re.match(r"^[a-zA-Z0-9_\-\s]+$", value):
+            raise ValueError(
+                "Project name can only contain letters, numbers, spaces, hyphens, and underscores."
+            )
+
+        return value
+
+
 class WidgetConfig(BaseModel):
     provider: str
 
@@ -93,7 +122,7 @@ class WidgetConfig(BaseModel):
     success: dict | None = None
 
 
-def get_form(form_id: str) -> dict | None:
+def get_form_temp(form_id: str) -> dict | None:
     return FORMS.get(form_id)
 
 
@@ -274,6 +303,95 @@ def route(score: int) -> Literal["accept", "queue", "reject"]:
     return "accept"
 
 
+@form_router.post("/forms", response_class=HTMLResponse)
+async def create_form(
+    request: Request,
+    name: str = Form(...),
+    project_id: str = Form(...),
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        form = NewForm(name=name)
+        new_form = FormDB(
+            name=form.name,
+            project_id=project_id,
+        )
+        db.add(new_form)
+        await db.commit()
+        await db.refresh(new_form)
+
+        trigger_payload = json.dumps(
+            {"showToast": f"Form '{new_form.name}' created successfully!"}
+        )
+        # return RedirectResponse(url="/projects", status_code=status.HTTP_303_SEE_OTHER)
+        return temp.TemplateResponse(
+            request,
+            "form_card.html",
+            {
+                "request": request,
+                "form": new_form,
+            },
+            headers={
+                "HX-Trigger": trigger_payload
+            },  # 👈 HTMX automatically listens to this
+        )
+
+    except ValidationError as exc:
+        log.warning(f"Failed to create new Form: {exc}")
+        error_msg = exc.errors()[0]["msg"]
+        log.warning(f"Validation failed for new form: {error_msg}")
+        # Re-render the form page with the error message and the typed value
+        return temp.TemplateResponse(
+            request,
+            "create_project_form.html",
+            {
+                "request": request,
+                "error": error_msg,
+                "typed_name": name,
+            },
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+    except Exception as exc:
+        log.error(f"Failed to create new form due to system error: {exc}")
+        return temp.TemplateResponse(
+            request,
+            "projects.html",
+            {"request": request, "error": "Something went wrong on our end."},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+
+@form_router.get("/projects/{project_id}/forms/{form_id}", response_class=HTMLResponse)
+async def get_form(
+    request: Request,
+    form_id: str,
+    project_id: str,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        print(form_id,"<------>", project_id)
+        result = await db.execute(
+            select(FormDB).where(FormDB.id == form_id, FormDB.project_id == project_id)
+        )
+        form = result.scalar_one_or_none()
+        return temp.TemplateResponse(
+            request,
+            "form.html",
+            {
+                "request": request,
+                "form": form,
+                "email": user.email,
+                "name": user.name,
+                "user_id": user.id,
+                "page": "projects",
+            },
+        )
+    except Exception as e:
+        log.exception(f"Something went wrong while fetching form details: {e}")
+
+
 @form_router.get("/test-widget", response_class=HTMLResponse)
 async def test_widget(request: Request):
     return temp.TemplateResponse(request, "test.html", {"request": request})
@@ -321,7 +439,7 @@ class AltchaChallenge(BaseModel):
 
 @form_router.get("/form/{form_id}/altcha-challenge")
 async def altcha_challenge(request: Request, form_id: str):
-    form = get_form(form_id)
+    form = get_form_temp(form_id)
     if not form or form["bot_provider"] != "altcha":
         return JSONResponse(
             {"error": "altcha not enabled for this form"}, status_code=404
@@ -331,7 +449,7 @@ async def altcha_challenge(request: Request, form_id: str):
 
 @form_router.post("/form/{form_id}/submit")
 async def submit(form_id: str, request: Request):
-    form = get_form(form_id)
+    form = get_form_temp(form_id)
     if not form:
         return JSONResponse({"error": "unknown form"}, status_code=404)
 

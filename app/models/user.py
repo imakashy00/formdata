@@ -1,3 +1,4 @@
+import secrets
 from typing import List, Optional
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -17,6 +18,9 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.db import Base
 from app.schemas.user import SubscriptionStatus
 
+def generate_short_id() -> str:
+    # Generates a highly secure URL-safe 8-character text token
+    return secrets.token_urlsafe(6)[:8]
 
 class User(Base):
     __tablename__ = "users"
@@ -198,6 +202,7 @@ class Project(Base):
     user: Mapped["User"] = relationship(back_populates="projects")  # Link to User model
     forms: Mapped[List["Form"]] = relationship(
         "Form",
+        order_by="desc(Form.updated_at), desc(Form.created_at)",
         back_populates="project",
         cascade="all, delete-orphan",  # Deleting a project automatically wipes its forms
     )
@@ -209,12 +214,15 @@ class Form(Base):
     id: Mapped[str] = mapped_column(
         String(36), primary_key=True, default=lambda: str(uuid.uuid4())
     )
+    public_id: Mapped[str] = mapped_column(
+        String(8), unique=True, index=True, nullable=False, default=generate_short_id
+    )
     # Forms belong to a Project, which implicitly links them to a User
     project_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False
     )
 
-    title: Mapped[str] = mapped_column(String(150), nullable=False)
+    name: Mapped[str] = mapped_column(String(150), nullable=False)
     # Store form structures, fields, inputs, or schemas easily using raw strings or a JSON block
     schema_definition: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
