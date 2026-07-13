@@ -3,58 +3,380 @@
 {% block title %}Forms — Formdata{% endblock %}
 
 {% block content %}
-<div
-    class="bg-white rounded-xl border border-gray-100 shadow-sm p-5 cursor-pointer hover:shadow-md hover:border-brand-mid transition-all">
-    <div class="flex items-center gap-3 mb-4">
-        <div class="w-9 h-9 rounded-lg bg-green-50 flex items-center justify-center">
-            <svg class="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round"
-                    d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
-            </svg>
-        </div>
-        <div>
-            <p class="text-sm font-semibold text-gray-900">{{form.name}}</p>
-            <p class="text-xs text-gray-400 font-mono">{{form.public_id}}</p>
-        </div>
-    </div>
-    <div class="flex items-center gap-2">
-        <span class="text-xs font-semibold bg-emerald-50 text-emerald-600 px-2.5 py-0.5 rounded-full">Active</span>
-        <span class="text-xs text-gray-400">{{form.submissions}}</span>
-    </div>
-</div>
-<!-- Endpoint snippet -->
-<div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-    <div class="flex items-center justify-between px-5 py-4 border-b border-gray-50">
-        <p class="text-sm font-semibold text-gray-900">Your form endpoint</p>
-        <span class="text-xs font-semibold bg-emerald-50 text-emerald-600 px-2.5 py-0.5 rounded-full">●
-            Live</span>
-    </div>
-    <div class="p-5">
-        <p class="text-xs text-gray-400 mb-3">Point any HTML form at this URL — no backend code
-            needed.</p>
-        <div
-            class="relative bg-slate-900 rounded-xl p-5 font-mono text-xs leading-relaxed text-slate-200 overflow-x-auto">
-            <button onclick="copyEndpoint()"
-                class="absolute top-3 right-3 text-[10px] bg-white/10 hover:bg-white/20 text-slate-400 hover:text-white px-2.5 py-1 rounded-md transition-colors">
-                Copy
+<div class="page animate-slide-up" id="page-project" x-data="{ activeTab: 'submissions' }">
+    <div class="border-b border-gray-100 bg-white px-5 md:px-7 mb-6">
+        <nav class="flex gap-6 -mb-px" aria-label="Project tabs">
+            <button type="button" @click="activeTab = 'submissions'"
+                :class="activeTab === 'submissions' ? 'border-brand text-brand' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                class="py-4 px-1 border-b-2 text-sm transition-all">
+                Submissions
             </button>
-            <span class="text-pink-300">&lt;form</span>
-            <span class="text-blue-300"> data-form-action</span>=<span
-                class="text-green-300">"https://formdata.co</span>
-            <span class="text-blue-300"> data-form-id</span>=<span class="text-green-300">"<span
-                    class="text-yellow-300">{{form.public_id}}</span>"</span><span class="text-pink-300">&gt;</span>
-            <br />
-            &nbsp;&nbsp;<span class="text-pink-300">&lt;input</span> <span class="text-blue-300">type</span>=<span
-                class="text-green-300">"text"</span> <span class="text-blue-300">name</span>=<span
-                class="text-green-300">"name"</span> <span class="text-pink-300">/&gt;</span><br />
-            &nbsp;&nbsp;<span class="text-pink-300">&lt;input</span> <span class="text-blue-300">type</span>=<span
-                class="text-green-300">"email"</span> <span class="text-blue-300">name</span>=<span
-                class="text-green-300">"email"</span> <span class="text-pink-300">/&gt;</span><br />
-            &nbsp;&nbsp;<span class="text-pink-300">&lt;button</span> <span class="text-blue-300">type</span>=<span
-                class="text-green-300">"submit"</span><span class="text-pink-300">&gt;</span>Send<span
-                class="text-pink-300">&lt;/button&gt;</span><br />
-            <span class="text-pink-300">&lt;/form&gt;</span>
+            <button type="button" @click="activeTab = 'setup'"
+                :class="activeTab === 'setup' ? 'border-brand text-brand' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                class="py-4 px-1 border-b-2 text-sm transition-all">
+                Set Up
+            </button>
+            <button type="button" @click="activeTab = 'settings'"
+                :class="activeTab === 'settings' ? 'border-brand text-brand' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                class="py-4 px-1 border-b-2 text-sm transition-all">
+                Settings
+            </button>
+            <button type="button" @click="activeTab = 'integrations'"
+                :class="activeTab === 'integrations' ? 'border-brand text-brand' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                class="py-4 px-1 border-b-2 text-sm transition-all">
+                Integrations
+            </button>
+            <!-- <button type="button" @click="activeTab = 'rules'"
+                :class="activeTab === 'rules' ? 'border-brand text-brand' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                class="py-4 px-1 border-b-2 text-sm transition-all">
+                Rules
+            </button> -->
+            <button type="button" @click="activeTab = 'analytics'"
+                :class="activeTab === 'analytics' ? 'border-brand text-brand' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                class="py-4 px-1 border-b-2 text-sm transition-all">
+                Analytics
+            </button>
+            <button type="button" @click="activeTab = 'exports'"
+                :class="activeTab === 'exports' ? 'border-brand text-brand' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                class="py-4 px-1 border-b-2 text-sm transition-all">
+                Exports
+            </button>
+        </nav>
+    </div>
+    <div class="space-y-6">
+        <!-- Submissions Content -->
+        <div x-show="activeTab === 'submissions'">
+            <div
+                class="bg-white rounded-xl border border-gray-100 shadow-sm p-5 cursor-pointer hover:shadow-md hover:border-brand-mid transition-all">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-9 h-9 rounded-lg bg-green-50 flex items-center justify-center">
+                        <svg class="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                            stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-semibold text-gray-900">{{form.name}}</p>
+                        <p class="text-xs text-gray-400 font-mono">{{form.public_id}}</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-xs font-semibold bg-emerald-50 text-emerald-600 px-2.5 py-0.5 rounded-full">Active</span>
+                    <span class="text-xs text-gray-400">{{form.submissions}}</span>
+                </div>
+            </div>
         </div>
+        <div x-show="activeTab === 'setup'" x-cloak>
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                <div class="flex items-center justify-between px-5 py-4 border-b border-gray-50">
+                    <p class="text-sm font-semibold text-gray-900">Your form endpoint</p>
+                    <span class="text-xs font-semibold bg-emerald-50 text-emerald-600 px-2.5 py-0.5 rounded-full">● Live</span>
+                </div>
+                <div class="p-5">
+                    <p class="text-xs text-gray-400 mb-3">Point any HTML form at this URL — no backend code needed.</p>
+                    <div
+                        class="relative bg-slate-900 rounded-xl p-5 font-mono text-xs leading-relaxed text-slate-200 overflow-x-auto">
+                        <button onclick="copyEndpoint()"
+                            class="absolute top-3 right-3 text-[10px] bg-white/10 hover:bg-white/20 text-slate-400 hover:text-white px-2.5 py-1 rounded-md transition-colors">
+                            Copy
+                        </button>
+                        <span class="text-pink-300">&lt;form</span>
+                        <span class="text-blue-300"> data-form-action</span>=<span
+                            class="text-green-300">"https://formdata.co</span>
+                        <span class="text-blue-300"> data-form-id</span>=<span class="text-green-300">"<span
+                                class="text-yellow-300">{{form.public_id}}</span>"</span><span class="text-pink-300">&gt;</span>
+                        <br />
+                        &nbsp;&nbsp;<span class="text-pink-300">&lt;input</span> <span class="text-blue-300">type</span>=<span
+                            class="text-green-300">"text"</span> <span class="text-blue-300">name</span>=<span
+                            class="text-green-300">"name"</span> <span class="text-pink-300">/&gt;</span><br />
+                        &nbsp;&nbsp;<span class="text-pink-300">&lt;input</span> <span class="text-blue-300">type</span>=<span
+                            class="text-green-300">"email"</span> <span class="text-blue-300">name</span>=<span
+                            class="text-green-300">"email"</span> <span class="text-pink-300">/&gt;</span><br />
+                        &nbsp;&nbsp;<span class="text-pink-300">&lt;button</span> <span class="text-blue-300">type</span>=<span
+                            class="text-green-300">"submit"</span><span class="text-pink-300">&gt;</span>Send<span
+                            class="text-pink-300">&lt;/button&gt;</span><br />
+                        <span class="text-pink-300">&lt;/form&gt;</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Settings Content -->
+        <div x-show="activeTab === 'settings'" x-cloak class="space-y-6">
+            <form action="" method="POST" class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                <div class="px-5 py-4 border-b border-gray-50">
+                    <p class="text-sm font-semibold text-gray-900">Form Settings</p>
+                    <p class="text-xs text-gray-400 mt-0.5">Manage your form behavior and identification properties.</p>
+                </div>
+                <div class="p-5 space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1.5">Form Name</label>
+                        <input type="text" name="name" value="{{form.name}}"
+                            class="w-full max-w-md px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand transition-colors"
+                            placeholder="Contact Form">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1.5">Custom Redirect URL (Optional)</label>
+                        <input type="url" name="redirect_url"
+                            class="w-full max-w-md px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand transition-colors"
+                            placeholder="https://example.com">
+                        <p class="text-[11px] text-gray-400 mt-1">Leave blank to use the default Formdata success screen.</p>
+                    </div>
+                    <div class="pt-2">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" name="email_notifications" checked
+                                class="rounded border-gray-300 text-brand focus:ring-brand w-4 h-4">
+                            <span class="text-sm text-gray-700 select-none">Send email alert on every submission</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="px-5 py-3.5 bg-gray-50 border-t border-gray-100 flex justify-end">
+                    <button type="submit"
+                        class="bg-brand text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition-opacity">
+                        Save Changes
+                    </button>
+                </div>
+            </form>
+            <!-- Danger Zone Box -->
+            <div class="bg-white rounded-xl border border-red-100 shadow-sm overflow-hidden">
+                <div class="px-5 py-4 border-b border-red-50 bg-red-50/30">
+                    <p class="text-sm font-semibold text-red-900">Danger Zone</p>
+                </div>
+                <div class="p-5 flex items-center justify-between gap-4">
+                    <div>
+                        <p class="text-sm font-semibold text-gray-900">Delete this form</p>
+                        <p class="text-xs text-gray-400 mt-0.5">Permanently remove this form and all collected records. This cannot
+                            be undone.</p>
+                    </div>
+                    <button type="button"
+                        class="border border-red-200 text-red-600 hover:bg-red-50 text-xs font-semibold px-4 py-2 rounded-lg transition-colors whitespace-nowrap">
+                        Delete Form
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- Integrations Content -->
+        <div x-show="activeTab === 'integrations'" x-cloak class="space-y-4">
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+                <p class="text-sm font-semibold text-gray-900">App Connectors</p>
+                <p class="text-xs text-gray-400 mt-0.5 mb-5">Route submission payloads to third-party endpoints automatically.
+                </p>
+        
+                <div class="space-y-3">
+                    <!-- Webhooks Box -->
+                    <div
+                        class="border border-gray-100 rounded-xl p-4 flex items-start gap-3 hover:border-gray-200 transition-colors">
+                        <div class="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-5 h-5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                            </svg>
+                        </div>
+                        <div class="flex-grow">
+                            <div class="flex items-center justify-between mb-1">
+                                <p class="text-sm font-semibold text-gray-900">Custom Webhooks</p>
+                                <span
+                                    class="text-[10px] font-semibold bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">Disconnected</span>
+                            </div>
+                            <p class="text-xs text-gray-400 mb-3">Send JSON raw payload arrays to custom backend hooks
+                                instantly.</p>
+                            <button type="button" class="text-xs font-semibold text-brand hover:underline">Configure</button>
+                        </div>
+                    </div>
+        
+                    <!-- Email Routing Box -->
+                    <div
+                        class="border border-gray-100 rounded-xl p-4 flex items-start gap-3 hover:border-gray-200 transition-colors">
+                        <div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+                            <svg class="w-5 h-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                                stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                        </div>
+                        <div class="flex-grow">
+                            <div class="flex items-center justify-between mb-1">
+                                <p class="text-sm font-semibold text-gray-900">Email Routing</p>
+                                <span
+                                    class="text-[10px] font-semibold bg-emerald-50 text-emerald-600 px-2.5 py-0.5 rounded-full">Connected</span>
+                            </div>
+                            <p class="text-xs text-gray-400 mb-3">Forward submissions directly to system administrators
+                                immediately.</p>
+                            <button type="button"
+                                class="text-xs font-semibold text-gray-500 hover:text-gray-700 transition-colors">Manage</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Analytics Content -->
+        <div x-show="activeTab === 'analytics'" x-cloak class="space-y-6">
+            <!-- Stat Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+                    <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Total Submissions</p>
+                    <p class="text-2xl font-bold text-gray-900 mt-2">{{form.submissions}}</p>
+                    <span class="text-[11px] text-emerald-600 font-medium flex items-center gap-1 mt-1">
+                        ↑ 12% <span class="text-gray-400 font-normal">vs last week</span>
+                    </span>
+                </div>
+                <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+                    <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Spam Blocked</p>
+                    <p class="text-2xl font-bold text-gray-900 mt-2">14</p>
+                    <span class="text-[11px] text-gray-400 font-normal flex items-center gap-1 mt-1">
+                        Akismet filter active
+                    </span>
+                </div>
+                <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+                    <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Conversion Rate</p>
+                    <p class="text-2xl font-bold text-gray-900 mt-2">48.3%</p>
+                    <span class="text-[11px] text-emerald-600 font-medium flex items-center gap-1 mt-1">
+                        ↑ 2.4% <span class="text-gray-400 font-normal">vs last week</span>
+                    </span>
+                </div>
+            </div>
+        
+            <!-- Chart Panel -->
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <p class="text-sm font-semibold text-gray-900">Submission Activity</p>
+                        <p class="text-xs text-gray-400 mt-0.5">Timeline of traffic and raw form capture submissions.</p>
+                    </div>
+                    <select
+                        class="text-xs bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5 text-gray-600 focus:outline-none">
+                        <option>Last 7 days</option>
+                        <option>Last 30 days</option>
+                    </select>
+                </div>
+        
+                <!-- CSS Bar Graph -->
+                <div class="h-48 w-full flex items-end gap-2 pt-4 px-2 border-b border-gray-100">
+                    <div
+                        class="bg-brand/10 hover:bg-brand w-full h-[30%] rounded-t-sm transition-all cursor-pointer relative group">
+                        <div
+                            class="absolute -top-7 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[10px] px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                            Mon: 12</div>
+                    </div>
+                    <div
+                        class="bg-brand/10 hover:bg-brand w-full h-[45%] rounded-t-sm transition-all cursor-pointer relative group">
+                        <div
+                            class="absolute -top-7 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[10px] px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                            Tue: 18</div>
+                    </div>
+                    <div
+                        class="bg-brand/10 hover:bg-brand w-full h-[25%] rounded-t-sm transition-all cursor-pointer relative group">
+                        <div
+                            class="absolute -top-7 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[10px] px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                            Wed: 10</div>
+                    </div>
+                    <div
+                        class="bg-brand/10 hover:bg-brand w-full h-[60%] rounded-t-sm transition-all cursor-pointer relative group">
+                        <div
+                            class="absolute -top-7 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[10px] px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                            Thu: 24</div>
+                    </div>
+                    <div
+                        class="bg-brand/10 hover:bg-brand w-full h-[85%] rounded-t-sm transition-all cursor-pointer relative group">
+                        <div
+                            class="absolute -top-7 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[10px] px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                            Fri: 34</div>
+                    </div>
+                    <div
+                        class="bg-brand/10 hover:bg-brand w-full h-[50%] rounded-t-sm transition-all cursor-pointer relative group">
+                        <div
+                            class="absolute -top-7 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[10px] px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                            Sat: 20</div>
+                    </div>
+                    <div
+                        class="bg-brand/10 hover:bg-brand w-full h-[70%] rounded-t-sm transition-all cursor-pointer relative group">
+                        <div
+                            class="absolute -top-7 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[10px] px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                            Sun: 28</div>
+                    </div>
+                </div>
+                <div class="flex justify-between text-[10px] text-gray-400 mt-2 px-1">
+                    <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+                </div>
+            </div>
+        </div>
+        <!-- Exports Content -->
+        <div x-show="activeTab === 'exports'" x-cloak class="space-y-4">
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                <div class="px-5 py-4 border-b border-gray-50">
+                    <p class="text-sm font-semibold text-gray-900">Export Submissions</p>
+                    <p class="text-xs text-gray-400 mt-0.5">Download your collected form data records locally.</p>
+                </div>
+        
+                <form action="" method="POST" class="p-5 space-y-4">
+                    <!-- Date Range Selector -->
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1.5">Date Range</label>
+                        <select name="date_range"
+                            class="w-full max-w-xs bg-white px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand transition-colors">
+                            <option value="all">All submissions ({{form.submissions}} total)</option>
+                            <option value="30_days">Last 30 days</option>
+                            <option value="7_days">Last 7 days</option>
+                            <option value="custom">Custom range...</option>
+                        </select>
+                    </div>
+        
+                    <!-- Export Formats Grid -->
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-2">File Format</label>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-xl">
+                            <!-- CSV Option -->
+                            <label
+                                class="border border-gray-100 rounded-xl p-3.5 flex items-center gap-3 cursor-pointer hover:border-gray-200 transition-colors relative">
+                                <input type="radio" name="format" value="csv" checked
+                                    class="rounded-full border-gray-300 text-brand focus:ring-brand w-4 h-4">
+                                <div>
+                                    <p class="text-xs font-semibold text-gray-900">Comma Separated (CSV)</p>
+                                    <p class="text-[11px] text-gray-400 mt-0.5">Best for Excel or Sheets</p>
+                                </div>
+                            </label>
+        
+                            <!-- JSON Option -->
+                            <label
+                                class="border border-gray-100 rounded-xl p-3.5 flex items-center gap-3 cursor-pointer hover:border-gray-200 transition-colors relative">
+                                <input type="radio" name="format" value="json"
+                                    class="rounded-full border-gray-300 text-brand focus:ring-brand w-4 h-4">
+                                <div>
+                                    <p class="text-xs font-semibold text-gray-900">JSON Array</p>
+                                    <p class="text-[11px] text-gray-400 mt-0.5">Best for developers</p>
+                                </div>
+                            </label>
+        
+                            <!-- Excel Option -->
+                            <label
+                                class="border border-gray-100 rounded-xl p-3.5 flex items-center gap-3 cursor-pointer hover:border-gray-200 transition-colors relative">
+                                <input type="radio" name="format" value="xlsx"
+                                    class="rounded-full border-gray-300 text-brand focus:ring-brand w-4 h-4">
+                                <div>
+                                    <p class="text-xs font-semibold text-gray-900">Excel Worksheet</p>
+                                    <p class="text-[11px] text-gray-400 mt-0.5">Native spreadsheet file</p>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+        
+                    <!-- Submit Button -->
+                    <div class="pt-2">
+                        <button type="submit"
+                            class="bg-brand text-white text-xs font-semibold px-4 py-2.5 rounded-lg hover:opacity-90 transition-opacity flex items-center gap-2">
+                            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                            Generate Export File
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
     </div>
 </div>
 {% endblock %}
