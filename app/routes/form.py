@@ -500,3 +500,173 @@ async def submit(form_id: str, request: Request):
         return JSONResponse({"status": "rejected", "reasons": reasons}, status_code=200)
 
     return JSONResponse({"status": decision}, status_code=200)
+
+
+
+@form_router.get("/forms", response_class=HTMLResponse)
+async def get_forms(
+    request: Request,
+    project_id: Optional[uuid.UUID] = None,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        # Fetch forms belonging to this user. Filter by project if provided.
+        query = select(Form).where(Form.user_id == user.id)
+        if project_id:
+            query = query.where(Form.project_id == project_id)
+            
+        results = await db.execute(query)
+        forms = results.scalars().all()
+        
+        return temp.TemplateResponse(
+            request,
+            "forms.html",
+            {
+                "forms": forms,
+                "project_id": project_id,
+                "email": user.email,
+                "name": user.name,
+                "user_id": user.id,
+                "page": "forms",
+            },
+        )
+    except Exception as e:
+        log.warning(f"Error fetching Forms: {e}")
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+
+
+# --- 2. SHOW CREATE FORM PAGE ---
+@form_router.get("/forms/create", response_class=HTMLResponse)
+async def create_form_page(
+    request: Request,
+    project_id: Optional[uuid.UUID] = None,
+    user: User = Depends(get_current_user),
+):
+    return temp.TemplateResponse(
+        request,
+        "create_form.html",
+        {
+            "project_id": project_id,
+            "email": user.email,
+            "name": user.name,
+            "user_id": user.id,
+            "page": "forms",
+        },
+    )
+
+
+# --- 3. HANDLE FORM CREATION (POST) ---
+@form_router.post("/forms/create")
+async def handle_create_form(
+    request: Request,
+    name: str = Form(...),
+    allowed_domains_raw: Optional[str] = Form(None), # Comma separated input from user
+    redirect_url: Optional[str] = Form(None),
+    notification_email: Optional[str] = Form(None),
+    use_honeypot: bool = Form(True),
+    use_hcaptcha: bool = Form(False),
+    hcaptcha_secret_key: Optional[str] = Form(None),
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        # Parse comma-separated domains into a clean python list
+        allowed_domains = []
+        if allowed_domains_raw:
+            allowed_domains = [d.strip() for d in allowed_domains_raw.split(",") if d.strip()]
+
+        # Instantiate database record
+        new_form = Form(
+            user_id=user.id,
+            name=name,
+            allowed_domains=allowed_domains,
+            redirect_url=redirect_url if redirect_url else None,
+            notification_email=notification_email if notification_email else user.email, # default to user email
+            use_honeypot=use_honeypot,
+            use_hcaptcha=use_hcaptcha,
+            hcaptcha_secret_key=hcaptcha_secret_key if hcaptcha_secret_key else None
+        )
+        
+        db.add(new_form)
+        await db.commit()
+        
+        # Redirect back to forms index view after creation
+        return RedirectResponse(url="/forms", status_code=status.HTTP_303_SEE_OTHER)
+        
+    except Exception as e:
+        await db.rollback()
+        log.error(f"Error creating form: {e}")
+        raise HTTPException(status_code=400, detail="Could not create form wrapper.")
+
+
+# --- 4. VIEW FORM DETAILS & SUBMISSIONS ---
+@form_router.get("/forms/{form_id}", response_class=HTMLResponse)
+async def get_form_details(
+    request: Request,
+    form_id: uuid.UUID,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        # Fetch the requested form, validating it belongs to current authenticated user
+        form_result = await db.execute(
+            select(Form).where(Form.id == form_id, Form.user_id == user.id)
+        )
+        form = form_result.scalar_one_or_none()
+        
+        if not form:
+            raise HTTPException(status_code=404, detail="Form configuration template not found.")
+
+        # Fetch all saved dynamic submissions related to this specific form structure
+        submissions_result = await db.execute(
+            select(Submission)
+            .where(Submission.form_id == form_id)
+            .order_by(Submission.id.desc()) # Newest submissions first
+        )
+        submissions = submissions_result.scalars().all()
+
+        return temp.TemplateResponse(
+            request,
+            "form_detail.html",
+            {
+                "form": form,
+                "submissions": submissions,
+                "email": user.email,
+                "name": user.name,
+                "user_id": user.id,
+                "page": "forms",
+            },
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        log.warning(f"Error rendering form details dashboard for {form_id}: {e}")
+        raise HTTPException(status_code=500, detail="Internal Error")
+
+
+# --- 5. DELETE A FORM ---
+@form_router.delete("/forms/{form_id}")
+async def delete_form(
+    form_id: uuid.UUID,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        # Explicit delete criteria safeguarding multi-tenant architecture
+        stmt = delete(Form).where(Form.id == form_id, Form.user_id == user.id)
+        result = await db.execute(stmt)
+        await db.commit()
+        
+        if result.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Form asset not found or unauthorized.")
+            
+        # Ideal for HTMX delete operations (returns empty layout chunk, removing it from UI array)
+        return HTMLResponse(content="", status_code=200)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        log.error(f"Error executing form deletion payload: {e}")
+        raise HTTPException(status_code=400, detail="Deletion runtime failure.")

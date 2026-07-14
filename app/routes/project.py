@@ -156,7 +156,38 @@ async def get_project(
         log.warning(f"Errror fetching Project{e}")
 
 
-@project_router.post("/projects/{project_id}/update", response_class=HTMLResponse)
+@project_router.get("/projects/{project_id}/update", response_class=HTMLResponse)
+async def get_project(
+    request: Request,
+    project_id: str,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    try:
+        result = await db.execute(
+            select(Project)
+            .options(selectinload(Project.forms))
+            .where(Project.user_id == user.id)
+            .where(Project.id == project_id)
+        )
+        project = result.scalar_one_or_none()
+        # print(project)
+        return temp.TemplateResponse(
+            request,
+            "forms.html",
+            {
+                "project": project,
+                "email": user.email,
+                "name": user.name,
+                "user_id": user.id,
+                "page": "projects",
+            },
+        )
+    except Exception as e:
+        log.warning(f"Errror fetching Project{e}")
+
+
+@project_router.put("/projects/{project_id}", response_class=HTMLResponse)
 async def update_project(
     request: Request,
     project_id: str,
@@ -209,7 +240,7 @@ async def update_project(
 
 
 # --- DELETE PROJECT ---
-@project_router.post("/projects/{project_id}/delete", response_class=HTMLResponse)
+@project_router.delete("/projects/{project_id}", response_class=HTMLResponse)
 async def delete_project(
     request: Request,
     project_id: int,

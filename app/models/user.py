@@ -14,7 +14,7 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from app.core.db import Base
 from app.schemas.user import SubscriptionStatus
 
@@ -221,6 +221,9 @@ class Form(Base):
     project_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False
     )
+    allowed_domains: Mapped[List[str]] = mapped_column(ARRAY(String), server_default="{}")
+    redirect_url: Mapped[Optional[str]] = mapped_column(String(2083), nullable=True)
+    notification_email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
 
     name: Mapped[str] = mapped_column(String(150), nullable=False)
     # Store form structures, fields, inputs, or schemas easily using raw strings or a JSON block
@@ -239,3 +242,15 @@ class Form(Base):
 
     # Relationships
     project: Mapped["Project"] = relationship(back_populates="forms")
+    # submissions: Mapped[List["Submission"]] = relationship("Submission", back_populates="form", cascade="all, delete-orphan")
+
+class Submission(Base):
+    __tablename__ = "submissions"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    form_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("forms.id", ondelete="CASCADE"), nullable=False)
+    
+    # 4. Dynamic Payload Storage (PostgreSQL JSONB)
+    payload: Mapped[dict] = mapped_column(JSONB, nullable=False)
+
+    form: Mapped["Form"] = relationship("Form", back_populates="submissions")

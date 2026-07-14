@@ -27,22 +27,6 @@ async def get_current_user(
     return result.scalars().first()
 
 
-@page_router.get("/", response_class=HTMLResponse)
-async def home(request: Request, user: User | None = Depends(get_current_user)):
-    if not user:
-        return temp.TemplateResponse(request, "index.html")
-    return temp.TemplateResponse(
-        request,
-        "dashboard.html",
-        {
-            "email": user.email,
-            "name": user.name,
-            "user_id": user.id,
-            "page": "dashboard",
-        },
-    )
-
-
 @page_router.get("/account", response_class=HTMLResponse)
 async def account(request: Request, user: User = Depends(get_current_user)):
 

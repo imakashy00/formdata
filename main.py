@@ -17,6 +17,7 @@ from app.routes.project import project_router
 from app.routes.form import form_router
 from app.routes.account import account_router
 from app.routes.subscription import user_router
+from app.routes.dashboard import dash_router
 from app.services.blacklist import redis_client
 
 log = setup_logger()
@@ -75,6 +76,7 @@ app.include_router(router=user_router)
 app.include_router(router=account_router)
 app.include_router(router=form_router)
 app.include_router(router=project_router)
+app.include_router(router=dash_router)
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 
