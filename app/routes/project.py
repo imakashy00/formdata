@@ -156,37 +156,6 @@ async def get_project(
         log.warning(f"Errror fetching Project{e}")
 
 
-@project_router.get("/projects/{project_id}/update", response_class=HTMLResponse)
-async def get_project(
-    request: Request,
-    project_id: str,
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    try:
-        result = await db.execute(
-            select(Project)
-            .options(selectinload(Project.forms))
-            .where(Project.user_id == user.id)
-            .where(Project.id == project_id)
-        )
-        project = result.scalar_one_or_none()
-        # print(project)
-        return temp.TemplateResponse(
-            request,
-            "forms.html",
-            {
-                "project": project,
-                "email": user.email,
-                "name": user.name,
-                "user_id": user.id,
-                "page": "projects",
-            },
-        )
-    except Exception as e:
-        log.warning(f"Errror fetching Project{e}")
-
-
 @project_router.put("/projects/{project_id}", response_class=HTMLResponse)
 async def update_project(
     request: Request,
@@ -198,10 +167,12 @@ async def update_project(
     try:
         # 1. Fetch project and verify ownership security
         result = await db.execute(
-            select(Project).where(Project.id == project_id, Project.user_id == user.id)
+            select(Project)
+            .options(selectinload(Project.forms))
+            .where(Project.user_id == user.id)
+            .where(Project.id == project_id)
         )
-        project = result.scalars().first()
-
+        project = result.scalar_one_or_none()
         if not project:
             log.warning(
                 f"Project {project_id} not found or unauthorized for user {user.id}"

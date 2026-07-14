@@ -1,52 +1,34 @@
-import json
-import secrets
-
-from fastapi import APIRouter, Depends, Form, status, Request
-from fastapi.responses import HTMLResponse
-from pydantic import BaseModel, Field, ValidationError, field_validator
-
-import hmac
-import hashlib
-import time
-from loguru import logger as log
 import re
+import json
+import hmac
+import time
 import uuid
-from typing import Literal
-
+import httpx
+import secrets
+import hashlib
+import redis.asyncio as redis
+from loguru import logger as log
+from typing import Literal, Optional
+from pydantic import ValidationError
+from sqlalchemy import delete, select
+from fastapi.responses import JSONResponse
+from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import APIRouter, Depends, Form, HTTPException, status, Request
 from altcha import (
     Challenge,
     create_challenge,
     verify_solution,
 )
-import httpx
-import redis.asyncio as redis
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi.responses import JSONResponse
-
-
+from app.core.settings import settings
 from app.core.db import get_db
 from app.core.templates import temp
-from app.models.user import User, Form as FormDB
 from app.routes.page import get_current_user
-
+from app.models.user import Submission, User, Form as FormDB
+from app.schemas.form import WidgetConfig, NewForm
+from app.services.blacklist import redis_client as r
 
 form_router = APIRouter()
-
-
-SESSION_SECRET = b"replace-with-a-real-32-byte-secret-loaded-from-env"
-ALTCHA_HMAC_SECRET = "a332ecef37a92492dd43a5e1696a4f7ef1615503a7fda46a93a7ef24458f2489"
-ALTCHA_HMAC_KEY_SECRET = (
-    "9dfb931ec4f297f1b07b4dbb698ebb6e41018ae9b1de2f0bbd656968a4d1e8e3"
-)
-
-
-MIN_SUBMIT_SECONDS = 1.5  # reject submissions faster than a human could type
-SESSION_TOKEN_MAX_AGE = 60 * 30  # sessions older than this are stale, not just "fast"
-ALTCHA_CHALLENGE_EXPIRES = 120  # seconds a challenge stays valid
-
-RATE_LIMIT_IP = (20, 60)  # 20 requests / 60s per IP across all forms
-RATE_LIMIT_FORM = (200, 60)  # 200 requests / 60s per form, isolates noisy tenants
 
 DISPOSABLE_EMAIL_DOMAINS = {
     "mailinator.com",
@@ -82,44 +64,10 @@ FORMS: dict[str, dict] = {
         "required": {"email", "message"},
     },
 }
-HONEYPOT_FIELD = "_hp"
-
-r = redis.Redis(host="localhost", port=6379, decode_responses=True)
 
 
-class NewForm(BaseModel):
-    name: str = Field(..., min_length=3, max_length=50)
+# r = redis.Redis(host="localhost", port=6379, decode_responses=True)
 
-    @field_validator("name")
-    @classmethod
-    def validate_project_name(cls, value: str) -> str:
-        # 2. Strip leading/trailing whitespace
-        value = value.strip()
-
-        # 3. Reject names that are just special characters or numbers (Optional)
-        if value.isdigit():
-            raise ValueError("Project name cannot contain only numbers.")
-
-        # 4. Enforce character safety (Alphanumeric, spaces, hyphens, underscores)
-        # Prevents XSS, SQL injection risks, and URL breaking
-        if not re.match(r"^[a-zA-Z0-9_\-\s]+$", value):
-            raise ValueError(
-                "Project name can only contain letters, numbers, spaces, hyphens, and underscores."
-            )
-
-        return value
-
-
-class WidgetConfig(BaseModel):
-    provider: str
-
-    honeypotField: str
-
-    sessionToken: str
-
-    challengeUrl: str
-
-    success: dict | None = None
 
 
 def get_form_temp(form_id: str) -> dict | None:
@@ -149,7 +97,7 @@ def sign_session(form_id: str) -> str:
     issued_at = int(time.time())
     nonce = uuid.uuid4().hex
     msg = f"{form_id}:{issued_at}:{nonce}".encode()
-    sig = hmac.new(SESSION_SECRET, msg, hashlib.sha256).hexdigest()
+    sig = hmac.new(settings.SESSION_SECRET, msg, hashlib.sha256).hexdigest()
     return f"{form_id}:{issued_at}:{nonce}:{sig}"
 
 
@@ -163,20 +111,20 @@ async def verify_session(token: str, form_id: str):
         return False, "session token issued for a different form"
 
     msg = f"{fid}:{issued_at_s}:{nonce}".encode()
-    expected = hmac.new(SESSION_SECRET, msg, hashlib.sha256).hexdigest()
+    expected = hmac.new(settings.SESSION_SECRET, msg, hashlib.sha256).hexdigest()
     if not hmac.compare_digest(sig, expected):
         return False, "session token signature invalid"
 
     issued_at = int(issued_at_s)
     age = time.time() - issued_at
-    if age > SESSION_TOKEN_MAX_AGE:
+    if age > settings.SESSION_TOKEN_MAX_AGE:
         return False, "session token expired"
-    if age < MIN_SUBMIT_SECONDS:
+    if age < settings.MIN_SUBMIT_SECONDS:
         return False, "submitted too fast for a human"
 
     # single-use, so a captured token can't be replayed
     first_use = await r.set(
-        f"session_used:{nonce}", "1", nx=True, ex=SESSION_TOKEN_MAX_AGE
+        f"session_used:{nonce}", "1", nx=True, ex=settings.SESSION_TOKEN_MAX_AGE
     )
     if not first_use:
         return False, "session token already used"
@@ -189,20 +137,20 @@ def make_altcha_challenge() -> Challenge:
         algorithm="PBKDF2/SHA-256",
         cost=1000,
         counter=secrets.randbelow(5000) + 5000,
-        hmac_secret=ALTCHA_HMAC_SECRET,
-        hmac_key_secret=ALTCHA_HMAC_KEY_SECRET,
+        hmac_secret=settings.ALTCHA_HMAC_SECRET,
+        hmac_key_secret=settings.ALTCHA_HMAC_KEY_SECRET,
     )
     return challenge
 
 
 async def verify_altcha(payload: str) -> tuple[bool, str | None]:
-    result = verify_solution(payload, ALTCHA_HMAC_SECRET)
+    result = verify_solution(payload, settings.ALTCHA_HMAC_SECRET)
     if not result.verified:
         return False, result.error or "altcha verification failed"
     # ALTCHA doesn't enforce single-use on its own — enforce it here.
     challenge_hash = hashlib.sha256(payload.encode()).hexdigest()
     first_use = await r.set(
-        f"altcha_used:{challenge_hash}", "1", nx=True, ex=ALTCHA_CHALLENGE_EXPIRES
+        f"altcha_used:{challenge_hash}", "1", nx=True, ex=settings.ALTCHA_CHALLENGE_EXPIRES
     )
     if not first_use:
         return False, "altcha solution already used"
@@ -259,7 +207,7 @@ def check_user_agent(request: Request) -> bool:
 
 def check_honeypot(form_data: dict) -> bool:
     """True if clean (honeypot empty)."""
-    return not form_data.get(HONEYPOT_FIELD)
+    return not form_data.get(settings.HONEYPOT_FIELD)
 
 
 async def content_score(
@@ -371,17 +319,27 @@ async def get_form(
     db: AsyncSession = Depends(get_db),
 ):
     try:
-        print(form_id,"<------>", project_id)
         result = await db.execute(
             select(FormDB).where(FormDB.id == form_id, FormDB.project_id == project_id)
         )
         form = result.scalar_one_or_none()
+        if not form:
+            raise HTTPException(status_code=404, detail="Form configuration template not found.")
+
+        # Fetch all saved dynamic submissions related to this specific form structure
+        submissions_result = await db.execute(
+            select(Submission)
+            .where(Submission.form_id == form_id)
+            .order_by(Submission.id.desc()) # Newest submissions first
+        )
+        submissions = submissions_result.scalars().all()
         return temp.TemplateResponse(
             request,
             "form.html",
             {
                 "request": request,
                 "form": form,
+                "submissions":submissions,
                 "email": user.email,
                 "name": user.name,
                 "user_id": user.id,
@@ -423,20 +381,6 @@ async def return_form_config(request: Request, formId: str):
     return config
 
 
-class AltchaChallenge(BaseModel):
-    algorithm: str
-    cost: int
-    keyLength: int = Field(..., alias="keyLength")
-    keyPrefix: str = Field(..., alias="keyPrefix")
-    nonce: str
-    salt: str
-    keySignature: str | None
-
-    class Config:
-        # This allows you to create the model using camelCase or snake_case
-        populate_by_name = True
-
-
 @form_router.get("/form/{form_id}/altcha-challenge")
 async def altcha_challenge(request: Request, form_id: str):
     form = get_form_temp(form_id)
@@ -455,9 +399,9 @@ async def submit(form_id: str, request: Request):
 
     # --- edge-equivalent: rate limiting ---
     ip = request.client.host if request.client else "unknown"
-    if not await check_rate_limit("ip", ip, *RATE_LIMIT_IP):
+    if not await check_rate_limit("ip", ip, *settings.RATE_LIMIT_IP):
         return JSONResponse({"error": "rate limit exceeded"}, status_code=429)
-    if not await check_rate_limit("form", form_id, *RATE_LIMIT_FORM):
+    if not await check_rate_limit("form", form_id, *settings.RATE_LIMIT_FORM):
         return JSONResponse(
             {"error": "form is receiving too many submissions"}, status_code=429
         )
@@ -536,26 +480,6 @@ async def get_forms(
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
-# --- 2. SHOW CREATE FORM PAGE ---
-@form_router.get("/forms/create", response_class=HTMLResponse)
-async def create_form_page(
-    request: Request,
-    project_id: Optional[uuid.UUID] = None,
-    user: User = Depends(get_current_user),
-):
-    return temp.TemplateResponse(
-        request,
-        "create_form.html",
-        {
-            "project_id": project_id,
-            "email": user.email,
-            "name": user.name,
-            "user_id": user.id,
-            "page": "forms",
-        },
-    )
-
-
 # --- 3. HANDLE FORM CREATION (POST) ---
 @form_router.post("/forms/create")
 async def handle_create_form(
@@ -598,51 +522,6 @@ async def handle_create_form(
         await db.rollback()
         log.error(f"Error creating form: {e}")
         raise HTTPException(status_code=400, detail="Could not create form wrapper.")
-
-
-# --- 4. VIEW FORM DETAILS & SUBMISSIONS ---
-@form_router.get("/forms/{form_id}", response_class=HTMLResponse)
-async def get_form_details(
-    request: Request,
-    form_id: uuid.UUID,
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    try:
-        # Fetch the requested form, validating it belongs to current authenticated user
-        form_result = await db.execute(
-            select(Form).where(Form.id == form_id, Form.user_id == user.id)
-        )
-        form = form_result.scalar_one_or_none()
-        
-        if not form:
-            raise HTTPException(status_code=404, detail="Form configuration template not found.")
-
-        # Fetch all saved dynamic submissions related to this specific form structure
-        submissions_result = await db.execute(
-            select(Submission)
-            .where(Submission.form_id == form_id)
-            .order_by(Submission.id.desc()) # Newest submissions first
-        )
-        submissions = submissions_result.scalars().all()
-
-        return temp.TemplateResponse(
-            request,
-            "form_detail.html",
-            {
-                "form": form,
-                "submissions": submissions,
-                "email": user.email,
-                "name": user.name,
-                "user_id": user.id,
-                "page": "forms",
-            },
-        )
-    except HTTPException:
-        raise
-    except Exception as e:
-        log.warning(f"Error rendering form details dashboard for {form_id}: {e}")
-        raise HTTPException(status_code=500, detail="Internal Error")
 
 
 # --- 5. DELETE A FORM ---
