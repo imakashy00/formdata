@@ -1,31 +1,32 @@
-import re
-import json
+import hashlib
 import hmac
+import json
+import re
+import secrets
 import time
 import uuid
-import httpx
-import secrets
-import hashlib
-import redis.asyncio as redis
-from loguru import logger as log
 from typing import Literal, Optional
-from pydantic import ValidationError
-from sqlalchemy import delete, select
-from fastapi.responses import JSONResponse
-from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi import APIRouter, Depends, Form, HTTPException, status, Request
+
+import httpx
 from altcha import (
     Challenge,
     create_challenge,
     verify_solution,
 )
-from app.core.settings import settings
+from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from loguru import logger as log
+from pydantic import ValidationError
+from sqlalchemy import delete, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.db import get_db
+from app.core.settings import settings
 from app.core.templates import temp
+from app.models.user import Form as FormDB
+from app.models.user import Submission, User
 from app.routes.page import get_current_user
-from app.models.user import Submission, User, Form as FormDB
-from app.schemas.form import WidgetConfig, NewForm
+from app.schemas.form import NewForm, WidgetConfig
 from app.services.blacklist import redis_client as r
 
 form_router = APIRouter()
@@ -69,7 +70,6 @@ FORMS: dict[str, dict] = {
 # r = redis.Redis(host="localhost", port=6379, decode_responses=True)
 
 
-
 def get_form_temp(form_id: str) -> dict | None:
     return FORMS.get(form_id)
 
@@ -97,7 +97,9 @@ def sign_session(form_id: str) -> str:
     issued_at = int(time.time())
     nonce = uuid.uuid4().hex
     msg = f"{form_id}:{issued_at}:{nonce}".encode()
-    sig = hmac.new(settings.SESSION_SECRET, msg, hashlib.sha256).hexdigest()
+    sig = hmac.new(
+        settings.SESSION_SECRET.encode("utf-8"), msg, hashlib.sha256
+    ).hexdigest()
     return f"{form_id}:{issued_at}:{nonce}:{sig}"
 
 
@@ -111,7 +113,9 @@ async def verify_session(token: str, form_id: str):
         return False, "session token issued for a different form"
 
     msg = f"{fid}:{issued_at_s}:{nonce}".encode()
-    expected = hmac.new(settings.SESSION_SECRET, msg, hashlib.sha256).hexdigest()
+    expected = hmac.new(
+        settings.SESSION_SECRET.encode("utf-8"), msg, hashlib.sha256
+    ).hexdigest()
     if not hmac.compare_digest(sig, expected):
         return False, "session token signature invalid"
 
@@ -150,7 +154,10 @@ async def verify_altcha(payload: str) -> tuple[bool, str | None]:
     # ALTCHA doesn't enforce single-use on its own — enforce it here.
     challenge_hash = hashlib.sha256(payload.encode()).hexdigest()
     first_use = await r.set(
-        f"altcha_used:{challenge_hash}", "1", nx=True, ex=settings.ALTCHA_CHALLENGE_EXPIRES
+        f"altcha_used:{challenge_hash}",
+        "1",
+        nx=True,
+        ex=settings.ALTCHA_CHALLENGE_EXPIRES,
     )
     if not first_use:
         return False, "altcha solution already used"
@@ -324,13 +331,15 @@ async def get_form(
         )
         form = result.scalar_one_or_none()
         if not form:
-            raise HTTPException(status_code=404, detail="Form configuration template not found.")
+            raise HTTPException(
+                status_code=404, detail="Form configuration template not found."
+            )
 
         # Fetch all saved dynamic submissions related to this specific form structure
         submissions_result = await db.execute(
             select(Submission)
             .where(Submission.form_id == form_id)
-            .order_by(Submission.id.desc()) # Newest submissions first
+            .order_by(Submission.id.desc())  # Newest submissions first
         )
         submissions = submissions_result.scalars().all()
         return temp.TemplateResponse(
@@ -339,7 +348,7 @@ async def get_form(
             {
                 "request": request,
                 "form": form,
-                "submissions":submissions,
+                "submissions": submissions,
                 "email": user.email,
                 "name": user.name,
                 "user_id": user.id,
@@ -446,7 +455,6 @@ async def submit(form_id: str, request: Request):
     return JSONResponse({"status": decision}, status_code=200)
 
 
-
 @form_router.get("/forms", response_class=HTMLResponse)
 async def get_forms(
     request: Request,
@@ -456,13 +464,11 @@ async def get_forms(
 ):
     try:
         # Fetch forms belonging to this user. Filter by project if provided.
-        query = select(Form).where(Form.user_id == user.id)
-        if project_id:
-            query = query.where(Form.project_id == project_id)
-            
+        query = select(FormDB).where(FormDB.project_id == user.id)
+
         results = await db.execute(query)
         forms = results.scalars().all()
-        
+
         return temp.TemplateResponse(
             request,
             "forms.html",
@@ -485,7 +491,7 @@ async def get_forms(
 async def handle_create_form(
     request: Request,
     name: str = Form(...),
-    allowed_domains_raw: Optional[str] = Form(None), # Comma separated input from user
+    allowed_domains_raw: Optional[str] = Form(None),  # Comma separated input from user
     redirect_url: Optional[str] = Form(None),
     notification_email: Optional[str] = Form(None),
     use_honeypot: bool = Form(True),
@@ -498,7 +504,9 @@ async def handle_create_form(
         # Parse comma-separated domains into a clean python list
         allowed_domains = []
         if allowed_domains_raw:
-            allowed_domains = [d.strip() for d in allowed_domains_raw.split(",") if d.strip()]
+            allowed_domains = [
+                d.strip() for d in allowed_domains_raw.split(",") if d.strip()
+            ]
 
         # Instantiate database record
         new_form = Form(
@@ -506,18 +514,20 @@ async def handle_create_form(
             name=name,
             allowed_domains=allowed_domains,
             redirect_url=redirect_url if redirect_url else None,
-            notification_email=notification_email if notification_email else user.email, # default to user email
+            notification_email=notification_email
+            if notification_email
+            else user.email,  # default to user email
             use_honeypot=use_honeypot,
             use_hcaptcha=use_hcaptcha,
-            hcaptcha_secret_key=hcaptcha_secret_key if hcaptcha_secret_key else None
+            hcaptcha_secret_key=hcaptcha_secret_key if hcaptcha_secret_key else None,
         )
-        
+
         db.add(new_form)
         await db.commit()
-        
+
         # Redirect back to forms index view after creation
         return RedirectResponse(url="/forms", status_code=status.HTTP_303_SEE_OTHER)
-        
+
     except Exception as e:
         await db.rollback()
         log.error(f"Error creating form: {e}")
@@ -528,24 +538,45 @@ async def handle_create_form(
 @form_router.delete("/forms/{form_id}")
 async def delete_form(
     form_id: uuid.UUID,
+    project_id: str,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     try:
         # Explicit delete criteria safeguarding multi-tenant architecture
-        stmt = delete(Form).where(Form.id == form_id, Form.user_id == user.id)
+        stmt = (
+            delete(FormDB)
+            .where(FormDB.id == form_id, FormDB.project_id == project_id)
+            .returning(FormDB.id)
+        )
         result = await db.execute(stmt)
+        deleted_id = result.scalar_one_or_none()
+        if deleted_id is None:
+            raise HTTPException(
+                status_code=404, detail="Form asset not found or unauthorized."
+            )
+
         await db.commit()
-        
-        if result.rowcount == 0:
-            raise HTTPException(status_code=404, detail="Form asset not found or unauthorized.")
-            
+
         # Ideal for HTMX delete operations (returns empty layout chunk, removing it from UI array)
         return HTMLResponse(content="", status_code=200)
-        
+
     except HTTPException:
         raise
     except Exception as e:
         await db.rollback()
         log.error(f"Error executing form deletion payload: {e}")
         raise HTTPException(status_code=400, detail="Deletion runtime failure.")
+    
+
+
+# users might upload sensitive private files like legal documents or resumes. 
+# Do not toggle your R2 bucket to "Public". 
+# Instead, keep it entirely private and 
+# use your Cloudflare Worker to generate 
+# S3-compatible Presigned URLs with short expiration windows 
+# (e.g., valid for 15 minutes). 
+# When a logged-in SaaS customer checks their dashboard, 
+# they will click the link, your backend will authenticate them, and 
+# securely serve the file.
+# Because this is a Formspree alternative, ``

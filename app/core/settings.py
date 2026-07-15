@@ -47,12 +47,12 @@ class Settings(BaseSettings):
     ALTCHA_HMAC_SECRET:str
     ALTCHA_HMAC_KEY_SECRET:str
 
-    MIN_SUBMIT_SECONDS:str = 1.5  # reject submissions faster than a human could type
-    SESSION_TOKEN_MAX_AGE:str = 60 * 30  # sessions older than this are stale, not just "fast"
-    ALTCHA_CHALLENGE_EXPIRES:str = 120 # seconds a challenge stays valid
+    MIN_SUBMIT_SECONDS:float = 1.5  # reject submissions faster than a human could type
+    SESSION_TOKEN_MAX_AGE:int = 60 * 30  # sessions older than this are stale, not just "fast"
+    ALTCHA_CHALLENGE_EXPIRES:int = 120 # seconds a challenge stays valid
 
-    RATE_LIMIT_IP:str = (20, 60)  # 20 requests / 60s per IP across all forms
-    RATE_LIMIT_FORM:str = (200, 60)  # 200 requests / 60s per form, isolates noisy tenants
+    RATE_LIMIT_IP:tuple = (20, 60)  # 20 requests / 60s per IP across all forms
+    RATE_LIMIT_FORM:tuple = (200, 60)  # 200 requests / 60s per form, isolates noisy tenants
 
     HONEYPOT_FIELD = "_hp"
     
