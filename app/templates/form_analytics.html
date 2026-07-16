@@ -1,0 +1,91 @@
+<div x-show="activeTab === 'analytics'" x-cloak class="space-y-6">
+    <!-- Stat Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+            <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Total Submissions</p>
+            <p class="text-2xl font-bold text-gray-900 mt-2">{{form.submissions}}</p>
+            <span class="text-[11px] text-emerald-600 font-medium flex items-center gap-1 mt-1">
+                ↑ 12% <span class="text-gray-400 font-normal">vs last week</span>
+            </span>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+            <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Spam Blocked</p>
+            <p class="text-2xl font-bold text-gray-900 mt-2">14</p>
+            <span class="text-[11px] text-gray-400 font-normal flex items-center gap-1 mt-1">
+                Akismet filter active
+            </span>
+        </div>
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+            <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Conversion Rate</p>
+            <p class="text-2xl font-bold text-gray-900 mt-2">48.3%</p>
+            <span class="text-[11px] text-emerald-600 font-medium flex items-center gap-1 mt-1">
+                ↑ 2.4% <span class="text-gray-400 font-normal">vs last week</span>
+            </span>
+        </div>
+    </div>
+
+    <!-- Chart Panel -->
+    <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <p class="text-sm font-semibold text-gray-900">Submission Activity</p>
+                <p class="text-xs text-gray-400 mt-0.5">Timeline of traffic and raw form capture submissions.
+                </p>
+            </div>
+            <select
+                class="text-xs bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5 text-gray-600 focus:outline-none">
+                <option>Last 7 days</option>
+                <option>Last 30 days</option>
+            </select>
+        </div>
+
+        <!-- CSS Bar Graph -->
+        <div class="h-48 w-full flex items-end gap-2 pt-4 px-2 border-b border-gray-100">
+            <div
+                class="bg-brand/10 hover:bg-brand w-full h-[30%] rounded-t-sm transition-all cursor-pointer relative group">
+                <div
+                    class="absolute -top-7 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[10px] px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                    Mon: 12</div>
+            </div>
+            <div
+                class="bg-brand/10 hover:bg-brand w-full h-[45%] rounded-t-sm transition-all cursor-pointer relative group">
+                <div
+                    class="absolute -top-7 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[10px] px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                    Tue: 18</div>
+            </div>
+            <div
+                class="bg-brand/10 hover:bg-brand w-full h-[25%] rounded-t-sm transition-all cursor-pointer relative group">
+                <div
+                    class="absolute -top-7 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[10px] px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                    Wed: 10</div>
+            </div>
+            <div
+                class="bg-brand/10 hover:bg-brand w-full h-[60%] rounded-t-sm transition-all cursor-pointer relative group">
+                <div
+                    class="absolute -top-7 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[10px] px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                    Thu: 24</div>
+            </div>
+            <div
+                class="bg-brand/10 hover:bg-brand w-full h-[85%] rounded-t-sm transition-all cursor-pointer relative group">
+                <div
+                    class="absolute -top-7 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[10px] px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                    Fri: 34</div>
+            </div>
+            <div
+                class="bg-brand/10 hover:bg-brand w-full h-[50%] rounded-t-sm transition-all cursor-pointer relative group">
+                <div
+                    class="absolute -top-7 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[10px] px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                    Sat: 20</div>
+            </div>
+            <div
+                class="bg-brand/10 hover:bg-brand w-full h-[70%] rounded-t-sm transition-all cursor-pointer relative group">
+                <div
+                    class="absolute -top-7 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[10px] px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                    Sun: 28</div>
+            </div>
+        </div>
+        <div class="flex justify-between text-[10px] text-gray-400 mt-2 px-1">
+            <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+        </div>
+    </div>
+</div>
