@@ -54,7 +54,7 @@ class Settings(BaseSettings):
     RATE_LIMIT_IP:tuple = (20, 60)  # 20 requests / 60s per IP across all forms
     RATE_LIMIT_FORM:tuple = (200, 60)  # 200 requests / 60s per form, isolates noisy tenants
 
-    HONEYPOT_FIELD = "_hp"
+    HONEYPOT_FIELD:str = "_hp"
     
 
     @property

@@ -228,7 +228,6 @@ class Form(Base):
     name: Mapped[str] = mapped_column(String(150), nullable=False)
     # Store form structures, fields, inputs, or schemas easily using raw strings or a JSON block
     schema_definition: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-
     is_published: Mapped[bool] = mapped_column(Boolean, default=False)
 
     created_at: Mapped[datetime] = mapped_column(
@@ -242,7 +241,7 @@ class Form(Base):
 
     # Relationships
     project: Mapped["Project"] = relationship(back_populates="forms")
-    # submissions: Mapped[List["Submission"]] = relationship("Submission", back_populates="form", cascade="all, delete-orphan")
+    submissions: Mapped[List["Submission"]] = relationship("Submission", back_populates="form", cascade="all, delete-orphan")
 
 class Submission(Base):
     __tablename__ = "submissions"

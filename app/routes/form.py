@@ -19,6 +19,7 @@ from loguru import logger as log
 from pydantic import ValidationError
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.core.db import get_db
 from app.core.settings import settings
@@ -327,7 +328,9 @@ async def get_form(
 ):
     try:
         result = await db.execute(
-            select(FormDB).where(FormDB.id == form_id, FormDB.project_id == project_id)
+            select(FormDB)
+            .where(FormDB.id == form_id, FormDB.project_id == project_id)
+            .options(selectinload(FormDB.submissions))
         )
         form = result.scalar_one_or_none()
         if not form:
@@ -567,16 +570,15 @@ async def delete_form(
         await db.rollback()
         log.error(f"Error executing form deletion payload: {e}")
         raise HTTPException(status_code=400, detail="Deletion runtime failure.")
-    
 
 
-# users might upload sensitive private files like legal documents or resumes. 
-# Do not toggle your R2 bucket to "Public". 
-# Instead, keep it entirely private and 
-# use your Cloudflare Worker to generate 
-# S3-compatible Presigned URLs with short expiration windows 
-# (e.g., valid for 15 minutes). 
-# When a logged-in SaaS customer checks their dashboard, 
-# they will click the link, your backend will authenticate them, and 
+# users might upload sensitive private files like legal documents or resumes.
+# Do not toggle your R2 bucket to "Public".
+# Instead, keep it entirely private and
+# use your Cloudflare Worker to generate
+# S3-compatible Presigned URLs with short expiration windows
+# (e.g., valid for 15 minutes).
+# When a logged-in SaaS customer checks their dashboard,
+# they will click the link, your backend will authenticate them, and
 # securely serve the file.
 # Because this is a Formspree alternative, ``
