@@ -5,9 +5,10 @@ import re
 import secrets
 import time
 import uuid
+import httpx
+from loguru import logger as log
 from typing import Literal, Optional
 
-import httpx
 from altcha import (
     Challenge,
     create_challenge,
@@ -66,13 +67,6 @@ FORMS: dict[str, dict] = {
         "required": {"email", "message"},
     },
 }
-
-
-# r = redis.Redis(host="localhost", port=6379, decode_responses=True)
-
-
-def get_form_temp(form_id: str) -> dict | None:
-    return FORMS.get(form_id)
 
 
 # ---------------------------------------------------------------------------
@@ -250,6 +244,8 @@ async def content_score(
 
     return score, reasons
 
+def get_form_temp():
+    pass
 
 def route(score: int) -> Literal["accept", "queue", "reject"]:
     if score >= 8:
