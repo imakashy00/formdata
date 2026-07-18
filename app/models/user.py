@@ -1,3 +1,4 @@
+import enum
 import secrets
 from typing import List, Optional
 import uuid
@@ -6,17 +7,22 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import (
     Boolean,
     DateTime,
+    Enum,
     ForeignKey,
     Index,
     Integer,
     String,
-    Text,
     UniqueConstraint,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from app.core.db import Base
 from app.schemas.user import SubscriptionStatus
+
+
+class CaptchaType(str, enum.Enum):
+    ALTCHA = "altcha"
+    TURNSTILE = "cloudflare_turnstile"
 
 def generate_short_id() -> str:
     # Generates a highly secure URL-safe 8-character text token
@@ -214,6 +220,7 @@ class Form(Base):
     id: Mapped[str] = mapped_column(
         String(36), primary_key=True, default=lambda: str(uuid.uuid4())
     )
+    name: Mapped[str] = mapped_column(String(150), nullable=False)
     public_id: Mapped[str] = mapped_column(
         String(8), unique=True, index=True, nullable=False, default=generate_short_id
     )
@@ -221,14 +228,29 @@ class Form(Base):
     project_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False
     )
+    honeypot: Mapped[str] = mapped_column(String(36), nullable=False, default="_gotcha")
     allowed_domains: Mapped[List[str]] = mapped_column(ARRAY(String), server_default="{}")
     redirect_url: Mapped[Optional[str]] = mapped_column(String(2083), nullable=True)
     notification_email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
 
-    name: Mapped[str] = mapped_column(String(150), nullable=False)
+    captcha_type: Mapped[CaptchaType] = mapped_column(
+        Enum(
+            CaptchaType,
+            values_callable=lambda enum_cls: [e.value for e in enum_cls],
+            name="captchatype",
+        ),
+        nullable=False,
+        server_default=CaptchaType.ALTCHA.value,
+    )
+    turnstile_sitekey: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    turnstile_secret: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+
     # Store form structures, fields, inputs, or schemas easily using raw strings or a JSON block
-    schema_definition: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    is_published: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_published: Mapped[bool] = mapped_column(Boolean, default=True)
+    sub_message: Mapped[str] = mapped_column(String(200), nullable=False, server_default="Submission successful!")
+    sub_bg_color: Mapped[str] = mapped_column(String(7), nullable=False, server_default="#ffffff")
+    sub_txt_color: Mapped[str] = mapped_column(String(7), nullable=False, server_default="#000000")
+    sub_lnk_color: Mapped[str] = mapped_column(String(7), nullable=False, server_default="#3b82f6")
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)

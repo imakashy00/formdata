@@ -1,11 +1,11 @@
 import json
 import uuid
 from loguru import logger as log
-from typing import Optional
+from typing import Annotated, Optional
 
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi import APIRouter, Depends, Form, HTTPException, Header, Request, Response, status
+from fastapi.responses import HTMLResponse, JSONResponse
 from loguru import logger as log
 from pydantic import ValidationError
 from sqlalchemy import delete, select
@@ -27,10 +27,8 @@ from app.services.form import (
     get_form_temp,
     make_altcha_challenge,
     route,
-    verify_altcha,
     verify_bot_check,
     verify_session,
-    verify_turnstile,
 )
 
 form_router = APIRouter()
@@ -46,25 +44,43 @@ async def handle_create_form(
 ):
     try:
         form = NewForm(name=name)
+
+        query = select(FormDB).where(
+            FormDB.project_id == project_id, FormDB.name == form.name
+        )
+        result = await db.execute(query)
+        existing_form = result.scalar_one_or_none()
+
+        if existing_form:
+            # Option A: Trigger a failure Toast for HTMX without crashing the app
+            trigger_payload = json.dumps(
+                {"show-toast": f"Error: A form named '{form.name}' already exists!"}
+            )
+            return temp.TemplateResponse(
+                request,
+                "partials/duplicate_error.html",  # Keep this file completely blank
+                {"request": request},
+                headers={"HX-Trigger": trigger_payload},
+                status_code=status.HTTP_200_OK,  # 200 tells HTMX to process the empty swap safely
+            )
+
         new_form = FormDB(
             name=form.name,
             project_id=project_id,
+            notification_email=user.email,
         )
         db.add(new_form)
         await db.commit()
         await db.refresh(new_form)
 
         trigger_payload = json.dumps(
-            {"showToast": f"Form '{new_form.name}' created successfully!"}
+            {"show-toast": f"Form '{new_form.name}' created successfully!"}
         )
         # return RedirectResponse(url="/projects", status_code=status.HTTP_303_SEE_OTHER)
         return temp.TemplateResponse(
             request,
             "form_card.html",
-            {
-                "request": request,
-                "form": new_form,
-            },
+            {"request": request, "form": new_form, "project": {"id": project_id}},
             headers={
                 "HX-Trigger": trigger_payload
             },  # 👈 HTMX automatically listens to this
@@ -114,6 +130,7 @@ async def handle_get_project_form(
             raise HTTPException(
                 status_code=404, detail="Form configuration template not found."
             )
+        print(f"------> {form.__dict__}")
 
         # Fetch all saved dynamic submissions related to this specific form structure
         submissions_result = await db.execute(
@@ -266,6 +283,11 @@ async def handle_get_forms(
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
+# Formspree handles this beautifully by allowing an empty array [] or {"*"}
+# to mean "Accept submissions from anywhere" during initial setup.
+# Then, once the form receives its first submission,
+# Formspree automatically locks the form to that specific domain to prevent spam,
+# while allowing the user to manually add localhost or other staging domains later in their settings dashboard.
 @form_router.put("/forms/{form_id}/settings")
 async def handle_update_form_setting(
     request: Request,
@@ -275,51 +297,78 @@ async def handle_update_form_setting(
     db: AsyncSession = Depends(get_db),
 ):
     try:
-        settings_dict = payload.model_dump()
-        print(settings_dict)
-        # Parse comma-separated domains into a clean python list
-        # allowed_domains = []
-        # print(form_id)
-        # if allowed_domains_raw:
-        #     allowed_domains = [
-        #         d.strip() for d in allowed_domains_raw.split(",") if d.strip()
-        #     ]
+        query = select(FormDB).where(
+            FormDB.id == form_id,
+        )
+        result = await db.execute(query)
+        db_form = result.scalars().first()
+        if not db_form:
+            trigger_payload = json.dumps({"show-toast": "Error: Form not found!"})
+            return temp.TemplateResponse(
+                request,
+                "partials/duplicate_error.html",  # Your blank file
+                {"request": request},
+                headers={"HX-Trigger": trigger_payload},
+                status_code=status.HTTP_200_OK,
+            )
+        # 3. Parse comma-separated accepted domains into a list
+        accepted_domains_raw = payload.allowed_domains
+        accepted_domains_list = [
+            d.strip() for d in accepted_domains_raw.split(",") if d.strip()
+        ]
+        # 4. Update existing form fields with the payload data
+        db_form.name = payload.name.strip()
+        db_form.honeypot = payload.honeypot  # Map or match field names
+        db_form.notification_email = payload.notification_email
+        db_form.redirect_url = payload.redirect_url if payload.redirect_url else None
+        db_form.allowed_domains = accepted_domains_list
+        db_form.captcha_type = payload.captcha_type
+        db_form.turnstile_sitekey = payload.turnstile_sitekey
+        db_form.turnstile_secret = payload.turnstile_secret
+        db_form.is_published = payload.is_published
+        db_form.sub_message = payload.sub_message
+        db_form.sub_bg_color = payload.sub_bg_color
+        db_form.sub_txt_color = payload.sub_txt_color
+        db_form.sub_lnk_color = payload.sub_lnk_color
 
-        # # Instantiate database record
-        # new_form = Form(
-        #     user_id=user.id,
-        #     name=name,
-        #     allowed_domains=allowed_domains,
-        #     redirect_url=redirect_url if redirect_url else None,
-        #     notification_email=notification_email
-        #     if notification_email
-        #     else user.email,  # default to user email
-        #     use_honeypot=use_honeypot,
-        #     hcaptcha_secret_key=hcaptcha_secret_key if hcaptcha_secret_key else None,
-        # )
+        # 5. Commit changes to database
+        await db.commit()
+        await db.refresh(db_form)
 
-        # db.add(new_form)
-        # await db.commit()
-
-        # Redirect back to forms index view after creation
-        return RedirectResponse(url="/forms", status_code=status.HTTP_303_SEE_OTHER)
+        # 6. Return success template response or swap element
+        success_trigger = json.dumps({"show-toast": "Settings updated successfully!"})
+        return temp.TemplateResponse(
+            request,
+            "partials/duplicate_error.html",  # Change to your success partial
+            {"request": request, "form": db_form},
+            headers={"HX-Trigger": success_trigger},
+            status_code=status.HTTP_200_OK,
+        )
 
     except Exception as e:
         await db.rollback()
-        log.error(f"Error creating form: {e}")
-        raise HTTPException(status_code=400, detail="Could not create form wrapper.")
-
+        # Handle or log server exception safely
+        log.exception(f"Failed to update the form settings: Error {e}")
+        error_trigger = json.dumps({"show-toast": "An unexpected error occurred."})
+        return temp.TemplateResponse(
+            request,
+            "partials/duplicate_error.html",
+            {"request": request},
+            headers={"HX-Trigger": error_trigger},
+            status_code=status.HTTP_200_OK,
+        )
 
 # --- 5. DELETE A FORM ---
 @form_router.delete("/forms/{form_id}")
 async def handle_delete_form(
-    form_id: uuid.UUID,
-    project_id: str,
+    form_id: str,
+    project_id: Annotated[str, Header(alias="X-Project-Id")],
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     try:
         # Explicit delete criteria safeguarding multi-tenant architecture
+        print(project_id)
         stmt = (
             delete(FormDB)
             .where(FormDB.id == form_id, FormDB.project_id == project_id)
@@ -335,8 +384,10 @@ async def handle_delete_form(
         await db.commit()
 
         # Ideal for HTMX delete operations (returns empty layout chunk, removing it from UI array)
-        return HTMLResponse(content="", status_code=200)
-
+        return Response(
+            status_code=200, 
+            headers={"HX-Redirect": f"/projects/{project_id}"}
+        )
     except HTTPException:
         raise
     except Exception as e:
