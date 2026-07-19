@@ -23,6 +23,11 @@
                 class="py-4 px-1 border-b-2 text-sm transition-all">
                 Set Up
             </button>
+            <button type="button" @click="activeTab = 'templates'"
+                :class="activeTab === 'templates' ? 'border-brand text-brand ' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                class="py-4 px-1 border-b-2 text-sm transition-all">
+                Templates
+            </button>
             <button type="button" @click="activeTab = 'settings'"
                 :class="activeTab === 'settings' ? 'border-brand text-brand' : 'border-transparent text-gray-500 hover:text-gray-700'"
                 class="py-4 px-1 border-b-2 text-sm transition-all">
@@ -33,11 +38,6 @@
                 class="py-4 px-1 border-b-2 text-sm transition-all">
                 Integrations
             </button>
-            <!-- <button type="button" @click="activeTab = 'rules'"
-                :class="activeTab === 'rules' ? 'border-brand text-brand' : 'border-transparent text-gray-500 hover:text-gray-700'"
-                class="py-4 px-1 border-b-2 text-sm transition-all">
-                Rules
-            </button> -->
             <button type="button" @click="activeTab = 'analytics'"
                 :class="activeTab === 'analytics' ? 'border-brand text-brand' : 'border-transparent text-gray-500 hover:text-gray-700'"
                 class="py-4 px-1 border-b-2 text-sm transition-all">
@@ -62,7 +62,6 @@
         
         <!-- Integrations Content -->
         {% include 'form_integrations.html' %}
-        
 
         <!-- Analytics Content -->
         {% include 'form_analytics.html' %}

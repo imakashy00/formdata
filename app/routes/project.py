@@ -1,7 +1,7 @@
 import re
 import json
 
-from fastapi import APIRouter, Depends, Form, Request, status
+from fastapi import APIRouter, Depends, Form, Request, Response, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import BaseModel, Field, ValidationError, field_validator
 from loguru import logger as log
@@ -48,11 +48,14 @@ async def get_projects(
 ):
     try:
         result = await db.execute(
-            select(Project)
-            .where(Project.user_id == user.id)
-            .order_by(desc(Project.updated_at), desc(Project.created_at))
-        )
-        projects = result.scalars().all()
+        select(Project)
+        .where(Project.user_id == user.id)
+        .options(selectinload(Project.forms))
+        .order_by(desc(Project.updated_at), desc(Project.created_at))
+    )
+    
+    # 2. Extract unique scalar values safely for your list page
+        projects = result.scalars().unique().all()
         return temp.TemplateResponse(
             request,
             "projects.html",
@@ -84,9 +87,12 @@ async def create_project(
         result = await db.execute(
             select(Project)
             .where(Project.user_id == user.id)
+            .options(selectinload(Project.forms))
             .order_by(desc(Project.updated_at), desc(Project.created_at))
         )
-        projects = result.scalars().all()
+
+        # 2. Extract unique scalar values safely for your list page
+        projects = result.scalars().unique().all()
         trigger_payload = json.dumps(
             {"showToast": f"Project '{new_project.name}' created successfully!"}
         )
@@ -140,10 +146,11 @@ async def get_project(
             .where(Project.id == project_id)
         )
         project = result.scalar_one_or_none()
+        
         # print(project)
         return temp.TemplateResponse(
             request,
-            "forms.html",
+            "project.html",
             {
                 "project": project,
                 "email": user.email,
@@ -156,11 +163,11 @@ async def get_project(
         log.warning(f"Errror fetching Project{e}")
 
 
-@project_router.put("/projects/{project_id}", response_class=HTMLResponse)
+@project_router.put("/projects/{project_id}/settings", response_class=HTMLResponse)
 async def update_project(
     request: Request,
     project_id: str,
-    name: str = Form(...),
+    project_name: str = Form(...),
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -182,13 +189,12 @@ async def update_project(
             )
 
         # 2. Validate the new name incoming input data
-        project_name_validated = NewProject(name=name)
+        project_name_validated = NewProject(name=project_name)
 
         # 3. Commit changes to DB
         project.name = project_name_validated.name
         await db.commit()
-
-        return RedirectResponse(url="/projects", status_code=status.HTTP_303_SEE_OTHER)
+        return Response(status_code=200, headers={"HX-Redirect": f"/projects/{project_id}"})
 
     except ValidationError as exc:
         error_msg = exc.errors()[0]["msg"]
@@ -199,7 +205,7 @@ async def update_project(
             {
                 "request": request,
                 "error": error_msg,
-                "project": name,  # Send back old details so form fields stay populated
+                "project": project_name,  # Send back old details so form fields stay populated
             },
             status_code=status.HTTP_400_BAD_REQUEST,
         )
@@ -214,7 +220,7 @@ async def update_project(
 @project_router.delete("/projects/{project_id}", response_class=HTMLResponse)
 async def delete_project(
     request: Request,
-    project_id: int,
+    project_id: str,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -236,7 +242,9 @@ async def delete_project(
         await db.delete(project)
         await db.commit()
 
-        return RedirectResponse(url="/projects", status_code=status.HTTP_303_SEE_OTHER)
+        return Response(
+            status_code=200, headers={"HX-Redirect": "/projects"}
+        )
 
     except Exception as exc:
         log.error(f"Failed to delete project {project_id}: {exc}")

@@ -1,34 +1,46 @@
 <div x-show="activeTab === 'setup'" x-cloak>
     <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
         <div class="flex items-center justify-between px-5 py-4 border-b border-gray-50">
-            <p class="text-sm font-semibold text-gray-900">Your form endpoint</p>
-            <span class="text-xs font-semibold bg-emerald-50 text-emerald-600 px-2.5 py-0.5 rounded-full">●
-                Live</span>
+            <p class="text-sm font-semibold text-gray-900">Embed your form</p>
+            <span class="text-xs font-semibold bg-emerald-50 text-emerald-600 px-2.5 py-0.5 rounded-full">
+                ● Ready
+            </span>
         </div>
+
         <div class="p-5">
-            <p class="text-xs text-gray-400 mb-3">Point any HTML form at this URL — no backend code needed.</p>
+            <p class="text-xs text-gray-400 mb-3">
+                Copy this code into your website. It already includes the configuration for this form.
+            </p>
+
             <div
                 class="relative bg-slate-900 rounded-xl p-5 font-mono text-xs leading-relaxed text-slate-200 overflow-x-auto">
-                <button onclick="copyEndpoint()"
+                <button onclick="copySetupCode()"
                     class="absolute top-3 right-3 text-[10px] bg-white/10 hover:bg-white/20 text-slate-400 hover:text-white px-2.5 py-1 rounded-md transition-colors">
                     Copy
                 </button>
-                <span class="text-pink-300">&lt;form</span>
-                <span class="text-blue-300"> data-form-action</span>=<span
-                    class="text-green-300">"https://formdata.co</span>
-                <span class="text-blue-300"> data-form-id</span>=<span class="text-green-300">"<span
-                        class="text-yellow-300">{{form.public_id}}</span>"</span><span class="text-pink-300">&gt;</span>
-                <br />
-                &nbsp;&nbsp;<span class="text-pink-300">&lt;input</span> <span class="text-blue-300">type</span>=<span
-                    class="text-green-300">"text"</span> <span class="text-blue-300">name</span>=<span
-                    class="text-green-300">"name"</span> <span class="text-pink-300">/&gt;</span><br />
-                &nbsp;&nbsp;<span class="text-pink-300">&lt;input</span> <span class="text-blue-300">type</span>=<span
-                    class="text-green-300">"email"</span> <span class="text-blue-300">name</span>=<span
-                    class="text-green-300">"email"</span> <span class="text-pink-300">/&gt;</span><br />
-                &nbsp;&nbsp;<span class="text-pink-300">&lt;button</span> <span class="text-blue-300">type</span>=<span
-                    class="text-green-300">"submit"</span><span class="text-pink-300">&gt;</span>Send<span
-                    class="text-pink-300">&lt;/button&gt;</span><br />
-                <span class="text-pink-300">&lt;/form&gt;</span>
+
+                <pre><span class="text-pink-300">&lt;form</span> <span class="text-blue-300">data-form-id</span>=<span class="text-green-300">"{{ form.public_id }}"</span> <span class="text-blue-300">data-form-action</span>=<span class="text-green-300">"https://formdata.cloud"</span><span class="text-pink-300">&gt;</span>
+
+  <span class="text-pink-300">&lt;input</span> <span class="text-blue-300">name</span>=<span class="text-green-300">"name"</span> <span class="text-blue-300">placeholder</span>=<span class="text-green-300">"Name"</span> <span class="text-blue-300">required</span> <span class="text-pink-300">/&gt;</span>
+
+  <span class="text-pink-300">&lt;input</span> <span class="text-blue-300">type</span>=<span class="text-green-300">"email"</span> <span class="text-blue-300">name</span>=<span class="text-green-300">"email"</span> <span class="text-blue-300">placeholder</span>=<span class="text-green-300">"Email"</span> <span class="text-blue-300">required</span> <span class="text-pink-300">/&gt;</span>
+
+  <span class="text-pink-300">&lt;textarea</span> <span class="text-blue-300">name</span>=<span class="text-green-300">"message"</span> <span class="text-blue-300">placeholder</span>=<span class="text-green-300">"Message"</span> <span class="text-blue-300">required</span><span class="text-pink-300">&gt;&lt;/textarea&gt;</span>
+
+  <span class="text-gray-500">&lt;!-- Honeypot (keep hidden) --&gt;</span>
+  <span class="text-pink-300">&lt;input</span> <span class="text-blue-300">type</span>=<span class="text-green-300">"text"</span> <span class="text-blue-300">name</span>=<span class="text-green-300">"{{ form.honeypot }}"</span> <span class="text-blue-300">style</span>=<span class="text-green-300">"display:none"</span> <span class="text-blue-300">tabindex</span>=<span class="text-green-300">"-1"</span> <span class="text-blue-300">autocomplete</span>=<span class="text-green-300">"off"</span> <span class="text-pink-300">/&gt;</span>
+{% if form.captcha_type.value == "altcha" %}
+  <span class="text-gray-500">&lt;!-- ALTCHA will be injected automatically --&gt;</span>
+{% elif form.captcha_type.value == "cloudflare_turnstile" %}
+  <span class="text-gray-500">&lt;!-- Cloudflare Turnstile --&gt;</span>
+  <span class="text-pink-300">&lt;script</span> <span class="text-blue-300">src</span>=<span class="text-green-300">"https://challenges.cloudflare.com/turnstile/v0/api.js"</span> <span class="text-blue-300">async</span> <span class="text-blue-300">defer</span><span class="text-pink-300">&gt;&lt;/script&gt;</span>
+{% endif %}
+  <span class="text-pink-300">&lt;button</span> <span class="text-blue-300">type</span>=<span class="text-green-300">"submit"</span><span class="text-pink-300">&gt;</span>Send<span class="text-pink-300">&lt;/button&gt;</span>
+
+<span class="text-pink-300">&lt;/form&gt;</span>
+{% if form.captcha_type.value == "altcha" %}
+<span class="text-pink-300">&lt;script</span> <span class="text-blue-300">src</span>=<span class="text-green-300">"https://formdata.cloud/static/widget/widget.js"</span> <span class="text-blue-300">defer</span><span class="text-pink-300">&gt;&lt;/script&gt;</span></pre>
+{% endif %}
             </div>
         </div>
     </div>
