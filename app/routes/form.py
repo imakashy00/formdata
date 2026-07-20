@@ -4,7 +4,16 @@ from loguru import logger as log
 from typing import Annotated, Optional
 
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Header, Request, Response, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    Form,
+    HTTPException,
+    Header,
+    Request,
+    Response,
+    status,
+)
 from fastapi.responses import HTMLResponse, JSONResponse
 from loguru import logger as log
 from pydantic import ValidationError
@@ -130,7 +139,6 @@ async def handle_get_project_form(
             raise HTTPException(
                 status_code=404, detail="Form configuration template not found."
             )
-        print(f"------> {form.__dict__}")
 
         # Fetch all saved dynamic submissions related to this specific form structure
         submissions_result = await db.execute(
@@ -198,8 +206,16 @@ async def handle_altcha_challenge_create(request: Request, form_id: str):
 
 
 @form_router.post("/form/{form_id}/submit")
-async def handle_form_submit(form_id: str, request: Request):
-    form = get_form_temp(form_id)
+async def handle_form_submit(
+    form_id: str,
+    request: Request,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    query = select(FormDB).where(FormDB.id == form_id)
+    result = await db.execute(query)
+    form = result.scalar_one_or_none()
+    
     if not form:
         return JSONResponse({"error": "unknown form"}, status_code=404)
 
@@ -358,6 +374,7 @@ async def handle_update_form_setting(
             status_code=status.HTTP_200_OK,
         )
 
+
 # --- 5. DELETE A FORM ---
 @form_router.delete("/forms/{form_id}")
 async def handle_delete_form(
@@ -385,8 +402,7 @@ async def handle_delete_form(
 
         # Ideal for HTMX delete operations (returns empty layout chunk, removing it from UI array)
         return Response(
-            status_code=200, 
-            headers={"HX-Redirect": f"/projects/{project_id}"}
+            status_code=200, headers={"HX-Redirect": f"/projects/{project_id}"}
         )
     except HTTPException:
         raise

@@ -18,7 +18,6 @@ from app.core.settings import settings
 from app.services.blacklist import redis_client as r
 
 
-
 DISPOSABLE_EMAIL_DOMAINS = {
     "mailinator.com",
     "tempmail.com",
@@ -62,6 +61,7 @@ async def check_rate_limit(scope: str, key: str, limit: int, window_s: int) -> b
     if count == 1:
         await r.expire(redis_key, window_s)
     return count <= limit
+
 
 def sign_session(form_id: str) -> str:
     issued_at = int(time.time())
@@ -135,24 +135,26 @@ async def verify_altcha(payload: str) -> tuple[bool, str | None]:
 
 
 async def verify_turnstile(
-    token: str, secret: str, remote_ip: str, expected_hostname: str | None
+    token: str,
+    secret: str,
+    remote_ip: str,
 ) -> tuple[bool, str | None]:
-    async with httpx.AsyncClient(timeout=5.0) as client:
-        resp = await client.post(
-            "https://challenges.cloudflare.com/turnstile/v0/siteverify",
-            json={"secret": secret, "response": token, "remoteip": remote_ip},
-        )
-    result = resp.json()
-    if not result.get("success"):
-        return False, ",".join(
-            result.get("error-codes", ["turnstile verification failed"])
-        )
-    if expected_hostname and result.get("hostname") != expected_hostname:
-        return False, "turnstile hostname mismatch"
-    return True, None
+    url = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
+
+    data = {"secret": secret, "response": token}
+    if remote_ip:
+        data["remoteip"] = remote_ip
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.post(url, data)
+        return resp.json()
+    except httpx.RequestException as e:
+        print(f"Turnstile validation error: {e}")
+        return {"success": False, "error-codes": ["internal-error"]}
+
 
 async def verify_bot_check(
-    form: dict, form_data: dict, request: Request
+    form: dict, form_data: dict, request: Request, secret_key: str
 ) -> tuple[bool, str | None]:
     if form["bot_provider"] == "altcha":
         payload = form_data.get("altcha")
@@ -164,14 +166,13 @@ async def verify_bot_check(
         token = form_data.get("cf-turnstile-response")
         if not token:
             return False, "missing turnstile token"
-        origin = request.headers.get("origin", "")
-        hostname = origin.replace("https://", "").replace("http://", "")
-        return await verify_turnstile(
-            token,
-            form["turnstile_secret"],
-            request.client.host if request.client else "unknown",
-            hostname,
+        remoteip = (
+            request.headers.get("CF-Connecting-IP")
+            or request.headers.get("X-Forwarded-For")
+            or request.remote_addr
         )
+
+        return await verify_turnstile(token, secret_key, remoteip)
 
     return False, "no bot check provider configured"
 
