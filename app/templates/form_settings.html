@@ -29,8 +29,8 @@
                         <span class="absolute left-3 text-sm font-semibold text-gray-400 select-none">_</span>
                 
                         <!-- Input field with pl-6 padding to clear the underscore -->
-                        <input type="text" name="honeypot"
-                            value="{{ form.honeypot.lstrip('_') }}"required
+                            <input type="text" name="honeypot"
+                                value="{{ form.honeypot.lstrip('_') }}" required
                             placeholder="gotcha"
                             class="w-full pl-6 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand transition-colors font-mono">
                     </div>
@@ -69,8 +69,8 @@
             </div>
             <!-- Bot Protection (Altcha or Turnstile) -->
             <div class="pt-4 border-t border-gray-50 grid grid-cols-1 md:grid-cols-2 gap-8" x-data="{ 
-                    captchaType: '{{ form.captcha_type.value if form.captcha_type else 'altcha' }}',
-                    isPublished: {{ 'true' if form.is_published else 'true' }}
+                    captchaType: '{{ form.captcha_type.value if form.captcha_type else 'cloudflare_turnstile' }}',
+                    isPublished: {{ 'true' if form.is_published else 'false' }}
                 }">
             
                 <!-- Left Column: Bot Protection Engine -->
@@ -84,7 +84,6 @@
                             <input type="radio" name="captcha_type" value="altcha" x-model="captchaType" class="w-4 h-4 text-brand">
                             <span class="text-sm">
                                 Altcha
-                                <span class="text-xs text-gray-400">(Default)</span>
                             </span>
                         </label>
             
@@ -93,7 +92,7 @@
                             <input type="radio" name="captcha_type" value="cloudflare_turnstile" x-model="captchaType"
                                 class="w-4 h-4 text-brand">
                             <span class="text-sm">Cloudflare Turnstile
-                                <span class="text-xs text-gray-400">(Recomended)</span>
+                                <span class="text-xs text-gray-400">(Default)</span>
                             </span>
                             <span class="text-sm text-blue-500 underline"><a href="https://developers.cloudflare.com/turnstile/get-started/">Documentation</a></span>
                         </label>

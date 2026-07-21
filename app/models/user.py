@@ -239,13 +239,14 @@ class Form(Base):
             name="captchatype",
         ),
         nullable=False,
-        server_default=CaptchaType.ALTCHA.value,
+        default=CaptchaType.TURNSTILE,
+        server_default=CaptchaType.TURNSTILE.value,
     )
     turnstile_sitekey: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     turnstile_secret: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
 
     # Store form structures, fields, inputs, or schemas easily using raw strings or a JSON block
-    is_published: Mapped[bool] = mapped_column(Boolean, default=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     sub_message: Mapped[str] = mapped_column(String(200), nullable=False, server_default="Submission successful!")
     sub_bg_color: Mapped[str] = mapped_column(String(7), nullable=False, server_default="#ffffff")
     sub_txt_color: Mapped[str] = mapped_column(String(7), nullable=False, server_default="#000000")
@@ -267,10 +268,30 @@ class Form(Base):
 class Submission(Base):
     __tablename__ = "submissions"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    form_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("forms.id", ondelete="CASCADE"), nullable=False)
-    
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    form_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("forms.id", ondelete="CASCADE"), nullable=False
+    )
+
     # 4. Dynamic Payload Storage (PostgreSQL JSONB)
     payload: Mapped[dict] = mapped_column(JSONB, nullable=False)
+
+    status: Mapped[str] = mapped_column(
+        String(20), default="accepted", server_default="accepted", index=True
+    )
+
+
+    spam_provider: Mapped[Optional[str]] = mapped_column(
+        String(50), nullable=True, index=True
+    )
+
+    sender_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    sender_email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+    )
 
     form: Mapped["Form"] = relationship("Form", back_populates="submissions")

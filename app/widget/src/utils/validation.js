@@ -2,7 +2,7 @@
 
 const VALID_PROVIDERS = [
     "altcha",
-    "turnstile",
+    "cloudflare_turnstile",
     "hcaptcha",
     "recaptcha"
 ];
@@ -15,7 +15,7 @@ export function validateForm(form) {
         throw new Error("Expected an HTMLFormElement.");
     }
 
-    const formId  = form.dataset.formId;
+    const formId = form.dataset.formId;
     const formAction = form.dataset.formAction;
 
     if (!formId) {
@@ -40,28 +40,33 @@ export function validateConfig(config) {
         throw new Error("Invalid widget configuration.");
     }
 
-    validateProvider(config.provider);
+    const normalizedConfig = {
+        ...config,
+        provider: config.provider || "cloudflare_turnstile",
+    };
 
-    if (!config.honeypotField) {
+    validateProvider(normalizedConfig.provider);
+
+    if (!normalizedConfig.honeypotField) {
         throw new Error("Missing honeypotField.");
     }
 
-    if (!config.sessionToken) {
+    if (!normalizedConfig.sessionToken) {
         throw new Error("Missing sessionToken.");
     }
 
-    switch (config.provider) {
+    switch (normalizedConfig.provider) {
 
         case "altcha":
-            if (!config.challengeUrl) {
+            if (!normalizedConfig.challengeUrl) {
                 throw new Error(
                     "Missing ALTCHA challengeUrl."
                 );
             }
             break;
 
-        case "turnstile":
-            if (!config.turnstileSitekey) {
+        case "cloudflare_turnstile":
+            if (!normalizedConfig.turnstileSitekey) {
                 throw new Error(
                     "Missing Turnstile sitekey."
                 );
@@ -70,7 +75,7 @@ export function validateConfig(config) {
 
     }
 
-    return Object.freeze(config);
+    return Object.freeze(normalizedConfig);
 }
 
 /**

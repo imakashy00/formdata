@@ -2,7 +2,7 @@ import re
 from typing import Optional
 
 from fastapi import Form
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 
 from app.models.user import CaptchaType
 
@@ -35,6 +35,7 @@ class WidgetConfig(BaseModel):
     honeypotField: str
     sessionToken: str
     challengeUrl: str
+    turnstileSitekey: Optional[str] = None
     success: dict | None = None
 
 
@@ -44,10 +45,10 @@ class FormSettingsPayload(BaseModel):
     notification_email: EmailStr
     redirect_url: Optional[str] = None
     allowed_domains: str
-    captcha_type: CaptchaType
+    captcha_type: CaptchaType = CaptchaType.TURNSTILE
     turnstile_sitekey: Optional[str] = None
     turnstile_secret: Optional[str] = None
-    is_published: bool
+    is_active: bool
     sub_message: str
     sub_bg_color: str
     sub_txt_color: str
@@ -62,10 +63,10 @@ class FormSettingsPayload(BaseModel):
         notification_email: EmailStr = Form(...),
         redirect_url: Optional[str] = Form(None),
         allowed_domains: str = Form(...),
-        captcha_type: CaptchaType = Form(...),
+        captcha_type: CaptchaType = Form(CaptchaType.TURNSTILE),
         turnstile_sitekey: Optional[str] = Form(None),
         turnstile_secret: Optional[str] = Form(None),
-        is_published: bool = Form(...),
+        is_active: bool = Form(...),
         sub_message: str = Form(...),
         sub_bg_color: str = Form(...),
         sub_txt_color: str = Form(...),
@@ -80,9 +81,28 @@ class FormSettingsPayload(BaseModel):
             captcha_type=captcha_type,
             turnstile_sitekey=turnstile_sitekey,
             turnstile_secret=turnstile_secret,
-            is_published=is_published,
+            is_active=is_active,
             sub_message=sub_message,
             sub_bg_color=sub_bg_color,
             sub_txt_color=sub_txt_color,
             sub_lnk_color=sub_lnk_color,
         )
+
+    @field_validator("honeypot")
+    @classmethod
+    def normalize_honeypot(cls, value: str) -> str:
+        value = value.strip().lstrip("_")
+        if not value:
+            raise ValueError("Honeypot field name is required.")
+        if not re.match(r"^[a-zA-Z0-9_\-]+$", value):
+            raise ValueError("Honeypot field name can only contain letters, numbers, hyphens, and underscores.")
+        return f"_{value}"
+
+    @model_validator(mode="after")
+    def validate_turnstile_settings(self):
+        if self.captcha_type == CaptchaType.TURNSTILE:
+            if not self.turnstile_sitekey or not self.turnstile_sitekey.strip():
+                raise ValueError("Turnstile site key is required when Turnstile bot protection is selected.")
+            if not self.turnstile_secret or not self.turnstile_secret.strip():
+                raise ValueError("Turnstile secret key is required when Turnstile bot protection is selected.")
+        return self

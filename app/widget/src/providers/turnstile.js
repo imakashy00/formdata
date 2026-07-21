@@ -1,12 +1,18 @@
-import { BotProvider } from "./base-provider.js";
 import { ScriptLoader } from "../loader.js";
+import { BotProvider } from "./base-provider.js";
 
 export class TurnstileProvider extends BotProvider {
 
     widgetId = null;
     token = null;
+    tokenInput = null;
 
     async mount(container, config) {
+
+        this.tokenInput = document.createElement("input");
+        this.tokenInput.type = "hidden";
+        this.tokenInput.name = "cf-turnstile-response";
+        container.append(this.tokenInput);
 
         await ScriptLoader.load(
             "https://challenges.cloudflare.com/turnstile/v0/api.js"
@@ -22,10 +28,13 @@ export class TurnstileProvider extends BotProvider {
 
                 const id = window.turnstile.render(container, {
 
-                    sitekey: config.sitekey,
+                    sitekey: config.turnstileSitekey,
 
                     callback: token => {
                         this.token = token;
+                        if (this.tokenInput) {
+                            this.tokenInput.value = token;
+                        }
                     }
 
                 });
@@ -42,8 +51,15 @@ export class TurnstileProvider extends BotProvider {
 
     async verify() {
 
-        if (!this.token)
+        if (!this.token) {
             throw new Error("Turnstile verification required.");
+        }
+
+        if (this.tokenInput) {
+            this.tokenInput.value = this.token;
+        }
+
+        return this.token;
 
     }
 
@@ -54,6 +70,10 @@ export class TurnstileProvider extends BotProvider {
         }
 
         this.token = null;
+
+        if (this.tokenInput) {
+            this.tokenInput.value = "";
+        }
     }
 
 }

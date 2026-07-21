@@ -34,9 +34,7 @@
 {% elif form.captcha_type.value == "cloudflare_turnstile" %}
   <span class="text-gray-500">&lt;!-- Cloudflare Turnstile Checkbox Widget --&gt;</span>
   <span class="text-pink-300">&lt;div</span> <span class="text-blue-300">class</span>=<span class="text-green-300">"cf-turnstile"</span> <span class="text-blue-300">data-sitekey</span>=<span class="text-green-300">"YOUR_TURNSTILE_SITE_KEY"</span> <span class="text-blue-300">data-theme</span>=<span class="text-green-300">"light"</span> <span class="text-blue-300">data-size</span>=<span class="text-green-300">"normal"</span><span class="text-pink-300">&gt;&lt;/div&gt;</span>
-
-  <span class="text-gray-500">&lt;!-- Cloudflare Turnstile API Script --&gt;</span>
-  <span class="text-pink-300">&lt;script</span> <span class="text-blue-300">src</span>=<span class="text-green-300">"https://cloudflare.com"</span> <span class="text-blue-300">async</span> <span class="text-blue-300">defer</span><span class="text-pink-300">&gt;&lt;/script&gt;</span>
+    <span class="text-gray-500">&lt;!-- The widget bundle loads the Turnstile API script automatically --&gt;</span>
 {% endif %}
   <span class="text-pink-300">&lt;button</span> <span class="text-blue-300">type</span>=<span class="text-green-300">"submit"</span><span class="text-pink-300">&gt;</span>Send<span class="text-pink-300">&lt;/button&gt;</span>
 

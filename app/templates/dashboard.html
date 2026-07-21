@@ -1,101 +1,244 @@
-<!-- dashboard.html -->
 {% extends 'base.html' %}
 
 {% block title %}Dashboard — Formdata{% endblock %}
 
 {% block content %}
-<div class="page active animate-slide-up" id="page-dashboard">
-    <div class="p-5 md:p-7">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-        <h2 class="text-xl font-extrabold text-gray-900">Welcome back, <span id="heroName">{{ name }}</span> 👋</h2>
-        <p class="text-sm text-gray-400 mt-0.5 mb-6">Here's what's happening with your forms.</p>
+<div class="page active animate-slide-up bg-gray-50/50 min-h-screen" id="page-dashboard">
+    <div class="p-5 md:p-7 max-w-7xl mx-auto space-y-6">
 
-        <!-- Metrics Grid Wrapper Area -->
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <!-- Top Greeting Header Title Section -->
+        <div>
+            <h2 class="text-xl font-extrabold text-gray-900">Welcome back, <span id="heroName">{{ name }}</span> 👋</h2>
+            <p class="text-sm text-gray-500 mt-0.5">Here's your comprehensive workspace summary status.</p>
+        </div>
 
-            <!-- Submissions Counter Widget Card Card -->
-            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
-                <div class="w-9 h-9 rounded-lg bg-brand-light flex items-center justify-center mb-3">
-                    <svg class="w-4 h-4 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                        stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                    </svg>
-                </div>
-                <p class="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-1">Submissions</p>
-                <p class="text-3xl font-extrabold text-gray-900 leading-none">248</p>
-                <p class="text-xs text-gray-400 mt-1">↑ 12 this week</p>
-            </div>
-
-            <!-- Active Project Forms Endpoint Metrics Tracker Component -->
-            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
-                <div class="w-9 h-9 rounded-lg bg-brand-light flex items-center justify-center mb-3">
-                    <svg class="w-4 h-4 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+        <!-- Row 1: Core Metrics Grid Infrastructure Display Dashboard Elements -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-white rounded-xl border border-gray-200/60 shadow-sm p-5">
+                <div class="w-9 h-9 rounded-lg bg-indigo-50 flex items-center justify-center mb-3">
+                    <svg class="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"
                         stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round"
                             d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
                     </svg>
                 </div>
-                <p class="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-1">Active forms</p>
-                <p class="text-3xl font-extrabold text-gray-900 leading-none">3</p>
-                <p class="text-xs text-gray-400 mt-1">across 2 projects</p>
+                <p class="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Projects</p>
+                <p class="text-2xl font-black text-gray-900 leading-none">{{ projects_count }}</p>
+                <p class="text-xs text-gray-400 mt-1.5">Workspaces</p>
             </div>
 
-            <!-- Spam Blocker Logs Protection Counter Card -->
-            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
-                <div class="w-9 h-9 rounded-lg bg-brand-light flex items-center justify-center mb-3">
-                    <svg class="w-4 h-4 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+            <div class="bg-white rounded-xl border border-gray-200/60 shadow-sm p-5">
+                <div class="w-9 h-9 rounded-lg bg-emerald-50 flex items-center justify-center mb-3">
+                    <svg class="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"
                         stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5l5 5v11a2 2 0 01-2 2z" />
                     </svg>
                 </div>
-                <p class="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-1">Spam blocked</p>
-                <p class="text-3xl font-extrabold text-gray-900 leading-none">17</p>
-                <p class="text-xs text-gray-400 mt-1">last 30 days</p>
+                <p class="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Forms Created</p>
+                <p class="text-2xl font-black text-gray-900 leading-none">{{ forms_count }}</p>
+                <p class="text-xs text-gray-500 mt-1.5"><span class="text-emerald-600 font-medium">{{ active_forms }}
+                        Active</span> · {{ paused_forms }} Paused</p>
             </div>
 
-            <!-- Account Subscription Tier Status Level Details Panel -->
-            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
-                <div class="w-9 h-9 rounded-lg bg-brand-light flex items-center justify-center mb-3">
-                    <svg class="w-4 h-4 text-brand" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+            <div class="bg-white rounded-xl border border-gray-200/60 shadow-sm p-5">
+                <div class="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center mb-3">
+                    <svg class="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"
                         stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round"
-                            d="M3 10h18M7 15h1m4 0h1m-7 4h12a3+3+0+003-3V8a3+3+0+00-3-3H6a3+3+0+00-3+3v8a3+3+0+003+3z" />
+                            d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
                     </svg>
                 </div>
-                <p class="text-[10px] font-semibold uppercase tracking-widest text-gray-400 mb-1">Plan</p>
-                <p class="text-xl font-extrabold text-gray-900 leading-none mt-1">Free</p>
-                <button onclick="navigate('billing', document.querySelector('[data-page=billing]'))"
-                    class="text-xs font-semibold text-brand mt-1 hover:underline">Upgrade →</button>
+                <p class="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Submissions</p>
+                <p class="text-2xl font-black text-gray-900 leading-none">{{ submissions_count }}</p>
+                <p class="text-xs text-gray-400 mt-1.5">Total across system</p>
+            </div>
+
+            <div class="bg-white rounded-xl border border-gray-200/60 shadow-sm p-5">
+                <div class="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center mb-3">
+                    <svg class="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                        stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <p class="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Last 24 Hours</p>
+                <p class="text-2xl font-black text-gray-900 leading-none">{{ submissions_last_24h }}</p>
+                <p class="text-xs text-amber-600 font-medium mt-1.5">New entries received</p>
             </div>
         </div>
 
-        <!-- Recent Submissions History Table Layout Interface Container -->
-        <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-            <div class="flex items-center justify-between px-5 py-4 border-b border-gray-50">
-                <p class="text-sm font-semibold text-gray-900">Recent submissions</p>
-                <button
-                    class="text-xs font-medium text-gray-500 border border-gray-200 hover:border-brand hover:text-brand px-3 py-1.5 rounded-lg transition-colors">
-                    Export CSV
-                </button>
+        <!-- Row 2: Tier 1 Dashboard Analytics Layout Section (Trends & Resource Quotas) -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="bg-white rounded-xl border border-gray-200/60 shadow-sm p-5 lg:col-span-2">
+                <h3 class="text-sm font-bold text-gray-900 mb-4">Submission Trend Over Time (7 Days)</h3>
+                <div class="h-64">
+                    <canvas id="submissionTrendChart"></canvas>
+                </div>
             </div>
-            <div class="overflow-x-auto">
-                <table class="w-full text-sm">
-                    <thead>
-                        <tr class="border-b border-gray-50">
-                            <th
-                                class="text-left text-[10px] font-semibold uppercase tracking-widest text-gray-400 px-5 py-3">
-                                Submission Details</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- Dynamic template table row generation scripts block -->
-                    </tbody>
-                </table>
+
+            <div class="bg-white rounded-xl border border-gray-200/60 shadow-sm p-5 flex flex-col justify-between">
+                <div>
+                    <h3 class="text-sm font-bold text-gray-900 mb-1">Quota & Usage Limits</h3>
+                    <p class="text-xs text-gray-400 mb-4">Resets automatically at the start of next billing period.</p>
+
+                    <div class="space-y-2 mt-2">
+                        <div class="flex justify-between text-xs font-semibold">
+                            <span class="text-gray-500">Monthly Tier Allowance</span>
+                            <span class="text-gray-900">{{ quota_usage }} / {{ quota_limit }} units</span>
+                        </div>
+                        <div class="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
+                            <div class="bg-indigo-600 h-3 rounded-full transition-all duration-500"
+                                style="width: {{ quota_percentage }}%"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="pt-4 border-t border-gray-100 mt-4 flex items-center justify-between text-xs">
+                    <span class="text-gray-500 font-medium">Usage Level Status: <b class="text-gray-900">{{
+                            quota_percentage }}%</b></span>
+                    {% if quota_percentage > 85 %}
+                    <a href="/billing" class="text-red-600 font-bold hover:underline">Upgrade Now &rarr;</a>
+                    {% else %}
+                    <a href="/billing" class="text-indigo-600 font-semibold hover:underline">Manage Plan</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Row 3: Top Forms & Anti-Spam Metrics -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="bg-white rounded-xl border border-gray-200/60 shadow-sm p-5 lg:col-span-1">
+                <h3 class="text-sm font-bold text-gray-900 mb-3">Top Forms by Submission Count</h3>
+                <div class="divide-y divide-gray-100">
+                    {% for form in top_forms %}
+                    <div class="py-3 flex items-center justify-between">
+                        <div class="truncate max-w-[70%]">
+                            <a href="/forms/{{ form.id }}"
+                                class="text-xs font-semibold text-indigo-600 hover:underline truncate block">
+                                {{ form.name }}
+                            </a>
+                            <span class="text-[10px] text-gray-400 block">ID: {{ form.id }}</span>
+                        </div>
+                        <span
+                            class="bg-gray-100 text-gray-800 text-xs px-2.5 py-0.5 rounded-full font-bold whitespace-nowrap">
+                            {{ form.count }} entries
+                        </span>
+                    </div>
+                    {% else %}
+                    <p class="text-xs text-gray-400 py-4 text-center">No structural traffic trends found yet.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl border border-gray-200/60 shadow-sm p-5 lg:col-span-2">
+                <h3 class="text-sm font-bold text-gray-900 mb-1">Spam & Bot Protection Audits</h3>
+                <p class="text-xs text-gray-400 mb-4">Overview of standard network edge validation filter tools.</p>
+                <div class="grid grid-cols-3 gap-4 text-center">
+                    <div class="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                        <p class="text-xs text-gray-400 font-medium mb-1">Honeypot Field</p>
+                        <p class="text-xl font-bold text-gray-900">{{ spam_stats.honeypot }}</p>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                        <p class="text-xs text-gray-400 font-medium mb-1">ALTCHA Crypt</p>
+                        <p class="text-xl font-bold text-gray-900">{{ spam_stats.altcha }}</p>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                        <p class="text-xs text-gray-400 font-medium mb-1">CF Turnstile</p>
+                        <p class="text-xl font-bold text-gray-900">{{ spam_stats.turnstile }}</p>
+                    </div>
+                </div>
+                <div class="mt-4 text-right">
+                    <a href="/reports/spam" class="text-xs font-semibold text-indigo-600 hover:underline">
+                        {{ spam_stats.total }} total blocked &rarr;
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Row 4: Recent Activity Feed (Accepted vs Rejected Submissions) -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="bg-white rounded-xl border border-gray-200/60 shadow-sm p-5">
+                <h3 class="text-sm font-bold text-gray-900 mb-3">Recent Accepted Submissions</h3>
+                <div class="divide-y divide-gray-100">
+                    {% for sub in recent_submissions %}
+                    <div class="py-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold text-gray-900 truncate max-w-[65%]">{{ sub.sender_name
+                                }}</span>
+                            <span class="text-[10px] text-gray-400">{{ sub.created_at }}</span>
+                        </div>
+                        <p class="text-[11px] text-gray-500 mt-0.5 truncate">{{ sub.sender_email }} &middot; {{
+                            sub.form_name }}</p>
+                    </div>
+                    {% else %}
+                    <p class="text-xs text-gray-400 py-4 text-center">No accepted submissions yet.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl border border-gray-200/60 shadow-sm p-5">
+                <h3 class="text-sm font-bold text-gray-900 mb-3">Recently Blocked Submissions</h3>
+                <div class="divide-y divide-gray-100">
+                    {% for sub in failed_submissions %}
+                    <div class="py-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold text-gray-900 truncate max-w-[65%]">{{ sub.sender_name
+                                }}</span>
+                            <span class="text-[10px] text-gray-400">{{ sub.created_at }}</span>
+                        </div>
+                        <p class="text-[11px] text-gray-500 mt-0.5 truncate">{{ sub.form_name }} &middot;
+                            <span class="text-red-500 font-medium">{{ sub.reason }}</span>
+                        </p>
+                    </div>
+                    {% else %}
+                    <p class="text-xs text-gray-400 py-4 text-center">No blocked submissions yet.</p>
+                    {% endfor %}
+                </div>
             </div>
         </div>
 
     </div>
 </div>
+
+<script>
+    (function () {
+        const ctx = document.getElementById('submissionTrendChart');
+        if (!ctx) return;
+
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: {{ trend_labels | tojson }},
+    datasets: [{
+        label: 'Submissions',
+        data: {{ trend_values | tojson }},
+        borderColor: '#4f46e5',
+        backgroundColor: 'rgba(79, 70, 229, 0.08)',
+        borderWidth: 2,
+        tension: 0.35,
+        fill: true,
+        pointRadius: 3,
+        pointHoverRadius: 6, // 🟢 Smooth hover state
+        pointBackgroundColor: '#4f46e5' 
+      }] 
+    },
+    options: {
+        responsive: true,
+            maintainAspectRatio: false,
+                plugins: {
+            legend: { display: false }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                    ticks: { precision: 0 }
+            }
+        }
+    } 
+  }); 
+}) ();
+</script>
+
 {% endblock %}

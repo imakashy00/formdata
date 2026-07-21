@@ -5,17 +5,19 @@ export class ProviderFactory {
 
     static create(config) {
 
-        switch (config.provider) {
+        const provider = config.provider || "cloudflare_turnstile";
+
+        switch (provider) {
 
             case "altcha":
                 return new AltchaProvider();
 
-            case "turnstile":
+            case "cloudflare_turnstile":
                 return new TurnstileProvider();
 
             default:
                 throw new Error(
-                    `Unknown provider: ${config.provider}`
+                    `Unknown provider: ${provider}`
                 );
         }
 

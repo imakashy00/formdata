@@ -4,19 +4,20 @@ import { API } from "./api.js";
 import { ProviderFactory } from "./provider-factory.js";
 
 import {
-    createStatusElement,
+    clearStatus,
     createBotContainer,
     createHiddenInput,
     createHoneypot,
-    showError,
-    clearStatus,
+    createStatusElement,
     disableSubmit,
-    enableSubmit
+    enableSubmit,
+    showError,
+    showSuccess
 } from "./utils/dom.js";
 
 import {
-    validateForm,
-    validateConfig
+    validateConfig,
+    validateForm
 } from "./utils/validation.js";
 
 export class FormWidget {

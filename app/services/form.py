@@ -1,22 +1,21 @@
-import re
-import time
-from typing import Literal
-import uuid
-import hmac
-import secrets
 import hashlib
+import hmac
+import re
+import secrets
+import time
+import uuid
+from typing import Literal
 
+import httpx
 from altcha import (
     Challenge,
     create_challenge,
     verify_solution,
 )
 from fastapi import Request
-import httpx
 
 from app.core.settings import settings
 from app.services.blacklist import redis_client as r
-
 
 DISPOSABLE_EMAIL_DOMAINS = {
     "mailinator.com",
@@ -45,7 +44,7 @@ FORMS: dict[str, dict] = {
     },
     "frm_demo2": {
         "allowed_origins": {"https://customer-two.example.com"},
-        "bot_provider": "turnstile",  # this customer brought their own keys
+        "bot_provider": "cloudflare_turnstile",  # this customer brought their own keys
         "turnstile_sitekey": "1x00000000000000000000AA",  # Cloudflare test sitekey
         "turnstile_secret": "1x0000000000000000000000000000000AA",  # Cloudflare test secret
         "fields": {"name", "email", "message"},
@@ -137,40 +136,64 @@ async def verify_altcha(payload: str) -> tuple[bool, str | None]:
 async def verify_turnstile(
     token: str,
     secret: str,
-    remote_ip: str,
-) -> tuple[bool, str | None]:
+    remote_ip: str | None,
+):
     url = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
 
     data = {"secret": secret, "response": token}
     if remote_ip:
         data["remoteip"] = remote_ip
+
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.post(url, data)
-        return resp.json()
-    except httpx.RequestException as e:
-        print(f"Turnstile validation error: {e}")
-        return {"success": False, "error-codes": ["internal-error"]}
+        response = httpx.post(url, data=data)
+        response.raise_for_status()
+        result = response.json()
+
+        if result.get("success"):
+            return True, None
+
+        return False, ", ".join(
+            result.get("error-codes", [])
+        ) or "turnstile verification failed"
+
+    except httpx.RequestError as exc:
+        # Catches network errors, timeouts, and transport issues
+        print(f"An error occurred while requesting {exc.request.url!r}: {exc}")
+        return False, "turnstile verification request failed"
+
+    except httpx.HTTPStatusError as exc:
+        # Catches 4xx and 5xx responses if raise_for_status() is called
+        print(
+            f"Error response {exc.response.status_code} while requesting {exc.request.url!r}"
+        )
+        return False, "turnstile verification request failed"
 
 
 async def verify_bot_check(
-    form: dict, form_data: dict, request: Request, secret_key: str
-) -> tuple[bool, str | None]:
-    if form["bot_provider"] == "altcha":
+    form: dict, form_data: dict, request: Request, secret_key: str | None = None
+):
+    captcha_type = getattr(form, "captcha_type", None)
+    captcha_value = getattr(captcha_type, "value", captcha_type)
+
+    if captcha_value == "altcha" or form.get("bot_provider") == "altcha":
         payload = form_data.get("altcha")
         if not payload:
             return False, "missing altcha payload"
         return await verify_altcha(payload)
 
-    if form["bot_provider"] == "turnstile":
+    if (
+        captcha_value == "cloudflare_turnstile"
+        or form.get("bot_provider") == "cloudflare_turnstile"
+    ):
         token = form_data.get("cf-turnstile-response")
         if not token:
             return False, "missing turnstile token"
-        remoteip = (
-            request.headers.get("CF-Connecting-IP")
-            or request.headers.get("X-Forwarded-For")
-            or request.remote_addr
+        remoteip = request.headers.get("CF-Connecting-IP") or request.headers.get(
+            "X-Forwarded-For"
         )
+
+        if not secret_key:
+            return False, "missing turnstile secret"
 
         return await verify_turnstile(token, secret_key, remoteip)
 
@@ -182,9 +205,10 @@ def check_user_agent(request: Request) -> bool:
     return len(ua.strip()) > 0
 
 
-def check_honeypot(form_data: dict) -> bool:
+def check_honeypot(form_data: dict, field_name: str | None = None) -> bool:
     """True if clean (honeypot empty)."""
-    return not form_data.get(settings.HONEYPOT_FIELD)
+    honeypot_field = field_name or settings.HONEYPOT_FIELD
+    return not form_data.get(honeypot_field)
 
 
 async def content_score(
@@ -221,7 +245,7 @@ async def content_score(
 
 
 def get_form_temp(form):
-    pass
+    return FORMS.get(form)
 
 
 def route(score: int) -> Literal["accept", "queue", "reject"]:
