@@ -3,26 +3,26 @@
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
             <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Total Submissions</p>
-            <p class="text-2xl font-bold text-gray-900 mt-2">{{ total_submissions }}</p>
-            {% if submissions_change.value is not none %}
+            <p class="text-2xl font-bold text-gray-900 mt-2">{{ analytics.total_submissions }}</p>
+            {% if analytics.submissions_change.value is not none %}
             <span class="text-[11px] font-medium flex items-center gap-1 mt-1
                 {{ 'text-emerald-600' if submissions_change.direction == 'up' else 'text-red-500' }}">
-                {{ '↑' if submissions_change.direction == 'up' else '↓' }} {{ submissions_change.value }}%
-                <span class="text-gray-400 font-normal">vs previous {{ range_days }} days</span>
+                {{ '↑' if analytics.submissions_change.direction == 'up' else '↓' }} {{ analytics.submissions_change.value }}%
+                <span class="text-gray-400 font-normal">vs previous {{ analytics.range_days }} days</span>
             </span>
             {% else %}
             <span class="text-[11px] text-gray-400 font-normal flex items-center gap-1 mt-1">
-                {{ submissions_change.label }}
+                {{ analytics.submissions_change.label }}
             </span>
             {% endif %}
         </div>
 
         <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
             <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Spam Blocked</p>
-            <p class="text-2xl font-bold text-gray-900 mt-2">{{ spam_blocked }}</p>
+            <p class="text-2xl font-bold text-gray-900 mt-2">{{ analytics.spam_blocked }}</p>
             <span class="text-[11px] text-gray-400 font-normal flex items-center gap-1 mt-1 truncate">
                 {% if spam_by_provider %}
-                {% for provider, count in spam_by_provider.items() %}{{ provider|capitalize }}: {{ count }}{% if not
+                {% for provider, count in analytics.spam_by_provider.items() %}{{ provider|capitalize }}: {{ count }}{% if not
                 loop.last %} · {% endif %}{% endfor %}
                 {% else %}
                 No spam detected this period
@@ -33,12 +33,12 @@
         <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
             <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Conversion Rate</p>
             <p class="text-2xl font-bold text-gray-900 mt-2">
-                {{ conversion_rate ~ '%' if conversion_rate is not none else '—' }}
+                {{ analytics.conversion_rate ~ '%' if conversion_rate is not none else '—' }}
             </p>
             {% if conversion_change is not none %}
             <span class="text-[11px] font-medium flex items-center gap-1 mt-1
                 {{ 'text-emerald-600' if conversion_change >= 0 else 'text-red-500' }}">
-                {{ '↑' if conversion_change >= 0 else '↓' }} {{ conversion_change|abs }}pts
+                {{ '↑' if analytics.conversion_change >= 0 else '↓' }} {{ analytics.conversion_change|abs }}pts
                 <span class="text-gray-400 font-normal">vs previous {{ range_days }} days</span>
             </span>
             {% else %}
@@ -65,7 +65,7 @@
 
         <!-- Bar graph, driven by real per-day counts -->
         <div class="h-48 w-full flex items-end gap-2 pt-4 px-2 border-b border-gray-100">
-            {% for day in trend %}
+            {% for day in analytics.trend %}
             <div class="bg-brand/10 hover:bg-brand w-full min-h-[3px] rounded-t-sm transition-all cursor-pointer relative group"
                 style="height: {{ day.height_pct }}%">
                 <div
@@ -76,7 +76,7 @@
             {% endfor %}
         </div>
         <div class="flex justify-between text-[10px] text-gray-400 mt-2 px-1">
-            {% for day in trend %}<span>{{ day.label }}</span>{% endfor %}
+            {% for day in analytics.trend %}<span>{{ day.label }}</span>{% endfor %}
         </div>
     </div>
 </div>
