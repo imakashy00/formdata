@@ -1,13 +1,13 @@
 from datetime import datetime, timedelta, timezone
+from enum import Enum
 import json
 import uuid
-from typing import Annotated, Optional
+from typing import Optional
 
 from fastapi import (
     APIRouter,
     Depends,
     Form,
-    Header,
     HTTPException,
     Query,
     Request,
@@ -42,7 +42,38 @@ from app.services.form import (
     verify_session,
 )
 
-form_router = APIRouter()
+form_router = APIRouter(prefix="/projects")
+
+
+class FormTab(str, Enum):
+    submissions = "submissions"
+    setup = "setup"
+    templates = "templates"
+    settings = "settings"
+    integrations = "integrations"
+    analytics = "analytics"
+    exports = "exports"
+
+
+TAB_TEMPLATES = {
+    FormTab.submissions: "form_submissions.html",
+    FormTab.setup: "form_setup.html",
+    FormTab.templates: "form_templates.html",
+    FormTab.settings: "form_settings.html",
+    FormTab.integrations: "form_integrations.html",
+    FormTab.analytics: "form_analytics.html",
+    FormTab.exports: "form_exports.html",
+}
+
+TAB_LABELS = {
+    FormTab.submissions: "Submissions",
+    FormTab.setup: "Set Up",
+    FormTab.templates: "Templates",
+    FormTab.settings: "Settings",
+    FormTab.integrations: "Integrations",
+    FormTab.analytics: "Analytics",
+    FormTab.exports: "Exports",
+}
 
 
 def _build_form_context(form) -> dict:
@@ -149,7 +180,7 @@ async def handle_create_form(
         )
 
 
-@form_router.get("/projects/{project_id}/forms/{form_id}", response_class=HTMLResponse)
+@form_router.get("/{project_id}/forms/{form_id}", response_class=HTMLResponse)
 async def handle_get_project_form(
     request: Request,
     form_id: str,
@@ -165,24 +196,16 @@ async def handle_get_project_form(
         )
         form = result.scalar_one_or_none()
         if not form:
-            raise HTTPException(
-                status_code=404, detail="Form configuration template not found."
-            )
+            raise HTTPException(status_code=404, detail="Form not found.")
+        form_analytics = await _get_form_analytics(db, form)
 
-        # Fetch all saved dynamic submissions related to this specific form structure
-        submissions_result = await db.execute(
-            select(Submission)
-            .where(Submission.form_id == form_id)
-            .order_by(Submission.id.desc())  # Newest submissions first
-        )
-        submissions = submissions_result.scalars().all()
         return temp.TemplateResponse(
             request,
             "form.html",
             {
                 "request": request,
                 "form": form,
-                "submissions": submissions,
+                "form_analytics": form_analytics,
                 "email": user.email,
                 "name": user.name,
                 "user_id": user.id,
@@ -198,7 +221,7 @@ async def test_widget(request: Request):
     return temp.TemplateResponse(request, "test.html", {"request": request})
 
 
-@form_router.get("/form/{formId}/config", response_model=WidgetConfig)
+@form_router.get("/{project_id}/forms/{form_id}/config", response_model=WidgetConfig)
 async def handle_form_config(
     request: Request,
     formId: str,
@@ -237,7 +260,7 @@ async def handle_form_config(
     return config
 
 
-@form_router.get("/form/{form_id}/altcha-challenge")
+@form_router.get("/{project_id}/forms/{form_id}/altcha-challenge")
 async def handle_altcha_challenge_create(
     request: Request,
     form_id: str,
@@ -258,7 +281,7 @@ async def handle_altcha_challenge_create(
     return make_altcha_challenge().to_dict()
 
 
-@form_router.post("/form/{form_id}/submit")
+@form_router.post("/{project_id}/forms/{form_id}/submit")
 async def handle_form_submit(
     form_id: str,
     request: Request,
@@ -353,7 +376,7 @@ async def handle_form_submit(
     return JSONResponse({"status": decision}, status_code=200)
 
 
-@form_router.get("/forms", response_class=HTMLResponse)
+@form_router.get("/{project_id}/forms", response_class=HTMLResponse)
 async def handle_get_forms(
     request: Request,
     project_id: Optional[uuid.UUID] = None,
@@ -389,7 +412,7 @@ async def handle_get_forms(
 # Then, once the form receives its first submission,
 # Formspree automatically locks the form to that specific domain to prevent spam,
 # while allowing the user to manually add localhost or other staging domains later in their settings dashboard.
-@form_router.put("/forms/{form_id}/settings")
+@form_router.put("/{project_id}/forms/{form_id}/settings")
 async def handle_update_form_setting(
     request: Request,
     form_id: str,
@@ -465,10 +488,10 @@ async def handle_update_form_setting(
 
 
 # --- 5. DELETE A FORM ---
-@form_router.delete("/forms/{form_id}")
+@form_router.delete("/{project_id}/forms/{form_id}")
 async def handle_delete_form(
     form_id: str,
-    project_id: Annotated[str, Header(alias="X-Project-Id")],
+    project_id: str,
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -557,7 +580,9 @@ def _pct_change(current: int, previous: int) -> dict:
     }
 
 
-async def _get_form_analytics(db: AsyncSession, form: FormDB, range_days: int) -> dict:
+async def _get_form_analytics(
+    db: AsyncSession, form: FormDB, range_days: int = 7
+) -> dict:
     now = datetime.now(timezone.utc)
     period_start = now - timedelta(days=range_days)
     prev_period_start = now - timedelta(days=range_days * 2)
@@ -643,7 +668,7 @@ async def _get_form_analytics(db: AsyncSession, form: FormDB, range_days: int) -
     }
 
 
-@form_router.get("forms/{form_id}/analytics")
+@form_router.get("/{project_id}/forms/{form_id}/analytics")
 async def handle_form_analytics(
     form_id: str,
     request: Request,

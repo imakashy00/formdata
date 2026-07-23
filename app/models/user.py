@@ -263,7 +263,7 @@ class Form(Base):
 
     # Relationships
     project: Mapped["Project"] = relationship(back_populates="forms")
-    submissions: Mapped[List["Submission"]] = relationship("Submission", back_populates="form", cascade="all, delete-orphan")
+    submissions: Mapped[List["Submission"]] = relationship("Submission", back_populates="form",order_by="desc(Submission.created_at)", cascade="all, delete-orphan")
 
 class Submission(Base):
     __tablename__ = "submissions"
