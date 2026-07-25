@@ -1,3 +1,4 @@
+from enum import Enum
 import re
 from typing import Optional
 
@@ -106,3 +107,34 @@ class FormSettingsPayload(BaseModel):
             if not self.turnstile_secret or not self.turnstile_secret.strip():
                 raise ValueError("Turnstile secret key is required when Turnstile bot protection is selected.")
         return self
+
+
+class FormTab(str, Enum):
+    submissions = "submissions"
+    setup = "setup"
+    templates = "templates"
+    settings = "settings"
+    integrations = "integrations"
+    analytics = "analytics"
+    exports = "exports"
+
+
+TAB_TEMPLATES = {
+    FormTab.submissions: "form_submissions.html",
+    FormTab.setup: "form_setup.html",
+    FormTab.templates: "form_templates.html",
+    FormTab.settings: "form_settings.html",
+    FormTab.integrations: "form_integrations.html",
+    FormTab.analytics: "form_analytics.html",
+    FormTab.exports: "form_exports.html",
+}
+
+TAB_LABELS = {
+    FormTab.submissions: "Submissions",
+    FormTab.setup: "Set Up",
+    FormTab.templates: "Templates",
+    FormTab.settings: "Settings",
+    FormTab.integrations: "Integrations",
+    FormTab.analytics: "Analytics",
+    FormTab.exports: "Exports",
+}

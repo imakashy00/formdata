@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta, timezone
 import hashlib
 import hmac
 import re
@@ -5,6 +6,8 @@ import secrets
 import time
 import uuid
 from typing import Literal
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 import httpx
 from altcha import (
@@ -14,7 +17,9 @@ from altcha import (
 )
 from fastapi import Request
 
+from app.models.user import CaptchaType, Form as FormDB, Submission
 from app.core.settings import settings
+from app.schemas.form import FormSettingsPayload
 from app.services.blacklist import redis_client as r
 
 DISPOSABLE_EMAIL_DOMAINS = {
@@ -254,3 +259,181 @@ def route(score: int) -> Literal["accept", "queue", "reject"]:
     if score >= 3:
         return "queue"
     return "accept"
+
+
+async def _count_submissions(
+    db: AsyncSession,
+    form_id: str,
+    start: datetime | None = None,
+    end: datetime | None = None,
+    status: str | None = None,
+) -> int:
+    query = select(func.count(Submission.id)).where(Submission.form_id == form_id)
+    if start is not None:
+        query = query.where(Submission.created_at >= start)
+    if end is not None:
+        query = query.where(Submission.created_at < end)
+    if status is not None:
+        query = query.where(Submission.status == status)
+    return await db.scalar(query) or 0
+
+
+def _pct_change(current: int, previous: int) -> dict:
+    """Handles the zero-previous-period case instead of dividing by zero,
+    which a brand-new form would hit immediately."""
+    if previous == 0:
+        if current == 0:
+            return {"direction": "flat", "value": 0, "label": "No change"}
+        return {"direction": "up", "value": None, "label": "New activity"}
+    delta = ((current - previous) / previous) * 100
+    return {
+        "direction": "up" if delta >= 0 else "down",
+        "value": round(abs(delta), 1),
+        "label": None,
+    }
+
+
+async def _get_form_analytics(
+    db: AsyncSession, form: FormDB, range_days: int = 7
+) -> dict:
+    now = datetime.now(timezone.utc)
+    period_start = now - timedelta(days=range_days)
+    prev_period_start = now - timedelta(days=range_days * 2)
+
+    # Lifetime totals (not scoped to the selected range)
+    total_submissions = await _count_submissions(db, form.id)
+
+    # This-period vs previous-period volume
+    submissions_this_period = await _count_submissions(db, form.id, start=period_start)
+    submissions_prev_period = await _count_submissions(
+        db, form.id, start=prev_period_start, end=period_start
+    )
+    submissions_change = _pct_change(submissions_this_period, submissions_prev_period)
+
+    # Spam blocked in the selected range, broken down by provider
+    spam_blocked = await _count_submissions(
+        db, form.id, start=period_start, status="rejected"
+    )
+    rejected_prev_period = await _count_submissions(
+        db, form.id, start=prev_period_start, end=period_start, status="rejected"
+    )
+
+    spam_provider_query = await db.execute(
+        select(Submission.spam_provider, func.count(Submission.id))
+        .where(Submission.form_id == form.id)
+        .where(Submission.status == "rejected")
+        .where(Submission.created_at >= period_start)
+        .group_by(Submission.spam_provider)
+    )
+    spam_by_provider = {
+        str(row[0] or "other"): int(row[1]) for row in spam_provider_query.all()
+    }
+
+    # ------------------------------------------------------------------
+    # Conversion rate = accepted / (accepted + rejected) for the period.
+    # NOTE: proxy metric only — there's no impression/pageview tracking,
+    # so this can't reflect true visit-to-submit conversion yet. It's
+    # really "% of incoming traffic that passed spam filtering."
+    # ------------------------------------------------------------------
+    def _conversion_rate(accepted: int, rejected: int) -> float | None:
+        total = accepted + rejected
+        return round((accepted / total) * 100, 1) if total else None
+
+    accepted_this_period = submissions_this_period - spam_blocked
+    accepted_prev_period = submissions_prev_period - rejected_prev_period
+
+    conversion_rate = _conversion_rate(accepted_this_period, spam_blocked)
+    conversion_rate_prev = _conversion_rate(accepted_prev_period, rejected_prev_period)
+    conversion_change = (
+        round(conversion_rate - conversion_rate_prev, 1)
+        if conversion_rate is not None and conversion_rate_prev is not None
+        else None
+    )
+
+    # Daily trend for the bar chart, scoped to this form only
+    trend = []
+    for i in reversed(range(range_days)):
+        day_date = (now - timedelta(days=i)).date()
+        day_start = datetime.combine(day_date, datetime.min.time(), tzinfo=timezone.utc)
+        day_end = day_start + timedelta(days=1)
+        count = await _count_submissions(db, form.id, start=day_start, end=day_end)
+        trend.append(
+            {
+                "label": day_date.strftime("%a"),
+                "date": day_date.strftime("%b %d"),
+                "count": count,
+            }
+        )
+
+    max_count = max((d["count"] for d in trend), default=0)
+    for d in trend:
+        d["height_pct"] = round((d["count"] / max_count) * 100, 1) if max_count else 0
+
+    return {
+        "total_submissions": total_submissions,
+        "submissions_change": submissions_change,
+        "spam_blocked": spam_blocked,
+        "spam_by_provider": spam_by_provider,
+        "conversion_rate": conversion_rate,
+        "conversion_change": conversion_change,
+        "trend": trend,
+        "range_days": range_days,
+    }
+
+
+def _build_form_context(form) -> dict:
+    captcha_type = getattr(form, "captcha_type", None)
+    captcha_value = getattr(captcha_type, "value", captcha_type) or form.get(
+        "bot_provider", "cloudflare_turnstile"
+    )
+
+    honeypot_value = getattr(form, "honeypot", None) or form.get(
+        "honeypot", settings.HONEYPOT_FIELD
+    )
+
+    if hasattr(form, "turnstile_sitekey"):
+        turnstile_sitekey = form.turnstile_sitekey
+        turnstile_secret = form.turnstile_secret
+    else:
+        turnstile_sitekey = form.get("turnstile_sitekey")
+        turnstile_secret = form.get("turnstile_secret")
+
+    return {
+        "bot_provider": captcha_value,
+        "honeypot": honeypot_value,
+        "turnstile_sitekey": turnstile_sitekey,
+        "turnstile_secret": turnstile_secret,
+        "fields": {"name", "email", "message"},
+        "required": {"name", "email", "message"},
+    }
+
+
+async def update_form_settings(
+    payload: FormSettingsPayload, db_form: FormDB, db: AsyncSession
+):
+    accepted_domains_raw = payload.allowed_domains
+    accepted_domains_list = [
+        d.strip() for d in accepted_domains_raw.split(",") if d.strip()
+    ]
+    # 4. Update existing form fields with the payload data
+    db_form.name = payload.name.strip()
+    db_form.honeypot = payload.honeypot
+    db_form.notification_email = payload.notification_email
+    db_form.redirect_url = payload.redirect_url if payload.redirect_url else None
+    db_form.allowed_domains = accepted_domains_list
+    db_form.captcha_type = payload.captcha_type
+    if payload.captcha_type == CaptchaType.TURNSTILE:
+        db_form.turnstile_sitekey = payload.turnstile_sitekey
+        db_form.turnstile_secret = payload.turnstile_secret
+    else:
+        db_form.turnstile_sitekey = None
+        db_form.turnstile_secret = None
+    db_form.is_active = payload.is_active
+    db_form.sub_message = payload.sub_message
+    db_form.sub_bg_color = payload.sub_bg_color
+    db_form.sub_txt_color = payload.sub_txt_color
+    db_form.sub_lnk_color = payload.sub_lnk_color
+
+    # 5. Commit changes to database
+    await db.commit()
+    await db.refresh(db_form)
