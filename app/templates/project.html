@@ -123,7 +123,7 @@
         </div>
 
         <!-- Modal Form (Managed via HTMX) -->
-        <form id="new-form-form" hx-post="/forms" hx-target="#new-form-btn" hx-swap="afterend" hx-swap="outerHTML"
+        <form id="new-form-form" hx-post="/projects/{{project.id}}/forms" hx-target="#new-form-btn" hx-swap="afterend" hx-swap="outerHTML"
             @htmx:after-request="isOpen = false; $el.reset()" class="p-6">
 
             <div class="mb-5">

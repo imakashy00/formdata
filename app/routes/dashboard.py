@@ -1,20 +1,23 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_db
-from app.models.user import User, Project, Submission, Form as FormDB
-from app.routes.page import get_current_user
 from app.core.templates import temp
+from app.models.user import Form as FormDB
+from app.models.user import Project, Submission, User
+from app.routes.page import get_current_user
 
 dash_router = APIRouter()
 
 
 async def _get_dashboard_summary(db: AsyncSession, user: User) -> dict:
     user_id = user.id
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     cutoff_24h = now - timedelta(hours=24)
 
     # ----------------------------------------------------
@@ -84,8 +87,8 @@ async def _get_dashboard_summary(db: AsyncSession, user: User) -> dict:
     trend_values = []
     for i in reversed(range(7)):
         day_date = (now - timedelta(days=i)).date()
-        day_start = datetime.combine(day_date, datetime.min.time(), tzinfo=timezone.utc)
-        day_end = datetime.combine(day_date, datetime.max.time(), tzinfo=timezone.utc)
+        day_start = datetime.combine(day_date, datetime.min.time(), tzinfo=UTC)
+        day_end = datetime.combine(day_date, datetime.max.time(), tzinfo=UTC)
 
         count = (
             await db.scalar(
@@ -123,22 +126,22 @@ async def _get_dashboard_summary(db: AsyncSession, user: User) -> dict:
     # ----------------------------------------------------
     # 5. Tier 2: Anti-Spam Protection Gateway Filter Analytics
     # ----------------------------------------------------
-    spam_query = await db.execute(
-        select(Submission.spam_provider, func.count(Submission.id))
-        .join(FormDB, Submission.form_id == FormDB.id)
-        .join(Project, FormDB.project_id == Project.id)
-        .where(Project.user_id == user_id)
-        .where(Submission.status == "rejected")
-        .group_by(Submission.spam_provider)
+    total_spam_count = (
+        await db.scalar(
+            select(func.count(Submission.id))
+            .select_from(Submission)
+            .join(FormDB, Submission.form_id == FormDB.id)
+            .join(Project, FormDB.project_id == Project.id)
+            .where(Project.user_id == user_id)
+            .where(Submission.status == "rejected")
+        )
+        or 0
     )
-    spam_rows = spam_query.all()
-    spam_map = {str(row[0]): int(row[1]) for row in spam_rows if row[0] is not None}
 
     spam_stats = {
-        "honeypot": spam_map.get("honeypot", 0),
-        "altcha": spam_map.get("altcha", 0),
-        "turnstile": spam_map.get("turnstile", 0),
-        "total": sum(spam_map.values()),
+        "honeypot": 0,
+        "turnstile": 0,
+        "total": total_spam_count,
     }
 
     # ----------------------------------------------------
@@ -177,7 +180,7 @@ async def _get_dashboard_summary(db: AsyncSession, user: User) -> dict:
             "sender_name": s.Submission.sender_name or "Spam Bot",
             "sender_email": s.Submission.sender_email or "N/A",
             "form_name": s.form_name,
-            "reason": s.Submission.spam_provider or "Triggered Rule",
+            "reason": "Spam Filter",  # no per-submission reason stored yet
             "created_at": s.Submission.created_at.strftime("%Y-%m-%d %H:%M"),
         }
         for s in recent_rejected_query.all()
@@ -205,8 +208,8 @@ async def _get_dashboard_summary(db: AsyncSession, user: User) -> dict:
 @dash_router.get("/", response_class=HTMLResponse)
 async def home(
     request: Request,
-    user: User | None = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User | None, Depends(get_current_user)] = None,
 ):
     if not user:
         return temp.TemplateResponse(request, "index.html")

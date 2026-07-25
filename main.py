@@ -11,13 +11,14 @@ from app.logger import setup_logger
 from app.middlewares.exception_handlers import register_exception_handlers
 from app.middlewares.middleware import register_middlewares
 from app.middlewares.rate_limit import setup_rate_limiting
+from app.routes.account import account_router
 from app.routes.auth import router
+from app.routes.client_form import client_form_router
+from app.routes.dashboard import dash_router
+from app.routes.form import form_router
 from app.routes.page import page_router
 from app.routes.project import project_router
-from app.routes.form import form_router
-from app.routes.account import account_router
 from app.routes.subscription import user_router
-from app.routes.dashboard import dash_router
 from app.services.blacklist import redis_client
 
 log = setup_logger()
@@ -77,6 +78,7 @@ app.include_router(router=account_router)
 app.include_router(router=form_router)
 app.include_router(router=project_router)
 app.include_router(router=dash_router)
+app.include_router(router=client_form_router)
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 

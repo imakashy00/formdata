@@ -1,6 +1,7 @@
-from pydantic import BaseModel, EmailStr, Field
 # from sqlalchemy import Enum
 from enum import Enum
+
+from pydantic import BaseModel, EmailStr, Field
 
 
 class RegisterUser(BaseModel):

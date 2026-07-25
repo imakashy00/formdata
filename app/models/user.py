@@ -1,8 +1,7 @@
-import enum
 import secrets
-from typing import List, Optional
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
+from enum import Enum as PyEnum
 
 from sqlalchemy import (
     Boolean,
@@ -14,19 +13,22 @@ from sqlalchemy import (
     String,
     UniqueConstraint,
 )
-from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
 from app.core.db import Base
 from app.schemas.user import SubscriptionStatus
 
 
-class CaptchaType(str, enum.Enum):
-    ALTCHA = "altcha"
-    TURNSTILE = "cloudflare_turnstile"
+class SubmissionStatus(str, PyEnum):
+    ACCEPTED = "accepted"
+    REJECTED = "rejected"
+
 
 def generate_short_id() -> str:
     # Generates a highly secure URL-safe 8-character text token
     return secrets.token_urlsafe(6)[:8]
+
 
 class User(Base):
     __tablename__ = "users"
@@ -39,18 +41,18 @@ class User(Base):
     google_sub: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     picture: Mapped[str | None] = mapped_column(String(500), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
     )
     last_login: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    projects: Mapped[List["Project"]] = relationship(
+    projects: Mapped[list["Project"]] = relationship(
         "Project",
         back_populates="user",
         cascade="all, delete-orphan",
     )
-    subscription: Mapped["Subscription"] = relationship(  # noqa: F821 # type: ignore
+    subscription: Mapped["Subscription"] = relationship(  # type: ignore
         "Subscription",
         back_populates="user",
         uselist=False,
@@ -80,14 +82,14 @@ class Subscription(Base):
     paddle_customer_id: Mapped[str | None] = mapped_column(
         String(255), unique=True, nullable=True
     )
-    user: Mapped["User"] = relationship(back_populates="subscription")  # noqa: F821 # type: ignore
-    subscription_id: Mapped[Optional[str]] = mapped_column(
+    user: Mapped["User"] = relationship(back_populates="subscription")  # type: ignore
+    subscription_id: Mapped[str | None] = mapped_column(
         String(255), unique=True, nullable=True
     )
-    price_id: Mapped[Optional[str]] = mapped_column(
+    price_id: Mapped[str | None] = mapped_column(
         String(255), nullable=True
     )  # Paddle Price ID
-    plan_interval: Mapped[Optional[str]] = mapped_column(  # 'monthly' or 'yearly'
+    plan_interval: Mapped[str | None] = mapped_column(  # 'monthly' or 'yearly'
         String(10), nullable=True
     )
     submissions_used: Mapped[int] = mapped_column(
@@ -98,44 +100,44 @@ class Subscription(Base):
     )  # running total, not reset
     # Status (align with Paddle statuses you map in webhooks)
     status: Mapped[str] = mapped_column(
-        String(30), default=SubscriptionStatus.TRIAL, nullable=False
+        String(30), default=SubscriptionStatus.TRIAL.value, nullable=False
     )  # trial | active | canceled
 
     trial_end: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        default=lambda: datetime.now(timezone.utc) + timedelta(days=15),
+        default=lambda: datetime.now(UTC) + timedelta(days=15),
     )
 
     # Billing period windows (from Paddle)
-    current_period_start: Mapped[Optional[datetime]] = mapped_column(
+    current_period_start: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
-    current_period_end: Mapped[Optional[datetime]] = mapped_column(
+    current_period_end: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
 
     # Cancellation
-    cancel_at: Mapped[Optional[datetime]] = mapped_column(
+    cancel_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
-    canceled_at: Mapped[Optional[datetime]] = mapped_column(
+    canceled_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
 
     # Flags and timestamps
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
-        onupdate=lambda: datetime.now(timezone.utc),
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
     )
 
     @property
     def has_access(self) -> bool:
         """Determine if the user currently has access based on subscription state."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         # 1️⃣ Trial period — valid until trial_end
         if self.status == SubscriptionStatus.TRIAL.value:
@@ -166,7 +168,7 @@ class ProcessedWebhook(Base):
     # Helpful metadata for debugging or clean-up crons later
     event_type: Mapped[str] = mapped_column(String(100), nullable=False)
     processed_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
     )
 
 
@@ -195,17 +197,17 @@ class Project(Base):
     name: Mapped[str] = mapped_column(String(100), nullable=False)
 
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
-        onupdate=lambda: datetime.now(timezone.utc),
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
     )
 
     # Relationships
     user: Mapped["User"] = relationship(back_populates="projects")  # Link to User model
-    forms: Mapped[List["Form"]] = relationship(
+    forms: Mapped[list["Form"]] = relationship(
         "Form",
         order_by="desc(Form.updated_at), desc(Form.created_at)",
         back_populates="project",
@@ -228,42 +230,47 @@ class Form(Base):
         String(36), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False
     )
     honeypot: Mapped[str] = mapped_column(String(36), nullable=False, default="_gotcha")
-    allowed_domains: Mapped[List[str]] = mapped_column(ARRAY(String), server_default="{}")
-    redirect_url: Mapped[Optional[str]] = mapped_column(String(2083), nullable=True)
-    notification_email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-
-    captcha_type: Mapped[CaptchaType] = mapped_column(
-        Enum(
-            CaptchaType,
-            values_callable=lambda enum_cls: [e.value for e in enum_cls],
-            name="captchatype",
-        ),
-        nullable=False,
-        default=CaptchaType.TURNSTILE,
-        server_default=CaptchaType.TURNSTILE.value,
+    allowed_domains: Mapped[list[str]] = mapped_column(
+        ARRAY(String), server_default="{}"
     )
-    turnstile_sitekey: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    turnstile_secret: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    redirect_url: Mapped[str | None] = mapped_column(String(2083), nullable=True)
+    notification_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
+    turnstile_secret: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     # Store form structures, fields, inputs, or schemas easily using raw strings or a JSON block
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    sub_message: Mapped[str] = mapped_column(String(200), nullable=False, server_default="Submission successful!")
-    sub_bg_color: Mapped[str] = mapped_column(String(7), nullable=False, server_default="#ffffff")
-    sub_txt_color: Mapped[str] = mapped_column(String(7), nullable=False, server_default="#000000")
-    sub_lnk_color: Mapped[str] = mapped_column(String(7), nullable=False, server_default="#3b82f6")
+    sub_message: Mapped[str] = mapped_column(
+        String(200), nullable=False, server_default="Submission successful!"
+    )
+    sub_bg_color: Mapped[str] = mapped_column(
+        String(7), nullable=False, server_default="#ffffff"
+    )
+    sub_txt_color: Mapped[str] = mapped_column(
+        String(7), nullable=False, server_default="#000000"
+    )
+    sub_lnk_color: Mapped[str] = mapped_column(
+        String(7), nullable=False, server_default="#3b82f6"
+    )
 
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
-        onupdate=lambda: datetime.now(timezone.utc),
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
     )
 
     # Relationships
     project: Mapped["Project"] = relationship(back_populates="forms")
-    submissions: Mapped[List["Submission"]] = relationship("Submission", back_populates="form",order_by="desc(Submission.created_at)", cascade="all, delete-orphan")
+    submissions: Mapped[list["Submission"]] = relationship(
+        "Submission",
+        back_populates="form",
+        order_by="desc(Submission.created_at)",
+        cascade="all, delete-orphan",
+    )
+
 
 class Submission(Base):
     __tablename__ = "submissions"
@@ -278,20 +285,23 @@ class Submission(Base):
     # 4. Dynamic Payload Storage (PostgreSQL JSONB)
     payload: Mapped[dict] = mapped_column(JSONB, nullable=False)
 
-    status: Mapped[str] = mapped_column(
-        String(20), default="accepted", server_default="accepted", index=True
+    status: Mapped[SubmissionStatus] = mapped_column(
+        Enum(
+            SubmissionStatus,
+            values_callable=lambda enum_cls: [e.value for e in enum_cls],
+            name="submissionstatus",
+        ),
+        nullable=False,
+        default=SubmissionStatus.ACCEPTED,
+        server_default=SubmissionStatus.ACCEPTED.value,
+        index=True,
     )
 
-
-    spam_provider: Mapped[Optional[str]] = mapped_column(
-        String(50), nullable=True, index=True
-    )
-
-    sender_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    sender_email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    sender_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    sender_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
     )
 
     form: Mapped["Form"] = relationship("Form", back_populates="submissions")

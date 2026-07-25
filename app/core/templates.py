@@ -1,10 +1,9 @@
-from fastapi.templating import Jinja2Templates
 import json
-from typing import Any, Dict, Optional
+from typing import Any
+
 from fastapi import Request
+from fastapi.templating import Jinja2Templates
 from starlette.templating import _TemplateResponse
-
-
 
 temp = Jinja2Templates(directory="app/templates")
 
@@ -15,9 +14,9 @@ templates = Jinja2Templates(directory="templates")
 def render_template(
     request: Request,
     template_name: str,
-    context: Optional[Dict[str, Any]] = None,
+    context: dict[str, Any] | None = None,
     status_code: int = 200,
-    toast_message: Optional[str] = None,
+    toast_message: str | None = None,
 )  -> _TemplateResponse:
     """Standardizes template responses and injects HTMX triggers cleanly."""
 

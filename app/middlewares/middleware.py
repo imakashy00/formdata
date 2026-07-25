@@ -1,7 +1,7 @@
-from jwt.exceptions import ExpiredSignatureError
-from fastapi.responses import RedirectResponse
-from loguru import logger as log
 from fastapi import HTTPException, Request
+from fastapi.responses import RedirectResponse
+from jwt.exceptions import ExpiredSignatureError
+from loguru import logger as log
 
 from app.services.auth import AuthService
 from app.services.cookies import clear_auth_cookies, set_auth_cookies

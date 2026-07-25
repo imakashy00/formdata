@@ -1,22 +1,24 @@
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import RedirectResponse
-from sqlalchemy.ext.asyncio import AsyncSession
 from loguru import logger as log
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.db import get_db
+from app.crud.user import register_user
 from app.schemas.error import AuthenticationError, TokenGenerationError
+from app.schemas.user import RegisterUser
 from app.services.auth import AuthService
+from app.services.blacklist import revoke
+from app.services.cookies import clear_auth_cookies, set_auth_cookies
 from app.services.dependencies import (
     _exchange_google_token,
     _issue_and_store_tokens,
     _validate_userinfo,
 )
-from app.services.cookies import clear_auth_cookies, set_auth_cookies
-from app.services.blacklist import revoke
-from app.schemas.user import RegisterUser
-from app.crud.user import register_user
 from app.services.oauth import oauth
-from app.core.db import get_db
-
 
 router = APIRouter(tags=["auth"])
 
@@ -28,7 +30,7 @@ async def login(request: Request):
 
 
 @router.get("/auth/callback")
-async def auth_callback(request: Request, db: AsyncSession = Depends(get_db)):
+async def auth_callback(request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
     # 1. Token Exchange and User Info Validation
     try:
         token = await _exchange_google_token(request)
@@ -46,7 +48,7 @@ async def auth_callback(request: Request, db: AsyncSession = Depends(get_db)):
         user_id = await register_user(userinfo=user_info_schema, db=db)
         log.info(f"👤 User registration/lookup successful. Internal ID: {user_id}")
 
-    except Exception as e:
+    except SQLAlchemyError as e:
         # Catch specific DB exceptions (e.g., integrity errors) if possible
         log.critical(
             f"🚫Database Error during user registration/lookup: {e}", exc_info=True
@@ -78,7 +80,7 @@ async def logout(request: Request):
             continue
         try:
             payload = AuthService.decode(token)
-        except Exception:
+        except SQLAlchemyError:
             continue
         is_refresh = payload.get("type") == "refresh"
         await revoke(

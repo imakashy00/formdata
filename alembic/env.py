@@ -1,20 +1,18 @@
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
+from sqlalchemy import engine_from_config, pool
 
 from alembic import context
-
-from app.core.settings import settings
 from app.core.db import Base
+from app.core.settings import settings
 from app.models.user import (
-    User,  # noqa: F401
-    Subscription,  # noqa: F401
-    ProcessedWebhook,  # noqa: F401
-    OverageCharge,  # noqa: F401
-    Project,  # noqa: F401
     Form,  # noqa: F401
-)  # noqa: F401
+    OverageCharge,  # noqa: F401
+    ProcessedWebhook,  # noqa: F401
+    Project,  # noqa: F401
+    Subscription,  # noqa: F401
+    User,  # noqa: F401
+)
 
 DATABASE_URL = settings.DATABASE_URL
 

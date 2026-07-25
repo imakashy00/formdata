@@ -1,13 +1,14 @@
-from datetime import datetime, timedelta, timezone
-from typing import Literal
 import uuid
+from datetime import UTC, datetime, timedelta
+from typing import Literal
+
 import jwt
 
 from app.core.settings import settings
 
 
 def _now() -> datetime:
-    return datetime.now(tz=timezone.utc)
+    return datetime.now(tz=UTC)
 
 
 def _exp(ttl: timedelta) -> int:

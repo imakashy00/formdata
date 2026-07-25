@@ -1,8 +1,8 @@
-"""added default captchas to altcha in form
+"""adding value to trial
 
-Revision ID: 4a65e6d6d86b
-Revises: 1b49f6e79b4a
-Create Date: 2026-07-18 23:20:04.945522
+Revision ID: cf778aa3c8a7
+Revises: 743337b5e4bb
+Create Date: 2026-07-26 03:26:02.888175
 
 """
 from typing import Sequence, Union
@@ -12,8 +12,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '4a65e6d6d86b'
-down_revision: Union[str, Sequence[str], None] = '1b49f6e79b4a'
+revision: str = 'cf778aa3c8a7'
+down_revision: Union[str, Sequence[str], None] = '743337b5e4bb'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

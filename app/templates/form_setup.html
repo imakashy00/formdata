@@ -19,29 +19,22 @@
                     Copy
                 </button>
 
-                <pre><span class="text-pink-300">&lt;form</span> <span class="text-blue-300">data-form-id</span>=<span class="text-green-300">"{{ form.public_id }}"</span> <span class="text-blue-300">data-form-action</span>=<span class="text-green-300">"https://formdata.cloud"</span><span class="text-pink-300">&gt;</span>
-
-  <span class="text-pink-300">&lt;input</span> <span class="text-blue-300">name</span>=<span class="text-green-300">"name"</span> <span class="text-blue-300">placeholder</span>=<span class="text-green-300">"Name"</span> <span class="text-blue-300">required</span> <span class="text-pink-300">/&gt;</span>
+                <pre><span class="text-pink-300">&lt;form</span> <span class="text-blue-300">action</span>=<span class="text-green-300">"https://formdata.cloud/f/{{ form.public_id }}"</span> <span class="text-blue-300">method</span>=<span class="text-green-300">"POST"</span><span class="text-pink-300">&gt;</span>
 
   <span class="text-pink-300">&lt;input</span> <span class="text-blue-300">type</span>=<span class="text-green-300">"email"</span> <span class="text-blue-300">name</span>=<span class="text-green-300">"email"</span> <span class="text-blue-300">placeholder</span>=<span class="text-green-300">"Email"</span> <span class="text-blue-300">required</span> <span class="text-pink-300">/&gt;</span>
 
   <span class="text-pink-300">&lt;textarea</span> <span class="text-blue-300">name</span>=<span class="text-green-300">"message"</span> <span class="text-blue-300">placeholder</span>=<span class="text-green-300">"Message"</span> <span class="text-blue-300">required</span><span class="text-pink-300">&gt;&lt;/textarea&gt;</span>
 
-  <span class="text-gray-500">&lt;!-- Honeypot (keep hidden) --&gt;</span>
+  <span class="text-gray-500">&lt;!-- Honeypot --&gt;</span>
   <span class="text-pink-300">&lt;input</span> <span class="text-blue-300">type</span>=<span class="text-green-300">"text"</span> <span class="text-blue-300">name</span>=<span class="text-green-300">"{{ form.honeypot }}"</span> <span class="text-blue-300">style</span>=<span class="text-green-300">"display:none"</span> <span class="text-blue-300">tabindex</span>=<span class="text-green-300">"-1"</span> <span class="text-blue-300">autocomplete</span>=<span class="text-green-300">"off"</span> <span class="text-pink-300">/&gt;</span>
-{% if form.captcha_type.value == "altcha" %}
-  <span class="text-gray-500">&lt;!-- ALTCHA will be injected automatically --&gt;</span>
-{% elif form.captcha_type.value == "cloudflare_turnstile" %}
-  <span class="text-gray-500">&lt;!-- Cloudflare Turnstile Checkbox Widget --&gt;</span>
-  <span class="text-pink-300">&lt;div</span> <span class="text-blue-300">class</span>=<span class="text-green-300">"cf-turnstile"</span> <span class="text-blue-300">data-sitekey</span>=<span class="text-green-300">"YOUR_TURNSTILE_SITE_KEY"</span> <span class="text-blue-300">data-theme</span>=<span class="text-green-300">"light"</span> <span class="text-blue-300">data-size</span>=<span class="text-green-300">"normal"</span><span class="text-pink-300">&gt;&lt;/div&gt;</span>
-    <span class="text-gray-500">&lt;!-- The widget bundle loads the Turnstile API script automatically --&gt;</span>
-{% endif %}
+  <span class="text-gray-500">&lt;!-- Cloudflare Turnstile Widget --&gt;</span>
+  <span class="text-pink-300">&lt;div</span> <span class="text-blue-300">class</span>=<span class="text-green-300">"cf-turnstile"</span> <span class="text-blue-300">data-sitekey</span>=<span class="text-green-300">"YOUR_TURNSTILE_SITE_KEY"</span><span class="text-pink-300">&gt;&lt;/div&gt;</span>
+  
   <span class="text-pink-300">&lt;button</span> <span class="text-blue-300">type</span>=<span class="text-green-300">"submit"</span><span class="text-pink-300">&gt;</span>Send<span class="text-pink-300">&lt;/button&gt;</span>
 
 <span class="text-pink-300">&lt;/form&gt;</span>
-{% if form.captcha_type.value == "altcha" %}
-<span class="text-pink-300">&lt;script</span> <span class="text-blue-300">src</span>=<span class="text-green-300">"https://formdata.cloud"</span> <span class="text-blue-300">defer</span><span class="text-pink-300">&gt;&lt;/script&gt;</span>
-{% endif %}</pre>
+<span class="text-pink-300">&lt;script</span> <span class="text-blue-300">src</span>=<span class="text-green-300">"https://challenges.cloudflare.com/turnstile/v0/siteverify"</span> <span class="text-blue-300">async</span> <span class="text-blue-300">defer</span><span class="text-pink-300">&gt;&lt;/script&gt;</span>
+</pre>
             </div>
         </div>
     </div>

@@ -1,5 +1,7 @@
-from loguru import logger
 import os
+
+from loguru import logger
+
 
 def setup_logger():
     """Configure Loguru and integrate with Uvicorn/Fastapi logs"""

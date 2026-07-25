@@ -1,8 +1,9 @@
-from pydantic_settings import BaseSettings, SettingsConfigDict
-from typing import Literal
 from datetime import timedelta
-from pydantic import AnyHttpUrl, PostgresDsn, RedisDsn
-from pydantic import SecretStr
+from typing import Literal
+
+from pydantic import AnyHttpUrl, PostgresDsn, RedisDsn, SecretStr
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
 
 class Settings(BaseSettings):
     ENV: Literal["development", "production"] = "development"

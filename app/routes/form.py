@@ -1,30 +1,29 @@
 import json
 import uuid
-from typing import Optional
+from typing import Annotated
 
 from fastapi import (
     APIRouter,
     Depends,
     Form,
     HTTPException,
-    Header,
     Query,
     Request,
     Response,
     status,
 )
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse
 from loguru import logger as log
 from pydantic import ValidationError
 from sqlalchemy import delete, select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.db import get_db
-from app.core.settings import settings
 from app.core.templates import temp
-from app.models.user import Form as FormDB, Project
-from app.models.user import Submission, User
+from app.models.user import Form as FormDB
+from app.models.user import User
 from app.routes.page import get_current_user
 from app.schemas.form import (
     TAB_LABELS,
@@ -32,34 +31,24 @@ from app.schemas.form import (
     FormSettingsPayload,
     FormTab,
     NewForm,
-    WidgetConfig,
 )
 from app.services.form import (
-    _build_form_context,
     _get_form_analytics,
-    check_honeypot,
-    check_rate_limit,
-    check_user_agent,
-    content_score,
-    get_form_temp,
-    make_altcha_challenge,
-    route,
-    sign_session,
+    _get_owned_form,
+    is_htmx,
     update_form_settings,
-    verify_bot_check,
-    verify_session,
 )
 
 form_router = APIRouter(prefix="/projects")
 
 
-@form_router.post("/forms", response_class=HTMLResponse)
+@form_router.post("/{project_id}/forms", response_class=HTMLResponse)
 async def handle_create_form(
     request: Request,
+    project_id: str,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
     name: str = Form(...),
-    project_id: str = Form(...),
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
 ):
     try:
         form = NewForm(name=name)
@@ -120,7 +109,7 @@ async def handle_create_form(
             },
             status_code=status.HTTP_400_BAD_REQUEST,
         )
-    except Exception as exc:
+    except SQLAlchemyError as exc:
         log.error(f"Failed to create new form due to system error: {exc}")
         return temp.TemplateResponse(
             request,
@@ -135,8 +124,8 @@ async def handle_get_project_form(
     request: Request,
     form_id: str,
     project_id: str,
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
 ):
     try:
         result = await db.execute(
@@ -163,7 +152,7 @@ async def handle_get_project_form(
                 "page": "projects",
             },
         )
-    except Exception as e:
+    except SQLAlchemyError as e:
         log.exception(f"Something went wrong while fetching form details: {e}")
 
 
@@ -172,167 +161,12 @@ async def test_widget(request: Request):
     return temp.TemplateResponse(request, "test.html", {"request": request})
 
 
-@form_router.get("/{project_id}/forms/{form_id}/config", response_model=WidgetConfig)
-async def handle_form_config(
-    request: Request,
-    formId: str,
-    db: AsyncSession = Depends(get_db),
-):
-    if not formId:
-        return JSONResponse({"error": "unknown form"}, status_code=404)
-
-    result = await db.execute(select(FormDB).where(FormDB.public_id == formId))
-    form = result.scalar_one_or_none()
-    if not form:
-        form = get_form_temp(formId)
-    if not form:
-        return JSONResponse({"error": "unknown form"}, status_code=404)
-
-    form_context = _build_form_context(form)
-    provider = form_context["bot_provider"]
-    base_url = str(settings.BASE_URL).rstrip("/")
-    config = WidgetConfig(
-        provider=provider,
-        honeypotField=form_context["honeypot"],
-        sessionToken=sign_session(formId),
-        challengeUrl=f"{base_url}/form/{formId}/altcha-challenge",
-        turnstileSitekey=form_context["turnstile_sitekey"]
-        if provider == "cloudflare_turnstile"
-        else None,
-        success={
-            "message": "Thanks! Your message has been sent successfully.",
-            "redirect": None,
-        },
-    )
-
-    if provider == "cloudflare_turnstile":
-        config.challengeUrl = ""
-
-    return config
-
-
-@form_router.get("/{project_id}/forms/{form_id}/altcha-challenge")
-async def handle_altcha_challenge_create(
-    request: Request,
-    form_id: str,
-    db: AsyncSession = Depends(get_db),
-):
-    query = select(FormDB).where(FormDB.public_id == form_id)
-    result = await db.execute(query)
-    form = result.scalar_one_or_none()
-
-    if not form:
-        form = get_form_temp(form_id)
-
-    form_context = _build_form_context(form) if form else None
-    if not form_context or form_context["bot_provider"] != "altcha":
-        return JSONResponse(
-            {"error": "altcha not enabled for this form"}, status_code=404
-        )
-    return make_altcha_challenge().to_dict()
-
-
-@form_router.post("/{project_id}/forms/{form_id}/submit")
-async def handle_form_submit(
-    form_id: str,
-    request: Request,
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    query = select(FormDB).where(FormDB.public_id == form_id)
-    result = await db.execute(query)
-    form = result.scalar_one_or_none()
-
-    if not form:
-        form = get_form_temp(form_id)
-
-    if not form:
-        return JSONResponse({"error": "unknown form"}, status_code=404)
-
-    form_context = _build_form_context(form)
-
-    # --- edge-equivalent: rate limiting ---
-    ip = request.client.host if request.client else "unknown"
-    if not await check_rate_limit("ip", ip, *settings.RATE_LIMIT_IP):
-        return JSONResponse({"error": "rate limit exceeded"}, status_code=429)
-    if not await check_rate_limit("form", form_id, *settings.RATE_LIMIT_FORM):
-        return JSONResponse(
-            {"error": "form is receiving too many submissions"}, status_code=429
-        )
-
-    # --- fast structural checks ---
-    if not check_user_agent(request):
-        return JSONResponse({"error": "missing user agent"}, status_code=400)
-
-    form_data = dict(await request.form())
-
-    if not check_honeypot(form_data, form_context["honeypot"]):
-        # Bots that fill every field trip this. Respond as if successful —
-        # no need to teach the bot what tripped it.
-        return JSONResponse({"status": "accepted"}, status_code=200)
-
-    missing = form_context["required"] - form_data.keys()
-    if missing:
-        return JSONResponse(
-            {"error": f"missing fields: {sorted(missing)}"}, status_code=400
-        )
-    token_value = form_data.get("sessionToken", "")
-
-    if not isinstance(token_value, str):
-        session_ok, session_err = False, "invalid session token format"
-    else:
-        session_ok, session_err = await verify_session(token_value, form_id)
-    if not session_ok:
-        return JSONResponse({"error": session_err}, status_code=400)
-
-    # --- bot verification (ALTCHA by default, or the customer's Turnstile) ---
-    bot_secret = (
-        form_context["turnstile_secret"]
-        if form_context["bot_provider"] == "cloudflare_turnstile"
-        else None
-    )
-    bot_ok, bot_err = await verify_bot_check(
-        form_context, form_data, request, bot_secret
-    )
-    if not bot_ok:
-        return JSONResponse({"error": f"bot check failed: {bot_err}"}, status_code=400)
-
-    submission_payload = {
-        key: value
-        for key, value in form_data.items()
-        if key not in {"sessionToken", "altcha", "cf-turnstile-response"}
-    }
-
-    db_form: FormDB | None = None
-    if not isinstance(form, dict):
-        db_form = form
-
-    if db_form is not None:
-        try:
-            submission = Submission(form_id=db_form.id, payload=submission_payload)
-            db.add(submission)
-            await db.commit()
-        except Exception as exc:
-            await db.rollback()
-            log.exception(f"Failed to persist submission for form {form_id}: {exc}")
-            return JSONResponse({"error": "failed to save submission"}, status_code=500)
-
-    # --- content filter (scored, not hard-reject) ---
-    score, reasons = await content_score(form_id, form_context, form_data)
-    decision = route(score)
-
-    if decision == "reject":
-        return JSONResponse({"status": "rejected", "reasons": reasons}, status_code=200)
-
-    return JSONResponse({"status": decision}, status_code=200)
-
-
 @form_router.get("/{project_id}/forms", response_class=HTMLResponse)
 async def handle_get_forms(
     request: Request,
-    project_id: Optional[uuid.UUID] = None,
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
+    project_id: uuid.UUID | None = None,
 ):
     try:
         # Fetch forms belonging to this user. Filter by project if provided.
@@ -353,7 +187,7 @@ async def handle_get_forms(
                 "page": "forms",
             },
         )
-    except Exception as e:
+    except SQLAlchemyError as e:
         log.warning(f"Error fetching Forms: {e}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
@@ -367,9 +201,9 @@ async def handle_get_forms(
 async def handle_update_form_setting(
     request: Request,
     form_id: str,
-    payload: FormSettingsPayload = Depends(FormSettingsPayload.as_form),
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
+    payload: Annotated[FormSettingsPayload, Form()],
 ):
     try:
         query = select(FormDB).where(
@@ -399,7 +233,7 @@ async def handle_update_form_setting(
             status_code=status.HTTP_200_OK,
         )
 
-    except Exception as e:
+    except SQLAlchemyError as e:
         await db.rollback()
         # Handle or log server exception safely
         log.exception(f"Failed to update the form settings: Error {e}")
@@ -418,8 +252,8 @@ async def handle_update_form_setting(
 async def handle_delete_form(
     form_id: str,
     project_id: str,
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
 ):
     try:
         # Explicit delete criteria safeguarding multi-tenant architecture
@@ -444,38 +278,10 @@ async def handle_delete_form(
         )
     except HTTPException:
         raise
-    except Exception as e:
+    except SQLAlchemyError as e:
         await db.rollback()
         log.error(f"Error executing form deletion payload: {e}")
         raise HTTPException(status_code=400, detail="Deletion runtime failure.")
-
-
-# users might upload sensitive private files like legal documents or resumes.
-# Do not toggle your R2 bucket to "Public".
-# Instead, keep it entirely private and
-# use your Cloudflare Worker to generate
-# S3-compatible Presigned URLs with short expiration windows
-# (e.g., valid for 15 minutes).
-# When a logged-in SaaS customer checks their dashboard,
-# they will click the link, your backend will authenticate them, and
-# securely serve the file.
-# Because this is a Formspree alternative, ``
-
-
-async def _get_owned_form(db: AsyncSession, user: User, form_id: str) -> FormDB:
-    form = await db.scalar(
-        select(FormDB)
-        .join(Project, FormDB.project_id == Project.id)
-        .where(FormDB.id == form_id, Project.user_id == user.id)
-    )
-    if not form:
-        # 🟢 Don't leak existence of forms belonging to other users — 404, not 403
-        raise HTTPException(status_code=404, detail="Form not found")
-    return form
-
-
-async def is_htmx(hx_request: str | None = Header(None, alias="HX-Request")) -> bool:
-    return hx_request == "true"
 
 
 @form_router.get(
@@ -485,9 +291,9 @@ async def handle_get_project_form_submissions(
     request: Request,
     form_id: str,
     project_id: str,
-    htmx_req: bool = Depends(is_htmx),
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    htmx_req: Annotated[bool, Depends(is_htmx)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
 ):
     try:
         result = await db.execute(
@@ -517,7 +323,7 @@ async def handle_get_project_form_submissions(
         }
         return temp.TemplateResponse(request, template, context)
 
-    except Exception as e:
+    except SQLAlchemyError as e:
         log.exception(f"Something went wrong while fetching form details: {e}")
 
 
@@ -526,9 +332,9 @@ async def handle_get_project_form_setup(
     request: Request,
     form_id: str,
     project_id: str,
-    htmx_req: bool = Depends(is_htmx),
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    htmx_req: Annotated[bool, Depends(is_htmx)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
 ):
     try:
         result = await db.execute(
@@ -556,7 +362,7 @@ async def handle_get_project_form_setup(
             "page": "projects",
         }
         return temp.TemplateResponse(request, template, context)
-    except Exception as e:
+    except SQLAlchemyError as e:
         log.exception(f"Something went wrong while fetching form details: {e}")
 
 
@@ -565,9 +371,9 @@ async def handle_get_project_form_setttings(
     request: Request,
     form_id: str,
     project_id: str,
-    htmx_req: bool = Depends(is_htmx),
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    htmx_req: Annotated[bool, Depends(is_htmx)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
 ):
     try:
         result = await db.execute(
@@ -595,7 +401,7 @@ async def handle_get_project_form_setttings(
             "page": "projects",
         }
         return temp.TemplateResponse(request, template, context)
-    except Exception as e:
+    except SQLAlchemyError as e:
         log.exception(f"Something went wrong while fetching form details: {e}")
 
 
@@ -606,9 +412,9 @@ async def handle_get_project_form_integrations(
     request: Request,
     form_id: str,
     project_id: str,
-    htmx_req: bool = Depends(is_htmx),
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    htmx_req: Annotated[bool, Depends(is_htmx)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
 ):
     try:
         result = await db.execute(
@@ -641,7 +447,7 @@ async def handle_get_project_form_integrations(
             template,
             context,
         )
-    except Exception as e:
+    except SQLAlchemyError as e:
         log.exception(f"Something went wrong while fetching form details: {e}")
 
 
@@ -649,10 +455,10 @@ async def handle_get_project_form_integrations(
 async def handle_form_analytics(
     form_id: str,
     request: Request,
+    htmx_req: Annotated[bool, Depends(is_htmx)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
     range: int = Query(7, ge=1, le=90, alias="range"),
-    htmx_req: bool = Depends(is_htmx),
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
 ):
     try:
         form = await _get_owned_form(db, user, form_id)
@@ -680,7 +486,7 @@ async def handle_form_analytics(
             template,
             context,
         )
-    except Exception as e:
+    except SQLAlchemyError as e:
         log.exception(f"Something went wrong while fetching form details: {e}")
 
 
@@ -689,9 +495,9 @@ async def handle_get_project_form_exports(
     request: Request,
     form_id: str,
     project_id: str,
-    htmx_req: bool = Depends(is_htmx),
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    htmx_req: Annotated[bool, Depends(is_htmx)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
 ):
     try:
         result = await db.execute(
@@ -719,7 +525,7 @@ async def handle_get_project_form_exports(
             "page": "projects",
         }
         return temp.TemplateResponse(request, template, context)
-    except Exception as e:
+    except SQLAlchemyError as e:
         log.exception(f"Something went wrong while fetching form details: {e}")
 
 
@@ -728,9 +534,9 @@ async def handle_get_project_form_template(
     request: Request,
     form_id: str,
     project_id: str,
-    htmx_req: bool = Depends(is_htmx),
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    htmx_req: Annotated[bool, Depends(is_htmx)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
 ):
     try:
         result = await db.execute(
@@ -758,5 +564,5 @@ async def handle_get_project_form_template(
             "page": "projects",
         }
         return temp.TemplateResponse(request, template, context)
-    except Exception as e:
+    except SQLAlchemyError as e:
         log.exception(f"Something went wrong while fetching form details: {e}")

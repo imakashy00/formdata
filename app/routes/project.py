@@ -1,18 +1,20 @@
-import re
 import json
+import re
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, Form, Request, Response, status
 from fastapi.responses import HTMLResponse, RedirectResponse
-from pydantic import BaseModel, Field, ValidationError, field_validator
 from loguru import logger as log
-from sqlalchemy.ext.asyncio import AsyncSession
+from pydantic import BaseModel, Field, ValidationError, field_validator
 from sqlalchemy import desc, select
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.db import get_db
+from app.core.templates import temp
 from app.models.user import Project, User
 from app.routes.page import get_current_user
-from app.core.templates import temp
 
 project_router = APIRouter()
 
@@ -43,18 +45,18 @@ class NewProject(BaseModel):
 @project_router.get("/projects", response_class=HTMLResponse)
 async def get_projects(
     request: Request,
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     try:
         result = await db.execute(
-        select(Project)
-        .where(Project.user_id == user.id)
-        .options(selectinload(Project.forms))
-        .order_by(desc(Project.updated_at), desc(Project.created_at))
-    )
-    
-    # 2. Extract unique scalar values safely for your list page
+            select(Project)
+            .where(Project.user_id == user.id)
+            .options(selectinload(Project.forms))
+            .order_by(desc(Project.updated_at), desc(Project.created_at))
+        )
+
+        # 2. Extract unique scalar values safely for your list page
         projects = result.scalars().unique().all()
         return temp.TemplateResponse(
             request,
@@ -67,16 +69,16 @@ async def get_projects(
                 "page": "projects",
             },
         )
-    except Exception as e:
+    except SQLAlchemyError as e:
         log.warning(f"Errror fetching Projects{e}")
 
 
 @project_router.post("/projects", response_class=HTMLResponse)
 async def create_project(
     request: Request,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
     name: str = Form(...),
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
 ):
     try:
         project = NewProject(name=name)
@@ -121,7 +123,7 @@ async def create_project(
             },
             status_code=status.HTTP_400_BAD_REQUEST,
         )
-    except Exception as exc:
+    except SQLAlchemyError as exc:
         log.error(f"Failed to create new Project due to system error: {exc}")
         return temp.TemplateResponse(
             request,
@@ -135,8 +137,8 @@ async def create_project(
 async def get_project(
     request: Request,
     project_id: str,
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     try:
         result = await db.execute(
@@ -146,7 +148,7 @@ async def get_project(
             .where(Project.id == project_id)
         )
         project = result.scalar_one_or_none()
-        
+
         # print(project)
         return temp.TemplateResponse(
             request,
@@ -159,7 +161,7 @@ async def get_project(
                 "page": "projects",
             },
         )
-    except Exception as e:
+    except SQLAlchemyError as e:
         log.warning(f"Errror fetching Project{e}")
 
 
@@ -167,9 +169,9 @@ async def get_project(
 async def update_project(
     request: Request,
     project_id: str,
+    user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
     project_name: str = Form(...),
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
 ):
     try:
         # 1. Fetch project and verify ownership security
@@ -194,7 +196,9 @@ async def update_project(
         # 3. Commit changes to DB
         project.name = project_name_validated.name
         await db.commit()
-        return Response(status_code=200, headers={"HX-Redirect": f"/projects/{project_id}"})
+        return Response(
+            status_code=200, headers={"HX-Redirect": f"/projects/{project_id}"}
+        )
 
     except ValidationError as exc:
         error_msg = exc.errors()[0]["msg"]
@@ -209,7 +213,7 @@ async def update_project(
             },
             status_code=status.HTTP_400_BAD_REQUEST,
         )
-    except Exception as exc:
+    except SQLAlchemyError as exc:
         log.error(f"Failed to update project {project_id}: {exc}")
         return RedirectResponse(
             url="/projects", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -221,8 +225,8 @@ async def update_project(
 async def delete_project(
     request: Request,
     project_id: str,
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     try:
         # Find project ensuring ownership validation
@@ -242,11 +246,9 @@ async def delete_project(
         await db.delete(project)
         await db.commit()
 
-        return Response(
-            status_code=200, headers={"HX-Redirect": "/projects"}
-        )
+        return Response(status_code=200, headers={"HX-Redirect": "/projects"})
 
-    except Exception as exc:
+    except SQLAlchemyError as exc:
         log.error(f"Failed to delete project {project_id}: {exc}")
         return RedirectResponse(
             url="/projects", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR

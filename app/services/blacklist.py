@@ -1,4 +1,5 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
 import redis.asyncio as redis
 
 from app.core.settings import settings
@@ -32,7 +33,7 @@ async def revoke(jti: str, exp_unix: int,delete_refresh_whitelist:bool = False):
     Effect:
     After the token expires, Redis automatically deletes the key.
     """
-    ttl = max(1, exp_unix - int(datetime.now(timezone.utc).timestamp()))
+    ttl = max(1, exp_unix - int(datetime.now(UTC).timestamp()))
     await redis_client.setex(f"jwt:blacklist:{jti}", ttl, "1")
     if delete_refresh_whitelist:
         await redis_client.delete(f"auth:refresh_jti:{jti}")

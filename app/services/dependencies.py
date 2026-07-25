@@ -1,18 +1,19 @@
-from fastapi import Depends, HTTPException, Request
-from datetime import datetime, timezone
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from sqlalchemy.orm import selectinload
-from loguru import logger as log
+from datetime import UTC, datetime
 
-from app.schemas.error import AuthenticationError, TokenGenerationError
-from app.services.blacklist import redis_client,is_revoked
-from app.services.auth import AuthService
-from app.services.jwt import create_token
-from app.core.settings import settings
-from app.services.oauth import oauth
-from app.models.user import User
+from fastapi import Depends, HTTPException, Request
+from loguru import logger as log
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
+
 from app.core.db import get_db
+from app.core.settings import settings
+from app.models.user import User
+from app.schemas.error import AuthenticationError, TokenGenerationError
+from app.services.auth import AuthService
+from app.services.blacklist import is_revoked, redis_client
+from app.services.jwt import create_token
+from app.services.oauth import oauth
 
 
 async def _exchange_google_token(request: Request) -> dict:
@@ -64,7 +65,7 @@ async def _issue_and_store_tokens(user_id: str, email: str) -> tuple[str, str]:
         log.info(f"🔑 Tokens issued for user_id: {user_id}. Refresh JTI: {refresh_jti}")
 
         # 2. Store refresh token JTI in Redis (Whitelist)
-        now_ts = int(datetime.now(timezone.utc).timestamp())
+        now_ts = int(datetime.now(UTC).timestamp())
         redis_ttl = refresh_exp - now_ts
 
         # Security Note: Use a more specific key namespace for clarity and isolation
@@ -132,7 +133,7 @@ async def refresh_tokens(refresh_token: str):
     # Store new refresh token in whitelist
     await redis_client.setex(
         f"auth:refresh_jti:{new_rjti}",
-        new_rexp - int(datetime.now(timezone.utc).timestamp()),
+        new_rexp - int(datetime.now(UTC).timestamp()),
         "1",
     )
 

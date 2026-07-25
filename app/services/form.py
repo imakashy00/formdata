@@ -1,24 +1,19 @@
-from datetime import datetime, timedelta, timezone
 import hashlib
 import hmac
 import re
-import secrets
 import time
 import uuid
+from datetime import UTC, datetime, timedelta
 from typing import Literal
+
+import httpx
+from fastapi import Header, HTTPException, Request
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-import httpx
-from altcha import (
-    Challenge,
-    create_challenge,
-    verify_solution,
-)
-from fastapi import Request
-
-from app.models.user import CaptchaType, Form as FormDB, Submission
 from app.core.settings import settings
+from app.models.user import Form as FormDB
+from app.models.user import Project, Submission, User
 from app.schemas.form import FormSettingsPayload
 from app.services.blacklist import redis_client as r
 
@@ -32,8 +27,8 @@ DISPOSABLE_EMAIL_DOMAINS = {
 }  # illustrative only — use a maintained list/service in production
 
 SPAM_PATTERNS = [
-    (re.compile(r"\b(viagra|cialis|casino|crypto\s*airdrop)\b", re.I), 3),
-    (re.compile(r"\bmake\s+money\s+fast\b", re.I), 3),
+    (re.compile(r"\b(viagra|cialis|casino|crypto\s*airdrop)\b", re.IGNORECASE), 3),
+    (re.compile(r"\bmake\s+money\s+fast\b", re.IGNORECASE), 3),
     (re.compile(r"https?://\S+"), 1),  # scored per URL, see content_score()
 ]
 
@@ -110,34 +105,6 @@ async def verify_session(token: str, form_id: str):
     return True, None
 
 
-def make_altcha_challenge() -> Challenge:
-    challenge = create_challenge(
-        algorithm="PBKDF2/SHA-256",
-        cost=1000,
-        counter=secrets.randbelow(5000) + 5000,
-        hmac_secret=settings.ALTCHA_HMAC_SECRET,
-        hmac_key_secret=settings.ALTCHA_HMAC_KEY_SECRET,
-    )
-    return challenge
-
-
-async def verify_altcha(payload: str) -> tuple[bool, str | None]:
-    result = verify_solution(payload, settings.ALTCHA_HMAC_SECRET)
-    if not result.verified:
-        return False, result.error or "altcha verification failed"
-    # ALTCHA doesn't enforce single-use on its own — enforce it here.
-    challenge_hash = hashlib.sha256(payload.encode()).hexdigest()
-    first_use = await r.set(
-        f"altcha_used:{challenge_hash}",
-        "1",
-        nx=True,
-        ex=settings.ALTCHA_CHALLENGE_EXPIRES,
-    )
-    if not first_use:
-        return False, "altcha solution already used"
-    return True, None
-
-
 async def verify_turnstile(
     token: str,
     secret: str,
@@ -150,24 +117,23 @@ async def verify_turnstile(
         data["remoteip"] = remote_ip
 
     try:
-        response = httpx.post(url, data=data)
-        response.raise_for_status()
-        result = response.json()
+        async with httpx.AsyncClient() as client:
+            response = await client.post(url, data=data)
+            response.raise_for_status()
+            result = response.json()
 
-        if result.get("success"):
-            return True, None
+            if result.get("success"):
+                return True, None
 
-        return False, ", ".join(
-            result.get("error-codes", [])
-        ) or "turnstile verification failed"
+            return False, ", ".join(
+                result.get("error-codes", [])
+            ) or "turnstile verification failed"
 
     except httpx.RequestError as exc:
-        # Catches network errors, timeouts, and transport issues
         print(f"An error occurred while requesting {exc.request.url!r}: {exc}")
         return False, "turnstile verification request failed"
 
     except httpx.HTTPStatusError as exc:
-        # Catches 4xx and 5xx responses if raise_for_status() is called
         print(
             f"Error response {exc.response.status_code} while requesting {exc.request.url!r}"
         )
@@ -175,20 +141,19 @@ async def verify_turnstile(
 
 
 async def verify_bot_check(
-    form: dict, form_data: dict, request: Request, secret_key: str | None = None
+    form: dict | FormDB,
+    form_data: dict,
+    request: Request,
+    secret_key: str | None = None,
 ):
     captcha_type = getattr(form, "captcha_type", None)
     captcha_value = getattr(captcha_type, "value", captcha_type)
 
-    if captcha_value == "altcha" or form.get("bot_provider") == "altcha":
-        payload = form_data.get("altcha")
-        if not payload:
-            return False, "missing altcha payload"
-        return await verify_altcha(payload)
+    if captcha_value in ("none", None):
+        return True, None
 
-    if (
-        captcha_value == "cloudflare_turnstile"
-        or form.get("bot_provider") == "cloudflare_turnstile"
+    if captcha_value == "cloudflare_turnstile" or (
+        isinstance(form, dict) and form.get("bot_provider") == "cloudflare_turnstile"
     ):
         token = form_data.get("cf-turnstile-response")
         if not token:
@@ -202,7 +167,7 @@ async def verify_bot_check(
 
         return await verify_turnstile(token, secret_key, remoteip)
 
-    return False, "no bot check provider configured"
+    return True, None
 
 
 def check_user_agent(request: Request) -> bool:
@@ -296,7 +261,7 @@ def _pct_change(current: int, previous: int) -> dict:
 async def _get_form_analytics(
     db: AsyncSession, form: FormDB, range_days: int = 7
 ) -> dict:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     period_start = now - timedelta(days=range_days)
     prev_period_start = now - timedelta(days=range_days * 2)
 
@@ -319,11 +284,10 @@ async def _get_form_analytics(
     )
 
     spam_provider_query = await db.execute(
-        select(Submission.spam_provider, func.count(Submission.id))
+        select(func.count(Submission.id))
         .where(Submission.form_id == form.id)
         .where(Submission.status == "rejected")
         .where(Submission.created_at >= period_start)
-        .group_by(Submission.spam_provider)
     )
     spam_by_provider = {
         str(row[0] or "other"): int(row[1]) for row in spam_provider_query.all()
@@ -354,7 +318,7 @@ async def _get_form_analytics(
     trend = []
     for i in reversed(range(range_days)):
         day_date = (now - timedelta(days=i)).date()
-        day_start = datetime.combine(day_date, datetime.min.time(), tzinfo=timezone.utc)
+        day_start = datetime.combine(day_date, datetime.min.time(), tzinfo=UTC)
         day_end = day_start + timedelta(days=1)
         count = await _count_submissions(db, form.id, start=day_start, end=day_end)
         trend.append(
@@ -421,13 +385,7 @@ async def update_form_settings(
     db_form.notification_email = payload.notification_email
     db_form.redirect_url = payload.redirect_url if payload.redirect_url else None
     db_form.allowed_domains = accepted_domains_list
-    db_form.captcha_type = payload.captcha_type
-    if payload.captcha_type == CaptchaType.TURNSTILE:
-        db_form.turnstile_sitekey = payload.turnstile_sitekey
-        db_form.turnstile_secret = payload.turnstile_secret
-    else:
-        db_form.turnstile_sitekey = None
-        db_form.turnstile_secret = None
+    db_form.turnstile_secret = payload.turnstile_secret
     db_form.is_active = payload.is_active
     db_form.sub_message = payload.sub_message
     db_form.sub_bg_color = payload.sub_bg_color
@@ -437,3 +395,19 @@ async def update_form_settings(
     # 5. Commit changes to database
     await db.commit()
     await db.refresh(db_form)
+
+
+async def _get_owned_form(db: AsyncSession, user: User, form_id: str) -> FormDB:
+    form = await db.scalar(
+        select(FormDB)
+        .join(Project, FormDB.project_id == Project.id)
+        .where(FormDB.id == form_id, Project.user_id == user.id)
+    )
+    if not form:
+        # 🟢 Don't leak existence of forms belonging to other users — 404, not 403
+        raise HTTPException(status_code=404, detail="Form not found")
+    return form
+
+
+async def is_htmx(hx_request: str | None = Header(None, alias="HX-Request")) -> bool:
+    return hx_request == "true"

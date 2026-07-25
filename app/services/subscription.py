@@ -1,8 +1,9 @@
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
-from fastapi import status as FastApiStatus
+
 from fastapi import HTTPException
+from fastapi import status as FastApiStatus
 from loguru import logger as log
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,7 +14,7 @@ from app.schemas.user import SubscriptionStatus
 from app.services.bill_calculation import bill_overage, calculate_overage
 
 headers = {
-    "Authorization": f"Bearer {str(settings.PADDLE_API_KEY)}",
+    "Authorization": f"Bearer {settings.PADDLE_API_KEY!s}",
     "Accept": "application/json",
 }
 
@@ -21,13 +22,11 @@ headers = {
 class SubscriptionNotFoundError(Exception):
     """Raised when a subscription does not exist."""
 
-    pass
 
 
 class InvalidWebhookPayloadError(Exception):
     """Raised when InvalidWebhookPayloadError occurs."""
 
-    pass
 
 
 SYNC_EVENTS = {
@@ -195,7 +194,7 @@ async def resolve_subscription_context(
         user=user,
         subscription=subscription,
         status=map_status(data.status),
-        now=datetime.now(timezone.utc),
+        now=datetime.now(UTC),
     )
 
 
@@ -389,7 +388,7 @@ async def handle_payment_failed(
             return None
 
         subscription.status = SubscriptionStatus.PAST_DUE.value
-        subscription.updated_at = datetime.now(timezone.utc)
+        subscription.updated_at = datetime.now(UTC)
 
         await save(db, subscription)
 
