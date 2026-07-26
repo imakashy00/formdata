@@ -1,10 +1,7 @@
-import hashlib
-import hmac
+
 import re
 import time
-import uuid
 from datetime import UTC, datetime, timedelta
-from typing import Literal
 
 import httpx
 from fastapi import Header, HTTPException, Request
@@ -32,26 +29,6 @@ SPAM_PATTERNS = [
     (re.compile(r"https?://\S+"), 1),  # scored per URL, see content_score()
 ]
 
-# In-memory stand-in for your forms table.
-FORMS: dict[str, dict] = {
-    "frm_demo1": {
-        "allowed_origins": {"https://customer-one.example.com"},
-        "bot_provider": "altcha",  # default
-        "turnstile_sitekey": None,
-        "turnstile_secret": None,
-        "fields": {"name", "email", "message"},
-        "required": {"email", "message"},
-    },
-    "frm_demo2": {
-        "allowed_origins": {"https://customer-two.example.com"},
-        "bot_provider": "cloudflare_turnstile",  # this customer brought their own keys
-        "turnstile_sitekey": "1x00000000000000000000AA",  # Cloudflare test sitekey
-        "turnstile_secret": "1x0000000000000000000000000000000AA",  # Cloudflare test secret
-        "fields": {"name", "email", "message"},
-        "required": {"email", "message"},
-    },
-}
-
 
 async def check_rate_limit(scope: str, key: str, limit: int, window_s: int) -> bool:
     """Returns True if the request is within limit."""
@@ -60,49 +37,6 @@ async def check_rate_limit(scope: str, key: str, limit: int, window_s: int) -> b
     if count == 1:
         await r.expire(redis_key, window_s)
     return count <= limit
-
-
-def sign_session(form_id: str) -> str:
-    issued_at = int(time.time())
-    nonce = uuid.uuid4().hex
-    msg = f"{form_id}:{issued_at}:{nonce}".encode()
-    sig = hmac.new(
-        settings.SESSION_SECRET.encode("utf-8"), msg, hashlib.sha256
-    ).hexdigest()
-    return f"{form_id}:{issued_at}:{nonce}:{sig}"
-
-
-async def verify_session(token: str, form_id: str):
-    try:
-        fid, issued_at_s, nonce, sig = token.split(":")
-    except ValueError:
-        return False, "malformed session token"
-
-    if fid != form_id:
-        return False, "session token issued for a different form"
-
-    msg = f"{fid}:{issued_at_s}:{nonce}".encode()
-    expected = hmac.new(
-        settings.SESSION_SECRET.encode("utf-8"), msg, hashlib.sha256
-    ).hexdigest()
-    if not hmac.compare_digest(sig, expected):
-        return False, "session token signature invalid"
-
-    issued_at = int(issued_at_s)
-    age = time.time() - issued_at
-    if age > settings.SESSION_TOKEN_MAX_AGE:
-        return False, "session token expired"
-    if age < settings.MIN_SUBMIT_SECONDS:
-        return False, "submitted too fast for a human"
-
-    # single-use, so a captured token can't be replayed
-    first_use = await r.set(
-        f"session_used:{nonce}", "1", nx=True, ex=settings.SESSION_TOKEN_MAX_AGE
-    )
-    if not first_use:
-        return False, "session token already used"
-
-    return True, None
 
 
 async def verify_turnstile(
@@ -141,33 +75,24 @@ async def verify_turnstile(
 
 
 async def verify_bot_check(
-    form: dict | FormDB,
     form_data: dict,
     request: Request,
-    secret_key: str | None = None,
+    secret_key: str | None = "None",
 ):
-    captcha_type = getattr(form, "captcha_type", None)
-    captcha_value = getattr(captcha_type, "value", captcha_type)
 
-    if captcha_value in ("none", None):
-        return True, None
 
-    if captcha_value == "cloudflare_turnstile" or (
-        isinstance(form, dict) and form.get("bot_provider") == "cloudflare_turnstile"
-    ):
-        token = form_data.get("cf-turnstile-response")
-        if not token:
-            return False, "missing turnstile token"
-        remoteip = request.headers.get("CF-Connecting-IP") or request.headers.get(
-            "X-Forwarded-For"
-        )
+    token = form_data.get("cf-turnstile-response")
+    if not token:
+        return False, "missing turnstile token"
+    remoteip = request.headers.get("CF-Connecting-IP") or request.headers.get(
+        "X-Forwarded-For"
+    )
 
-        if not secret_key:
-            return False, "missing turnstile secret"
+    if not secret_key:
+        return False, "missing turnstile secret"
 
-        return await verify_turnstile(token, secret_key, remoteip)
+    return await verify_turnstile(token, secret_key, remoteip)
 
-    return True, None
 
 
 def check_user_agent(request: Request) -> bool:
@@ -179,51 +104,6 @@ def check_honeypot(form_data: dict, field_name: str | None = None) -> bool:
     """True if clean (honeypot empty)."""
     honeypot_field = field_name or settings.HONEYPOT_FIELD
     return not form_data.get(honeypot_field)
-
-
-async def content_score(
-    form_id: str, form: dict, form_data: dict
-) -> tuple[int, list[str]]:
-    score = 0
-    reasons = []
-
-    # Only score the form's actual declared fields — sessionToken, altcha,
-    # and cf-turnstile-response are pipeline plumbing, not user content, and
-    # differ on every request even when the real content is identical.
-    content_fields = form["fields"] - {"email"}
-    text_fields = " ".join(str(form_data.get(k, "")) for k in content_fields)
-
-    for pattern, weight in SPAM_PATTERNS:
-        matches = pattern.findall(text_fields)
-        if matches:
-            score += weight * min(len(matches), 3)  # cap per-pattern contribution
-            reasons.append(f"pattern:{pattern.pattern[:20]} x{len(matches)}")
-
-    email = form_data.get("email", "")
-    domain = email.split("@")[-1].lower() if "@" in email else ""
-    if domain in DISPOSABLE_EMAIL_DOMAINS:
-        score += 4
-        reasons.append("disposable-email")
-
-    dedupe_key = hashlib.sha256(f"{form_id}:{text_fields}".encode()).hexdigest()
-    is_new = await r.set(f"dedupe:{dedupe_key}", "1", nx=True, ex=600)
-    if not is_new:
-        score += 5
-        reasons.append("duplicate-submission")
-
-    return score, reasons
-
-
-def get_form_temp(form):
-    return FORMS.get(form)
-
-
-def route(score: int) -> Literal["accept", "queue", "reject"]:
-    if score >= 8:
-        return "reject"
-    if score >= 3:
-        return "queue"
-    return "accept"
 
 
 async def _count_submissions(
@@ -342,33 +222,6 @@ async def _get_form_analytics(
         "conversion_change": conversion_change,
         "trend": trend,
         "range_days": range_days,
-    }
-
-
-def _build_form_context(form) -> dict:
-    captcha_type = getattr(form, "captcha_type", None)
-    captcha_value = getattr(captcha_type, "value", captcha_type) or form.get(
-        "bot_provider", "cloudflare_turnstile"
-    )
-
-    honeypot_value = getattr(form, "honeypot", None) or form.get(
-        "honeypot", settings.HONEYPOT_FIELD
-    )
-
-    if hasattr(form, "turnstile_sitekey"):
-        turnstile_sitekey = form.turnstile_sitekey
-        turnstile_secret = form.turnstile_secret
-    else:
-        turnstile_sitekey = form.get("turnstile_sitekey")
-        turnstile_secret = form.get("turnstile_secret")
-
-    return {
-        "bot_provider": captcha_value,
-        "honeypot": honeypot_value,
-        "turnstile_sitekey": turnstile_sitekey,
-        "turnstile_secret": turnstile_secret,
-        "fields": {"name", "email", "message"},
-        "required": {"name", "email", "message"},
     }
 
 

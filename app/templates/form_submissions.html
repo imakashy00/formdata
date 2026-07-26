@@ -1,7 +1,45 @@
-<div x-show="activeTab === 'submissions'">
-    <div
-        class="bg-white rounded-xl border border-gray-100 shadow-sm p-5 cursor-pointer hover:shadow-md hover:border-brand-mid transition-all">
-        <!-- first create the a search and filter bar  -->
-        <!-- then create table based on form schema -->
+<div x-show="activeTab === 'submissions'" class="space-y-6">
+    <!-- Search and Filter Bar -->
+    <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex flex-col md:flex-row gap-4 items-center justify-between"
+        hx-get="/projects/{{ form.project_id }}/forms/{{ form.id }}/submissions"
+        hx-trigger="keyup delay:300ms from:input[name='search'], change from:select[name='status']"
+        hx-target="#submissions-table-container" hx-include="this">
+
+        <!-- Search Input -->
+        <div class="relative w-full md:w-80">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
+            </span>
+            <input type="text" name="search" value="{{ search }}" placeholder="Search submissions..."
+                class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-mid focus:ring-1 focus:ring-brand-mid transition-colors">
+        </div>
+
+        <!-- Filter Dropdowns & Actions -->
+        <div class="flex items-center gap-3 w-full md:w-auto justify-end">
+            <select name="status"
+                class="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:border-brand-mid">
+                <option value="" {% if not current_status %}selected{% endif %}>All Statuses</option>
+                <option value="PENDING" {% if current_status=='PENDING' %}selected{% endif %}>Pending</option>
+                <option value="APPROVED" {% if current_status=='APPROVED' %}selected{% endif %}>Approved</option>
+                <option value="REJECTED" {% if current_status=='REJECTED' %}selected{% endif %}>Rejected</option>
+            </select>
+
+            <button
+                class="px-4 py-2 bg-gray-50 hover:bg-gray-100 text-gray-600 rounded-lg text-sm font-medium border border-gray-200 transition-colors flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                </svg>
+                Export
+            </button>
+        </div>
+    </div>
+
+    <!-- Submissions Data Table Container Wrapper -->
+    <div id="submissions-table-container">
+        {% include "partials/submissions_table.html" %}
     </div>
 </div>

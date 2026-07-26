@@ -297,9 +297,7 @@ class Submission(Base):
         index=True,
     )
 
-    sender_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
-    sender_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
-
+    country_code: Mapped[str | None] = mapped_column(String(2), nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC)
     )

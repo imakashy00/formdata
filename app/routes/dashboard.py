@@ -158,9 +158,6 @@ async def _get_dashboard_summary(db: AsyncSession, user: User) -> dict:
     )
     recent_submissions = [
         {
-            "sender_name": s.Submission.sender_name or "Anonymous",
-            "sender_email": s.Submission.sender_email or "No Email",
-            "form_name": s.form_name,
             "created_at": s.Submission.created_at.strftime("%Y-%m-%d %H:%M"),
         }
         for s in recent_accepted_query.all()

@@ -15,7 +15,7 @@ from fastapi import (
 from fastapi.responses import HTMLResponse
 from loguru import logger as log
 from pydantic import ValidationError
-from sqlalchemy import delete, select
+from sqlalchemy import delete, desc, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -23,7 +23,7 @@ from sqlalchemy.orm import selectinload
 from app.core.db import get_db
 from app.core.templates import temp
 from app.models.user import Form as FormDB
-from app.models.user import User
+from app.models.user import Submission, User
 from app.routes.page import get_current_user
 from app.schemas.form import (
     TAB_LABELS,
@@ -287,6 +287,44 @@ async def handle_delete_form(
 @form_router.get(
     "/{project_id}/forms/{form_id}/submissions", response_class=HTMLResponse
 )
+# async def handle_get_project_form_submissions(
+#     request: Request,
+#     form_id: str,
+#     project_id: str,
+#     htmx_req: Annotated[bool, Depends(is_htmx)],
+#     db: Annotated[AsyncSession, Depends(get_db)],
+#     user: Annotated[User, Depends(get_current_user)],
+# ):
+#     try:
+#         result = await db.execute(
+#             select(FormDB)
+#             .where(FormDB.id == form_id, FormDB.project_id == project_id)
+#             .options(selectinload(FormDB.submissions))
+#         )
+#         form = result.scalar_one_or_none()
+#         if not form:
+#             raise HTTPException(status_code=404, detail="Form not found.")
+
+#         if htmx_req:
+#             template = "form_submissions.html"
+#         else:
+#             template = "form.html"
+
+#         context = {
+#             "request": request,
+#             "form": form,
+#             "active_tab": "submissions",
+#             "active_tab_template": TAB_TEMPLATES[FormTab.submissions],
+#             "tab_labels": TAB_LABELS,
+#             "email": user.email,
+#             "name": user.name,
+#             "user_id": user.id,
+#             "page": "projects",
+#         }
+#         return temp.TemplateResponse(request, template, context)
+
+#     except SQLAlchemyError as e:
+#         log.exception(f"Something went wrong while fetching form details: {e}")
 async def handle_get_project_form_submissions(
     request: Request,
     form_id: str,
@@ -294,25 +332,57 @@ async def handle_get_project_form_submissions(
     htmx_req: Annotated[bool, Depends(is_htmx)],
     db: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(get_current_user)],
+    search: str | None = Query(None),
+    status: str | None = Query(None),
 ):
     try:
+        # Base query fetching the specific form
         result = await db.execute(
-            select(FormDB)
-            .where(FormDB.id == form_id, FormDB.project_id == project_id)
-            .options(selectinload(FormDB.submissions))
+            select(FormDB).where(FormDB.id == form_id, FormDB.project_id == project_id)
         )
         form = result.scalar_one_or_none()
         if not form:
             raise HTTPException(status_code=404, detail="Form not found.")
 
+        # Build dynamic query for submissions matching this form
+        submission_query = (
+            select(Submission)
+            .where(Submission.form_id == form_id)
+            .order_by(desc(Submission.created_at))
+        )
+
+        # Apply backend filtering for Status
+        if status:
+            submission_query = submission_query.where(Submission.status == status)
+
+        # Apply backend filtering for JSONB Search (checks common keys like email, name)
+        if search:
+            search_pattern = f"%{search}%"
+            submission_query = submission_query.where(
+                (Submission.payload["email"].astext.ilike(search_pattern))
+                | (Submission.payload["name"].astext.ilike(search_pattern))
+            )
+
+        # Execute submission filter query
+        submissions_result = await db.execute(submission_query)
+        submissions = submissions_result.scalars().all()
+
+        # Target partial block template for HTMX filter requests, full template for tabs
         if htmx_req:
-            template = "form_submissions.html"
+            # If HTMX request came directly from filters, swap just the table body element
+            if request.headers.get("HX-Target") == "submissions-table-container":
+                template = "partials/submissions_table.html"
+            else:
+                template = "form_submissions.html"
         else:
             template = "form.html"
 
         context = {
             "request": request,
             "form": form,
+            "submissions": submissions,
+            "search": search or "",
+            "current_status": status or "",
             "active_tab": "submissions",
             "active_tab_template": TAB_TEMPLATES[FormTab.submissions],
             "tab_labels": TAB_LABELS,
@@ -325,6 +395,7 @@ async def handle_get_project_form_submissions(
 
     except SQLAlchemyError as e:
         log.exception(f"Something went wrong while fetching form details: {e}")
+        raise HTTPException(status_code=500, detail="Database retrieval error.")
 
 
 @form_router.get("/{project_id}/forms/{form_id}/setup", response_class=HTMLResponse)

@@ -9,25 +9,21 @@
 
     <h2>Contact Form</h2>
 
-    <form data-form-id="frm_demo2" data-form-action="http://localhost:8000">
-
-        <input name="name" placeholder="Name" required>
-
-        <br>
-
-        <input name="email" type="email" placeholder="Email" required>
-
-        <br>
-
+    <form action="http://localhost:8000/f/ySxZUBDN" method="POST">
+    
+        <input type="email" name="email" placeholder="Email" required />
+    
         <textarea name="message" placeholder="Message" required></textarea>
-
-        <br>
-        <button type="submit">
-            Send
-        </button>
-
+    
+        <!-- Honeypot -->
+        <input type="text" name="_gotcha" style="display:none" tabindex="-1" autocomplete="off" />
+        <!-- Cloudflare Turnstile Widget -->
+        <div class="cf-turnstile" data-sitekey="3x00000000000000000000FF"></div>
+    
+        <button type="submit">Send</button>
+    
     </form>
-    <script src="/static/widget/widget.js" defer></script>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 
 </body>
 
