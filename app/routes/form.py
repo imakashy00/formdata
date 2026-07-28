@@ -287,44 +287,6 @@ async def handle_delete_form(
 @form_router.get(
     "/{project_id}/forms/{form_id}/submissions", response_class=HTMLResponse
 )
-# async def handle_get_project_form_submissions(
-#     request: Request,
-#     form_id: str,
-#     project_id: str,
-#     htmx_req: Annotated[bool, Depends(is_htmx)],
-#     db: Annotated[AsyncSession, Depends(get_db)],
-#     user: Annotated[User, Depends(get_current_user)],
-# ):
-#     try:
-#         result = await db.execute(
-#             select(FormDB)
-#             .where(FormDB.id == form_id, FormDB.project_id == project_id)
-#             .options(selectinload(FormDB.submissions))
-#         )
-#         form = result.scalar_one_or_none()
-#         if not form:
-#             raise HTTPException(status_code=404, detail="Form not found.")
-
-#         if htmx_req:
-#             template = "form_submissions.html"
-#         else:
-#             template = "form.html"
-
-#         context = {
-#             "request": request,
-#             "form": form,
-#             "active_tab": "submissions",
-#             "active_tab_template": TAB_TEMPLATES[FormTab.submissions],
-#             "tab_labels": TAB_LABELS,
-#             "email": user.email,
-#             "name": user.name,
-#             "user_id": user.id,
-#             "page": "projects",
-#         }
-#         return temp.TemplateResponse(request, template, context)
-
-#     except SQLAlchemyError as e:
-#         log.exception(f"Something went wrong while fetching form details: {e}")
 async def handle_get_project_form_submissions(
     request: Request,
     form_id: str,
