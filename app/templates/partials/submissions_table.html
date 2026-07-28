@@ -1,40 +1,57 @@
 <div
-    class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md hover:border-brand-mid transition-all cursor-pointer">
+    class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md hover:border-brand-mid transition-all">
     <div class="overflow-x-auto">
         <table class="w-full text-left border-collapse">
             <thead>
                 <tr
                     class="bg-gray-50 border-b border-gray-100 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    <th class="p-4 pl-6">Form Submitter</th>
-                    <th class="p-4">Submission Date</th>
-                    <th class="p-4">Form Schema / Type</th>
+                    <th class="p-4 pl-6">Submitter</th>
+                    <th class="p-4">Date</th>
+                    <th class="p-4">Country</th>
                     <th class="p-4">Status</th>
-                    <th class="p-4 pr-6 text-right">Actions</th>
+                    <th class="p-4">Note</th>
+                    <th class="p-4 text-center w-28">Moderation</th>
+                    <th class="p-4 pr-6 text-right w-24">Management</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-50 text-sm text-gray-600">
                 {% if submissions %}
                 {% for sub in submissions %}
-                <tr class="hover:bg-gray-50/70 transition-colors">
+                <!-- Clean Row Setup: Click anywhere to open, except on interactive elements -->
+                <tr class="hover:bg-gray-50/70 transition-colors group cursor-pointer"
+                    hx-get="/submissions/{{ sub.id }}" hx-target="#main-content" hx-push-url="true"
+                    hx-trigger="click consume">
+
+                    <!-- 1. SUBMITTER -->
                     <td class="p-4 pl-6 font-medium text-gray-900">
-                        <div class="flex items-center gap-3">
-                            <div>
-                                {% set first_val = (sub.payload.items() | first)[1] if sub.payload else 'Anonymous' %}
-                                <p class="font-semibold text-gray-800">{{ first_val }}</p>
-                            </div>
-                        </div>
+                        {% set first_val = (sub.payload.items() | first)[1] if sub.payload else 'Anonymous' %}
+                        <span
+                            class="font-semibold text-gray-800 group-hover:text-brand-mid group-hover:underline decoration-1">
+                            {{ first_val }}
+                        </span>
                     </td>
+
+                    <!-- 2. DATE -->
                     <td class="p-4 text-gray-500">
                         {{ sub.created_at.strftime('%B %d, %Y') }}
                     </td>
+
+                    <!-- 3. COUNTRY -->
                     <td class="p-4">
+                        {% if sub.country %}
                         <span
-                            class="px-2.5 py-1 bg-gray-100 text-gray-700 rounded-md text-xs font-medium border border-gray-200">
-                            {{ form.name or "Contact Feedback" }}
+                            class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-gray-100 text-gray-700 text-xs font-medium border border-gray-200">
+                            {{ sub.country }}
                         </span>
+                        {% else %}
+                        <span class="text-gray-400 text-xs italic">Unknown</span>
+                        {% endif %}
                     </td>
+
+
+                    <!-- 4. STATUS -->
                     <td class="p-4">
-                        {% if sub.status.value == 'accepted'  %}
+                        {% if sub.status.value == 'accepted' %}
                         <span
                             class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
                             <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>Approved
@@ -42,42 +59,73 @@
                         {% else %}
                         <span
                             class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-700 border border-red-200">
-                            <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>Rejected
+                            <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>Spam / Blocked
                         </span>
                         {% endif %}
                     </td>
-                    <td class="p-4 pr-6 text-right">
-                        <button class="text-gray-400 hover:text-brand-mid p-1 rounded transition-colors"
-                            title="View details" @click="$dispatch('open-submission-modal', { id: '{{ sub.id }}' })">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <td class="p-4 max-w-[160px]">
+                        {% if sub.note %}
+                        <!-- truncate utility limits the text safely to one line with an elegant (...) suffix -->
+                        <p class="text-xs text-gray-500 truncate" title="{{ sub.note }}">
+                            {{ sub.note }}
+                        </p>
+                        {% else %}
+                        <span class="text-gray-300 text-xs italic">—</span>
+                        {% endif %}
+                    </td>
+
+                    <!-- 5. ACTION COL 1: SPAM TOGGLE -->
+                    <!-- onclick="event.stopPropagation()" prevents the row click event from firing -->
+                    <td class="p-4 text-center" onclick="event.stopPropagation()">
+                        {% if sub.status.value == 'accepted' %}
+                        <button hx-post="/submissions/{{ sub.id }}/spam" hx-target="closest tr" hx-swap="outerHTML"
+                            class="inline-flex items-center gap-1 px-2.5 py-1 rounded border border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-medium transition-colors"
+                            title="Mark as Spam">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z">
+                                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
                                 </path>
                             </svg>
+                            <span>Spam</span>
+                        </button>
+                        {% else %}
+                        <button hx-post="/submissions/{{ sub.id }}/unspam" hx-target="closest tr" hx-swap="outerHTML"
+                            class="inline-flex items-center gap-1 px-2.5 py-1 rounded border border-green-200 bg-green-50 hover:bg-green-100 text-green-700 text-xs font-medium transition-colors"
+                            title="Mark Not Spam">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <span>Approve</span>
+                        </button>
+                        {% endif %}
+                    </td>
+
+                    <!-- 6. ACTION COL 2: DELETE -->
+                    <td class="p-4 pr-6 text-right" onclick="event.stopPropagation()">
+                        <button hx-delete="/submissions/{{ sub.id }}"
+                            hx-confirm="Are you sure you want to permanently delete this submission?"
+                            hx-target="closest tr" hx-swap="outerHTML"
+                            class="inline-flex items-center gap-1 px-2.5 py-1 rounded border border-red-100 bg-white hover:bg-red-50 text-red-600 text-xs font-medium transition-colors"
+                            title="Delete Permanently">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+                                </path>
+                            </svg>
+                            <span>Delete</span>
                         </button>
                     </td>
                 </tr>
                 {% endfor %}
                 {% else %}
                 <tr>
-                    <td colspan="5" class="p-8 text-center text-gray-400">
+                    <td colspan="6" class="p-8 text-center text-gray-400">
                         No submissions found matching the criteria.
                     </td>
                 </tr>
                 {% endif %}
             </tbody>
         </table>
-    </div>
-
-    <!-- Table Pagination Footer -->
-    <div class="p-4 border-t border-gray-50 bg-gray-50/50 flex items-center justify-between text-xs text-gray-500">
-        <span>Showing {{ submissions|length }} entries</span>
-        <div class="flex gap-2">
-            <button class="px-3 py-1 border border-gray-200 rounded bg-white disabled:opacity-50"
-                disabled>Previous</button>
-            <button class="px-3 py-1 border border-gray-200 rounded bg-white disabled:opacity-50" disabled>Next</button>
-        </div>
     </div>
 </div>

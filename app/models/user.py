@@ -238,7 +238,7 @@ class Form(Base):
     duplicate_allowed: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=True
     )
-    duplicate_check_input: Mapped[str] = mapped_column(String(100), nullable=True)
+    duplicate_check_input: Mapped[str | None] = mapped_column(String(100), nullable=True)
     turnstile_secret: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     # Store form structures, fields, inputs, or schemas easily using raw strings or a JSON block

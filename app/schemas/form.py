@@ -1,7 +1,8 @@
 import re
 from enum import Enum
+from typing import Self
 
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 
 
 class NewForm(BaseModel):
@@ -42,63 +43,36 @@ class FormSettingsPayload(BaseModel):
     notification_email: EmailStr
     redirect_url: str | None = None
     allowed_domains: str
-    turnstile_sitekey: str | None = None
     turnstile_secret: str | None = None
+    duplicate_allowed: bool
+    duplicate_check_input: str | None = None
     is_active: bool
     sub_message: str
     sub_bg_color: str
     sub_txt_color: str
     sub_lnk_color: str
 
-    # Class method to map incoming form fields to Pydantic
-    # @classmethod
-    # def as_form(
-    #     cls,
-    #     name: str = Form(...),
-    #     honeypot: str = Form(...),
-    #     notification_email: EmailStr = Form(...),
-    #     redirect_url: str | None = Form(None),
-    #     allowed_domains: str = Form(...),
-    #     turnstile_sitekey: str | None = Form(None),
-    #     turnstile_secret: str | None = Form(None),
-    #     is_active: bool = Form(...),
-    #     sub_message: str = Form(...),
-    #     sub_bg_color: str = Form(...),
-    #     sub_txt_color: str = Form(...),
-    #     sub_lnk_color: str = Form(...),
-    # ):
-    #     return cls(
-    #         name=name,
-    #         honeypot=honeypot,
-    #         notification_email=notification_email,
-    #         redirect_url=redirect_url,
-    #         allowed_domains=allowed_domains,
-    #         turnstile_sitekey=turnstile_sitekey,
-    #         turnstile_secret=turnstile_secret,
-    #         is_active=is_active,
-    #         sub_message=sub_message,
-    #         sub_bg_color=sub_bg_color,
-    #         sub_txt_color=sub_txt_color,
-    #         sub_lnk_color=sub_lnk_color,
-    #     )
+    @model_validator(mode="after")
+    def validate_deduplication_input(self) -> Self:
+        # If duplicates are blocked, we require a target payload key to track uniqueness
+        if not self.duplicate_allowed:
+            # Strip any unintended trailing or leading whitespaces
+            input_val = (
+                self.duplicate_check_input.strip() if self.duplicate_check_input else ""
+            )
 
-    # @field_validator("honeypot")
-    # @classmethod
-    # def normalize_honeypot(cls, value: str) -> str:
-    #     value = value.strip().lstrip("_")
-    #     if not value:
-    #         raise ValueError("Honeypot field name is required.")
-    #     if not re.match(r"^[a-zA-Z0-9_\-]+$", value):
-    #         raise ValueError("Honeypot field name can only contain letters, numbers, hyphens, and underscores.")
-    #     return f"_{value}"
+            if not input_val:
+                raise ValueError(
+                    "A target field name is required when duplicate submissions are blocked."
+                )
 
-    # @model_validator(mode="after")
-    # def validate_turnstile_settings(self):
-    #     if not self.turnstile_sitekey or not self.turnstile_sitekey.strip():
-    #         raise ValueError("Turnstile site key is required when Turnstile bot protection is selected.")
-    #     if not self.turnstile_secret or not self.turnstile_secret.strip():
-    #         raise ValueError("Turnstile secret key is required when Turnstile bot protection is selected.")
-    #     return self
+            # Save the clean stripped value back onto the instance
+            self.duplicate_check_input = input_val
+        else:
+            # Clean up and reset field if duplicates are allowed anyway
+            self.duplicate_check_input = None
+
+        return self
 
 
 class FormTab(str, Enum):

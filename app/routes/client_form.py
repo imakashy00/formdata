@@ -198,18 +198,17 @@ async def handle_form_submit(
     if not bot_ok:
         return JSONResponse({"error": f"bot check failed: {bot_err}"}, status_code=400)
 
+    # --- Parse Country Location Metadata via pycountry ---
     raw_country_code = request.headers.get("cf-ipcountry")
-
-
     country_name = None
     if raw_country_code:
         try:
-            # 2. Look up the full name from the ISO alpha-2 code
-            country_obj = pycountry.countries.get(alpha_2=raw_country_code)
+            country_obj = pycountry.countries.get(alpha_2=raw_country_code.upper())
             if country_obj:
-                country_name = country_obj.name  # e.g., "United States", "India"
-        except Exception:
-            # Fallback to the raw code if lookup fails so you don't lose the data
+                country_name = country_obj.name
+            else:
+                country_name = raw_country_code
+        except ValueError:
             country_name = raw_country_code
 
     submission_payload = {
@@ -217,6 +216,9 @@ async def handle_form_submit(
         for key, value in form_data.items()
         if key not in _RESERVED_FIELD_NAMES and key != form.honeypot
     }
+    if country_name:
+        submission_payload["country_name"] = country_name
+    print(country_name)
 
     # TODO(file uploads): request.form() returns UploadFile objects for any
     # <input type="file">. They currently pass straight into
@@ -233,6 +235,30 @@ async def handle_form_submit(
         db_form = form
 
     if db_form is not None:
+        if not db_form.duplicate_allowed and db_form.duplicate_check_input:
+            target_key = db_form.duplicate_check_input
+            target_value = submission_payload.get(target_key)
+
+            if target_value:
+                # Query database for existing entries using PostgreSQL JSONB extraction styling: ->>
+                dup_query = (
+                    select(Submission)
+                    .where(Submission.form_id == db_form.id)
+                    .where(
+                        Submission.payload[target_key].as_string() == str(target_value)
+                    )
+                )
+                dup_result = await db.execute(dup_query)
+                existing_submission = dup_result.scalar_one_or_none()
+
+                if existing_submission:
+                    # Block duplicate submissions and return a standard payload response error
+                    return JSONResponse(
+                        {
+                            "error": f"Duplicate submission blocked. The field '{target_key}' has already been submitted."
+                        },
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                    )
         try:
             submission = Submission(form_id=db_form.id, payload=submission_payload)
             db.add(submission)
@@ -241,7 +267,6 @@ async def handle_form_submit(
             await db.rollback()
             log.exception(f"Failed to persist submission for form {form_id}: {exc}")
             return JSONResponse({"error": "failed to save submission"}, status_code=500)
-
 
     # The submission is already saved above regardless of decision, so a
     # false-positive spam call isn't destructive — it just needs reviewing

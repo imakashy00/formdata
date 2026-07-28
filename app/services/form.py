@@ -239,6 +239,8 @@ async def update_form_settings(
     db_form.redirect_url = payload.redirect_url if payload.redirect_url else None
     db_form.allowed_domains = accepted_domains_list
     db_form.turnstile_secret = payload.turnstile_secret
+    db_form.duplicate_allowed = payload.duplicate_allowed
+    db_form.duplicate_check_input = payload.duplicate_check_input
     db_form.is_active = payload.is_active
     db_form.sub_message = payload.sub_message
     db_form.sub_bg_color = payload.sub_bg_color
