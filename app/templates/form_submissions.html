@@ -1,4 +1,67 @@
-<div x-show="activeTab === 'submissions'" class="space-y-6">
+<div x-show="activeTab === 'submissions'" class="space-y-5">
+
+    <!-- Form Analytics / Summary Bar -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4 w-full">
+        <!-- Total Submissions Card -->
+        <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
+            <div>
+                <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Total Submissions</p>
+                <h3 class="text-2xl font-bold text-gray-900 mt-1">1,248</h3>
+            </div>
+            <div class="p-3 bg-brand-light/10 text-brand-mid rounded-xl">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                    </path>
+                </svg>
+            </div>
+        </div>
+    
+        <!-- Last 24 Hours Card -->
+        <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
+            <div>
+                <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Last 24 Hours</p>
+                <h3 class="text-2xl font-bold text-gray-900 mt-1">42</h3>
+            </div>
+            <div class="p-3 bg-green-50 text-green-600 rounded-xl">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                </svg>
+            </div>
+        </div>
+    
+        <!-- Unread Card -->
+        <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
+            <div>
+                <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Unread Inbox</p>
+                <h3 class="text-2xl font-bold text-blue-600 mt-1">7</h3>
+            </div>
+            <div class="p-3 bg-blue-50 text-blue-600 rounded-xl">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z">
+                    </path>
+                </svg>
+            </div>
+        </div>
+    
+        <!-- Spam / Rejected Card -->
+        <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
+            <div>
+                <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Spam Filtered</p>
+                <h3 class="text-2xl font-bold text-gray-900 mt-1">18</h3>
+            </div>
+            <div class="p-3 bg-red-50 text-red-500 rounded-xl">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
+                    </path>
+                </svg>
+            </div>
+        </div>
+    </div>
+
     <!-- Search and Filter Bar -->
     <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex flex-col md:flex-row gap-4 items-center justify-between"
         hx-get="/projects/{{ form.project_id }}/forms/{{ form.id }}/submissions"
@@ -21,10 +84,9 @@
         <div class="flex items-center gap-3 w-full md:w-auto justify-end">
             <select name="status"
                 class="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:border-brand-mid">
-                <option value="" {% if not current_status %}selected{% endif %}>All Statuses</option>
-                <option value="PENDING" {% if current_status=='PENDING' %}selected{% endif %}>Pending</option>
-                <option value="APPROVED" {% if current_status=='APPROVED' %}selected{% endif %}>Approved</option>
-                <option value="REJECTED" {% if current_status=='REJECTED' %}selected{% endif %}>Rejected</option>
+                <option value="" {% if status=="" %}selected{% endif %}>All Statuses</option>
+                <option value="accepted" {% if status=='accepted' or not status %}selected{% endif %}>Inbox</option>
+                <option value="rejected" {% if status=='rejected' %}selected{% endif %}>Spam</option>
             </select>
 
             <button

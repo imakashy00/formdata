@@ -344,7 +344,7 @@ async def handle_get_project_form_submissions(
             "form": form,
             "submissions": submissions,
             "search": search or "",
-            "current_status": status or "",
+            "status": status or "",
             "active_tab": "submissions",
             "active_tab_template": TAB_TEMPLATES[FormTab.submissions],
             "tab_labels": TAB_LABELS,

@@ -1,6 +1,7 @@
 from typing import Annotated
 from urllib.parse import urlparse
 
+import pycountry
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.responses import JSONResponse, RedirectResponse
 from loguru import logger as log
@@ -196,6 +197,20 @@ async def handle_form_submit(
     bot_ok, bot_err = await verify_bot_check(form_data, request, form.turnstile_secret)
     if not bot_ok:
         return JSONResponse({"error": f"bot check failed: {bot_err}"}, status_code=400)
+
+    raw_country_code = request.headers.get("cf-ipcountry")
+
+
+    country_name = None
+    if raw_country_code:
+        try:
+            # 2. Look up the full name from the ISO alpha-2 code
+            country_obj = pycountry.countries.get(alpha_2=raw_country_code)
+            if country_obj:
+                country_name = country_obj.name  # e.g., "United States", "India"
+        except Exception:
+            # Fallback to the raw code if lookup fails so you don't lose the data
+            country_name = raw_country_code
 
     submission_payload = {
         key: value

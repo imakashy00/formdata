@@ -18,13 +18,9 @@
                 <tr class="hover:bg-gray-50/70 transition-colors">
                     <td class="p-4 pl-6 font-medium text-gray-900">
                         <div class="flex items-center gap-3">
-                            <div
-                                class="w-8 h-8 rounded-full bg-brand-mid/10 text-brand-mid flex items-center justify-center font-bold text-xs">
-                                {{ (sub.payload.get('name', 'U') | string)[:2].upper() }}
-                            </div>
                             <div>
-                                <p class="font-semibold text-gray-800">{{ sub.payload.get('name', 'Anonymous') }}</p>
-                                <p class="text-xs text-gray-400">{{ sub.payload.get('email', 'No email provided') }}</p>
+                                {% set first_val = (sub.payload.items() | first)[1] if sub.payload else 'Anonymous' %}
+                                <p class="font-semibold text-gray-800">{{ first_val }}</p>
                             </div>
                         </div>
                     </td>
@@ -38,15 +34,10 @@
                         </span>
                     </td>
                     <td class="p-4">
-                        {% if sub.status.value == 'APPROVED' or sub.status.value == 'ACCEPTED' %}
+                        {% if sub.status.value == 'accepted'  %}
                         <span
                             class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
                             <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>Approved
-                        </span>
-                        {% elif sub.status.value == 'PENDING' %}
-                        <span
-                            class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-50 text-yellow-700 border border-yellow-200">
-                            <span class="w-1.5 h-1.5 rounded-full bg-yellow-500"></span>Pending
                         </span>
                         {% else %}
                         <span

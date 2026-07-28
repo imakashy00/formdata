@@ -25,4 +25,5 @@ dependencies = [
     "fastapi[standard]>=0.136.1",
     "greenlet>=3.2.4",
     "psycopg[binary]>=3.3.4",
+    "pycountry>=26.2.16",
 ]

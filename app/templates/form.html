@@ -4,8 +4,8 @@
 
 {% block content %}
 <div class="page animate-slide-up" id="page-project" x-data="{ activeTab: '{{ active_tab }}' }">
-    <div class="border-b border-gray-100 bg-white px-5 md:px-7 mb-6 ">
-        <div class="flex gap-2 md:gap4 p-2 align-center">
+    <div class="border-b border-gray-100 bg-white px-5 md:px-5 mb-4 ">
+        <div class="flex gap-2 md:gap-4 p-2 align-center">
             <svg class="w-6 h-6 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round"
                     d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -26,7 +26,7 @@
         </nav>
     </div>
 
-    <div id="tab-content" class="space-y-6">
+    <div id="tab-content" class="space-y-4">
         {% include active_tab_template %}
     </div>
 </div>

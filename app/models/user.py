@@ -235,7 +235,10 @@ class Form(Base):
     )
     redirect_url: Mapped[str | None] = mapped_column(String(2083), nullable=True)
     notification_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
-
+    duplicate_allowed: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True
+    )
+    duplicate_check_input: Mapped[str] = mapped_column(String(100), nullable=True)
     turnstile_secret: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     # Store form structures, fields, inputs, or schemas easily using raw strings or a JSON block
@@ -296,8 +299,8 @@ class Submission(Base):
         server_default=SubmissionStatus.ACCEPTED.value,
         index=True,
     )
-
-    country_code: Mapped[str | None] = mapped_column(String(2), nullable=True, index=True)
+    note: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    country: Mapped[str | None] = mapped_column(String(100), nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC)
     )
