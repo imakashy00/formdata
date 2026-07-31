@@ -6,11 +6,11 @@ from sqlalchemy import text
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.core.db import engine
+from app.core.middlewares.exception_handlers import register_exception_handlers
+from app.core.middlewares.middleware import register_middlewares
+from app.core.middlewares.rate_limit import setup_rate_limiting
 from app.core.settings import settings
 from app.logger import setup_logger
-from app.middlewares.exception_handlers import register_exception_handlers
-from app.middlewares.middleware import register_middlewares
-from app.middlewares.rate_limit import setup_rate_limiting
 from app.routes.account import account_router
 from app.routes.auth import router
 from app.routes.client_form import client_form_router

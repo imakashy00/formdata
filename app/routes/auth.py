@@ -7,12 +7,12 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_db
-from app.crud.user import register_user
 from app.schemas.error import AuthenticationError, TokenGenerationError
 from app.schemas.user import RegisterUser
 from app.services.auth import AuthService
 from app.services.blacklist import revoke
 from app.services.cookies import clear_auth_cookies, set_auth_cookies
+from app.services.crud.user import register_user
 from app.services.dependencies import (
     _exchange_google_token,
     _issue_and_store_tokens,

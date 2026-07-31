@@ -133,3 +133,32 @@ pytest
 ---
 
 If you'd like, I can commit this README update and also add a `Makefile` with shortcuts for the commands above.
+
+
+my_project/
+├── app/
+│   ├── api/             # Presentation Layer: FastAPI routers
+│   ├── core/            # Config, security, global dependencies
+│   ├── database/        # DB engine, session setup, migrations
+│   ├── domain/          # Business Layer: Services, domain exceptions
+│   ├── repositories/    # Data Access Layer: CRUD & queries
+│   ├── models/          # SQLAlchemy schemas (DB representation)
+│   ├── schemas/         # Pydantic schemas (Data validation)
+│   └── templates/       # HTML fragments/layouts (HTMX)
+├── tests/               # Pytest suites (unit, integration, e2e)
+└── main.py              # Application entry point
+
+
+### Little more professional
+my_project/
+├── app/
+│   ├── api/             # 1. Presentation Layer (Routers)
+│   ├── core/            # 2. Cross-cutting concerns (Exceptions, Config)
+│   ├── database/        # 3. DB session management
+│   ├── domain/          # 4. Business Logic (Services)
+│   ├── models/          # 5. Database Tables (SQLAlchemy)
+│   ├── repositories/    # 6. Data Access Layer (SQL Queries)
+│   └── schemas/         # 7. Data Validation (Pydantic)
+├── templates/           # HTML templates (HTMX partials)
+└── main.py              # App entry point
+
