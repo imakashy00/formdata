@@ -10,7 +10,7 @@
                     <th class="p-4">Country</th>
                     <th class="p-4">Status</th>
                     <th class="p-4">Note</th>
-                    <th class="p-4 text-center w-28">Moderation</th>
+                    <th class="p-4 text-center w-28">Mark As</th>
                     <th class="p-4 pr-6 text-right w-24">Management</th>
                 </tr>
             </thead>
@@ -19,14 +19,14 @@
                 {% for sub in submissions %}
                 <!-- Clean Row Setup: Click anywhere to open, except on interactive elements -->
                 <tr class="hover:bg-gray-50/70 transition-colors group cursor-pointer"
-                    hx-get="/submissions/{{ sub.id }}" hx-target="#main-content" hx-push-url="true"
+                    hx-get="/forms/submissions/{{ sub.id }}" hx-target="#main-content" hx-push-url="true"
                     hx-trigger="click consume">
 
                     <!-- 1. SUBMITTER -->
                     <td class="p-4 pl-6 font-medium text-gray-900">
                         {% set first_val = (sub.payload.items() | first)[1] if sub.payload else 'Anonymous' %}
                         <span
-                            class="font-semibold text-gray-800 group-hover:text-brand-mid group-hover:underline decoration-1">
+                            class="font-semibold text-gray-800 decoration-1">
                             {{ first_val }}
                         </span>
                     </td>
@@ -59,7 +59,7 @@
                         {% else %}
                         <span
                             class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-700 border border-red-200">
-                            <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>Spam / Blocked
+                            <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>Spam
                         </span>
                         {% endif %}
                     </td>
@@ -121,7 +121,7 @@
                 {% else %}
                 <tr>
                     <td colspan="6" class="p-8 text-center text-gray-400">
-                        No submissions found matching the criteria.
+                        No submissions found.
                     </td>
                 </tr>
                 {% endif %}

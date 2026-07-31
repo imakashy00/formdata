@@ -12,9 +12,12 @@ from sqlalchemy import (
     Integer,
     String,
     UniqueConstraint,
+    func,
+    select,
+    text,
 )
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, column_property, mapped_column, relationship
 
 from app.core.db import Base
 from app.schemas.user import SubscriptionStatus
@@ -238,7 +241,9 @@ class Form(Base):
     duplicate_allowed: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=True
     )
-    duplicate_check_input: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    duplicate_check_input: Mapped[str | None] = mapped_column(
+        String(100), nullable=True
+    )
     turnstile_secret: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     # Store form structures, fields, inputs, or schemas easily using raw strings or a JSON block
@@ -254,6 +259,13 @@ class Form(Base):
     )
     sub_lnk_color: Mapped[str] = mapped_column(
         String(7), nullable=False, server_default="#3b82f6"
+    )
+
+    submissions_count: Mapped[int] = column_property(
+        select(func.count())
+        .select_from(text("submissions"))
+        .where(text("submissions.form_id = forms.id"))
+        .scalar_subquery()
     )
 
     created_at: Mapped[datetime] = mapped_column(
@@ -299,6 +311,7 @@ class Submission(Base):
         server_default=SubmissionStatus.ACCEPTED.value,
         index=True,
     )
+    opened: Mapped[bool] = mapped_column(Boolean, nullable=False)
     note: Mapped[str | None] = mapped_column(String(200), nullable=True)
     country: Mapped[str | None] = mapped_column(String(100), nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(

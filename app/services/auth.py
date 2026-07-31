@@ -1,10 +1,9 @@
 # app/services/auth.py
 import jwt
-from fastapi import HTTPException
-from jwt.exceptions import ExpiredSignatureError
-
 from app.core.settings import settings
 from app.services.blacklist import is_revoked
+from fastapi import HTTPException
+from jwt.exceptions import ExpiredSignatureError
 
 
 class AuthService:

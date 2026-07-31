@@ -1,4 +1,4 @@
-<div x-show="activeTab === 'submissions'" class="space-y-5">
+<div x-show="activeTab === 'submissions'" x-data="exportManager"  class="space-y-5">
 
     <!-- Form Analytics / Summary Bar -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4 w-full">
@@ -6,7 +6,7 @@
         <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
             <div>
                 <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Total Submissions</p>
-                <h3 class="text-2xl font-bold text-gray-900 mt-1">1,248</h3>
+                <h3 class="text-2xl font-bold text-gray-900 mt-1">{{"{:,}".format(stats.total)}}</h3>
             </div>
             <div class="p-3 bg-brand-light/10 text-brand-mid rounded-xl">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -16,12 +16,12 @@
                 </svg>
             </div>
         </div>
-    
+
         <!-- Last 24 Hours Card -->
         <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
             <div>
                 <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Last 24 Hours</p>
-                <h3 class="text-2xl font-bold text-gray-900 mt-1">42</h3>
+                <h3 class="text-2xl font-bold text-gray-900 mt-1">{{"{:,}".format(stats.last_24h)}}</h3>
             </div>
             <div class="p-3 bg-green-50 text-green-600 rounded-xl">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -30,12 +30,12 @@
                 </svg>
             </div>
         </div>
-    
+
         <!-- Unread Card -->
         <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
             <div>
                 <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Unread Inbox</p>
-                <h3 class="text-2xl font-bold text-blue-600 mt-1">7</h3>
+                <h3 class="text-2xl font-bold text-blue-600 mt-1">{{"{:,}".format(stats.unread)}}</h3>
             </div>
             <div class="p-3 bg-blue-50 text-blue-600 rounded-xl">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -45,12 +45,12 @@
                 </svg>
             </div>
         </div>
-    
+
         <!-- Spam / Rejected Card -->
         <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
             <div>
                 <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Spam Filtered</p>
-                <h3 class="text-2xl font-bold text-gray-900 mt-1">18</h3>
+                <h3 class="text-2xl font-bold text-gray-900 mt-1">{{"{:,}".format(stats.spam)}}</h3>
             </div>
             <div class="p-3 bg-red-50 text-red-500 rounded-xl">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -82,21 +82,22 @@
 
         <!-- Filter Dropdowns & Actions -->
         <div class="flex items-center gap-3 w-full md:w-auto justify-end">
-            <select name="status"
+            <select name="status" x-model="status"
                 class="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:border-brand-mid">
                 <option value="" {% if status=="" %}selected{% endif %}>All Statuses</option>
                 <option value="accepted" {% if status=='accepted' or not status %}selected{% endif %}>Inbox</option>
                 <option value="rejected" {% if status=='rejected' %}selected{% endif %}>Spam</option>
             </select>
 
-            <button
-                class="px-4 py-2 bg-gray-50 hover:bg-gray-100 text-gray-600 rounded-lg text-sm font-medium border border-gray-200 transition-colors flex items-center gap-2">
+            <button type="button" @click="downloadExcel"
+                class="px-4 py-2 bg-gray-50 border text-gray-600 rounded-lg text-sm font-medium flex items-center gap-2">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                         d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
                 </svg>
-                Export
+                Export as Sheet
             </button>
+
         </div>
     </div>
 
@@ -105,3 +106,38 @@
         {% include "partials/submissions_table.html" %}
     </div>
 </div>
+
+
+{% block script %}
+<script>
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('exportManager', () => ({
+            // Initialize status variable matching what's selected initially on load
+            status: "{{ status or '' }}",
+
+            async downloadExcel() {
+                // Fixed: Added enclosing double-quotes around the Jinja variables so JS reads them as valid strings
+                const projectId = "{{ form.project_id }}";
+                const formId = "{{ form.id }}";
+
+                // Fetch the Excel file securely via API routes
+                const response = await fetch(`/projects/${projectId}/forms/${formId}/export?status=${this.status}`);
+                const blob = await response.blob();
+
+                // Generate temporary invisible document pointer target links
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `form_${formId}_export_${this.status || 'all'}.xlsx`;
+
+                document.body.appendChild(link);
+                link.click();
+
+                // Memory cleanup routines
+                window.URL.revokeObjectURL(url);
+                link.remove();
+            }
+        }));
+    });
+</script>
+{% endblock %}

@@ -1,21 +1,25 @@
+import io
 import json
 import uuid
+from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
+import openpyxl
 from fastapi import (
     APIRouter,
     Depends,
     Form,
     HTTPException,
+    Path,
     Query,
     Request,
     Response,
     status,
 )
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, StreamingResponse
 from loguru import logger as log
 from pydantic import ValidationError
-from sqlalchemy import delete, desc, select
+from sqlalchemy import delete, desc, func, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -23,7 +27,7 @@ from sqlalchemy.orm import selectinload
 from app.core.db import get_db
 from app.core.templates import temp
 from app.models.user import Form as FormDB
-from app.models.user import Submission, User
+from app.models.user import Submission, SubmissionStatus, User
 from app.routes.page import get_current_user
 from app.schemas.form import (
     TAB_LABELS,
@@ -306,6 +310,43 @@ async def handle_get_project_form_submissions(
         if not form:
             raise HTTPException(status_code=404, detail="Form not found.")
 
+        # --- START ANALYTICS CALCULATION ---
+        # Matches your model's UTC structure
+        time_24h_ago = datetime.now(UTC) - timedelta(hours=24)
+
+        stats_query = (
+            select(
+                # 1. Total Submissions for this form
+                func.count(Submission.id).label("total"),
+                # 2. Submissions in the last 24 hours
+                func.count(Submission.id)
+                .filter(Submission.created_at >= time_24h_ago)
+                .label("last_24h"),
+                # 3. Unread submissions (where opened is False)
+                func.count(Submission.id)
+                .filter(Submission.opened == False)
+                .label("unread"),
+                # 4. Spam submissions (where status is REJECTED)
+                func.count(Submission.id)
+                .filter(Submission.status == SubmissionStatus.REJECTED)
+                .label("spam"),
+            ).where(
+                Submission.form_id == form_id
+            )  # Filters data down to your specific form target
+        )
+
+        # Execute the query block
+        result = await db.execute(stats_query)
+        stats = result.mappings().one()
+
+        stats = {
+            "total": stats.total,
+            "last_24h": stats.last_24h,
+            "unread": stats.unread,
+            "spam": stats.spam,
+        }
+        # --- END ANALYTICS CALCULATION ---
+
         # Build dynamic query for submissions matching this form
         submission_query = (
             select(Submission)
@@ -345,6 +386,7 @@ async def handle_get_project_form_submissions(
             "submissions": submissions,
             "search": search or "",
             "status": status or "",
+            "stats": stats,
             "active_tab": "submissions",
             "active_tab_template": TAB_TEMPLATES[FormTab.submissions],
             "tab_labels": TAB_LABELS,
@@ -599,3 +641,76 @@ async def handle_get_project_form_template(
         return temp.TemplateResponse(request, template, context)
     except SQLAlchemyError as e:
         log.exception(f"Something went wrong while fetching form details: {e}")
+
+
+@form_router.get("/{project_id}/forms/{form_id}/export")
+async def export_form_submission_excel(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
+    form_id: str = Path(..., description="The UUID string of the parent form"),
+    status: str = Query(
+        "", description="Filter records by status string matching your Enum values"
+    ),
+):
+    query = select(Submission).where(Submission.form_id == form_id)
+
+    # 2. Append optional status filter if provided
+    if status:
+        query = query.where(Submission.status == status)
+    # Execute and fetch all results from database
+    result = await db.execute(query)
+    submissions = result.scalars().all()
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+
+    if ws is None:
+        raise ValueError("Failed to initialize an active worksheet.")
+
+    ws.title = "Submissions Export"
+    if not submissions:
+        # Prevent crash if there are no items in the database table
+        ws.append(["No records found for this form criteria"])
+    else:
+        # 4. Handle Dynamic JSONB Payload Column Headers
+        # We look at the first record's payload dictionary keys to create dynamic columns
+        sample_payload = submissions[0].payload or {}
+        dynamic_keys = list(sample_payload.keys())
+
+        # Combine standard fixed model columns + your custom dynamic JSON keys
+        base_headers = ["ID", "Status", "Opened", "Country", "Note", "Created At"]
+        ws.append(base_headers + dynamic_keys)
+
+        # 5. Populate Rows
+        for sub in submissions:
+            # Flatten fixed model row data values
+            row_data = [
+                str(sub.id),
+                sub.status.value if hasattr(sub.status, "value") else str(sub.status),
+                "Yes" if sub.opened else "No",
+                sub.country or "Unknown",
+                sub.note or "",
+                sub.created_at.strftime("%Y-%m-%d %H:%M:%S %Z")
+                if sub.created_at
+                else "",
+            ]
+
+            # Safely extract matching JSONB payload fields for this row
+            payload_data = sub.payload or {}
+            for key in dynamic_keys:
+                row_data.append(payload_data.get(key, ""))
+
+            ws.append(row_data)
+
+    # 6. Stream file binary payload directly to Alpine's fetch method without reloading page
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    filename = f"form_{form_id}_{status if status else 'all'}.xlsx"
+
+    return StreamingResponse(
+        io.BytesIO(output.getvalue()),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )

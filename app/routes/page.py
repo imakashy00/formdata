@@ -1,16 +1,15 @@
 from datetime import UTC, datetime
 
-from fastapi import APIRouter, Depends, Request, Response
-from fastapi.responses import FileResponse, HTMLResponse
-from loguru import logger as log
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.db import get_db
 from app.core.templates import temp
 from app.models.user import User
 from app.schemas.user import DBUser
 from app.services.dependencies import current_user
+from fastapi import APIRouter, Depends, Request, Response
+from fastapi.responses import FileResponse, HTMLResponse
+from loguru import logger as log
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 page_router = APIRouter()
 

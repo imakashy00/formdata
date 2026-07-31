@@ -3,13 +3,6 @@ import hmac
 from typing import Annotated
 
 import httpx
-from fastapi import APIRouter, Depends, Header, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse
-from loguru import logger as log
-from pydantic import BaseModel
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.db import get_db
 from app.core.settings import settings
 from app.core.templates import temp
@@ -17,6 +10,12 @@ from app.models.user import ProcessedWebhook, Subscription
 from app.schemas.user import DBUser, SubscriptionStatus
 from app.services.dependencies import current_user
 from app.services.subscription import handle_paddle_webhook
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
+from fastapi.responses import HTMLResponse, JSONResponse
+from loguru import logger as log
+from pydantic import BaseModel
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 user_router = APIRouter()
 

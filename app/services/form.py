@@ -1,4 +1,3 @@
-
 import re
 import time
 from datetime import UTC, datetime, timedelta
@@ -52,26 +51,27 @@ async def verify_turnstile(
 
     try:
         async with httpx.AsyncClient() as client:
-            response = await client.post(url, data=data)
+            response = await client.post(url, data=data, timeout=5.0)
             response.raise_for_status()
             result = response.json()
+
+            if response.status_code != 200:
+                return False, f"cloudflare_api_error_{response.status_code}"
 
             if result.get("success"):
                 return True, None
 
-            return False, ", ".join(
-                result.get("error-codes", [])
-            ) or "turnstile verification failed"
+            errors = result.get("error-codes", ["unknown_verification_failure"])
+            return False, f"codes: {errors}"
 
-    except httpx.RequestError as exc:
-        print(f"An error occurred while requesting {exc.request.url!r}: {exc}")
-        return False, "turnstile verification request failed"
+
 
     except httpx.HTTPStatusError as exc:
-        print(
-            f"Error response {exc.response.status_code} while requesting {exc.request.url!r}"
-        )
-        return False, "turnstile verification request failed"
+            # Captures raise_for_status style issues safely
+            return False, f"http_status_exception: {exc!s}"
+    except httpx.RequestError as exc:
+        # Captures timeouts and network dropouts cleanly
+        return False, f"network_exception: {exc!s}"
 
 
 async def verify_bot_check(
@@ -79,7 +79,6 @@ async def verify_bot_check(
     request: Request,
     secret_key: str | None = "None",
 ):
-
 
     token = form_data.get("cf-turnstile-response")
     if not token:
@@ -92,7 +91,6 @@ async def verify_bot_check(
         return False, "missing turnstile secret"
 
     return await verify_turnstile(token, secret_key, remoteip)
-
 
 
 def check_user_agent(request: Request) -> bool:

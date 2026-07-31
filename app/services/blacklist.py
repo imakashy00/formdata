@@ -1,7 +1,6 @@
 from datetime import UTC, datetime
 
 import redis.asyncio as redis
-
 from app.core.settings import settings
 
 # ✅ Use a single global Redis client (connection pool managed internally)

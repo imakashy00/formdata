@@ -1,10 +1,9 @@
+from app.services.auth import AuthService
+from app.services.cookies import clear_auth_cookies, set_auth_cookies
 from fastapi import HTTPException, Request
 from fastapi.responses import RedirectResponse
 from jwt.exceptions import ExpiredSignatureError
 from loguru import logger as log
-
-from app.services.auth import AuthService
-from app.services.cookies import clear_auth_cookies, set_auth_cookies
 
 PUBLIC_PREFIXES = ("/static", "/blogs")
 PUBLIC_PATHS = {

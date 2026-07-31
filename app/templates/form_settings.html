@@ -1,4 +1,5 @@
 <div id="settings-tab-panel" x-show="activeTab === 'settings'" x-cloak class="space-y-6">
+    <!-- Settings Form -->
     <form hx-put="/projects/{{form.project_id}}/forms/{{form.id}}/settings" hx-target="#settings-tab-panel"
         hx-swap="outerHTML" class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
 
@@ -250,6 +251,9 @@
             </button>
         </div>
     </form>
+
+    <!-- Templates -->
+    {% include 'form_template.html' %}
 
     <!-- Danger Zone Box -->
     <div class="bg-white rounded-xl border border-red-100 shadow-sm overflow-hidden">

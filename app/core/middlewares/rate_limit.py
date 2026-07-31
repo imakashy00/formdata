@@ -1,11 +1,10 @@
+from app.core.settings import settings
 from fastapi import Request
 from fastapi.responses import JSONResponse
 from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from slowapi.util import get_remote_address
-
-from app.core.settings import settings
 
 # Create limiter instance with Redis backend
 limiter = Limiter(

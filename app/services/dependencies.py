@@ -1,11 +1,5 @@
 from datetime import UTC, datetime
 
-from fastapi import Depends, HTTPException, Request
-from loguru import logger as log
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
-
 from app.core.db import get_db
 from app.core.settings import settings
 from app.models.user import User
@@ -14,6 +8,11 @@ from app.services.auth import AuthService
 from app.services.blacklist import is_revoked, redis_client
 from app.services.jwt import create_token
 from app.services.oauth import oauth
+from fastapi import Depends, HTTPException, Request
+from loguru import logger as log
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 
 async def _exchange_google_token(request: Request) -> dict:

@@ -88,7 +88,7 @@ class FormTab(str, Enum):
 TAB_TEMPLATES = {
     FormTab.submissions: "form_submissions.html",
     FormTab.setup: "form_setup.html",
-    FormTab.templates: "form_templates.html",
+    FormTab.templates: "form_template.html",
     FormTab.settings: "form_settings.html",
     FormTab.integrations: "form_integrations.html",
     FormTab.analytics: "form_analytics.html",

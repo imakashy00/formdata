@@ -1,10 +1,9 @@
+from app.core.settings import settings
 from fastapi import Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from loguru import logger as log
 from starlette.exceptions import HTTPException as StarletteHTTPException
-
-from app.core.settings import settings
 
 
 async def generic_exception_handler(request: Request, exc: Exception) -> JSONResponse:

@@ -2,16 +2,15 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
+from app.core.settings import settings
+from app.models.user import Subscription, User
+from app.schemas.user import SubscriptionStatus
+from app.services.bill_calculation import bill_overage, calculate_overage
 from fastapi import HTTPException
 from fastapi import status as FastApiStatus
 from loguru import logger as log
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.core.settings import settings
-from app.models.user import Subscription, User
-from app.schemas.user import SubscriptionStatus
-from app.services.bill_calculation import bill_overage, calculate_overage
 
 headers = {
     "Authorization": f"Bearer {settings.PADDLE_API_KEY!s}",

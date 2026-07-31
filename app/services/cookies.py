@@ -1,7 +1,6 @@
 # auth/cookies.py
-from fastapi import Response
-
 from app.core.settings import settings
+from fastapi import Response
 
 
 def _cookie_kwargs() -> dict:

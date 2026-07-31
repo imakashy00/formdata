@@ -1,11 +1,5 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Request
-from fastapi.responses import RedirectResponse
-from loguru import logger as log
-from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.db import get_db
 from app.schemas.error import AuthenticationError, TokenGenerationError
 from app.schemas.user import RegisterUser
@@ -19,6 +13,11 @@ from app.services.dependencies import (
     _validate_userinfo,
 )
 from app.services.oauth import oauth
+from fastapi import APIRouter, Depends, Request
+from fastapi.responses import RedirectResponse
+from loguru import logger as log
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(tags=["auth"])
 

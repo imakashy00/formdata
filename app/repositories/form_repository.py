@@ -8,8 +8,12 @@ class FormRepository:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def get_by_name_and_project(self, name: str, project_id: str) -> FormDB | None:
-        query = select(FormDB).where(FormDB.project_id == project_id, FormDB.name == name)
+    async def get_by_name_and_project(
+        self, name: str, project_id: str
+    ) -> FormDB | None:
+        query = select(FormDB).where(
+            FormDB.project_id == project_id, FormDB.name == name
+        )
         result = await self.db.execute(query)
         return result.scalar_one_or_none()
 

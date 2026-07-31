@@ -3,7 +3,6 @@ from datetime import UTC, datetime, timedelta
 from typing import Literal
 
 import jwt
-
 from app.core.settings import settings
 
 
