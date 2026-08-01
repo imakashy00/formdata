@@ -4,13 +4,13 @@ from datetime import UTC, datetime, timedelta
 
 import httpx
 from fastapi import Header, HTTPException, Request
-from sqlalchemy import func, select
+from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.settings import settings
 from app.models.user import Form as FormDB
-from app.models.user import Project, Submission, User
-from app.schemas.form import FormSettingsPayload
+from app.models.user import Project, Submission, SubmissionStatus, User
+from app.schemas.form import TAB_LABELS, TAB_TEMPLATES, FormSettingsPayload, FormTab
 from app.services.blacklist import redis_client as r
 
 DISPOSABLE_EMAIL_DOMAINS = {
@@ -64,11 +64,9 @@ async def verify_turnstile(
             errors = result.get("error-codes", ["unknown_verification_failure"])
             return False, f"codes: {errors}"
 
-
-
     except httpx.HTTPStatusError as exc:
-            # Captures raise_for_status style issues safely
-            return False, f"http_status_exception: {exc!s}"
+        # Captures raise_for_status style issues safely
+        return False, f"http_status_exception: {exc!s}"
     except httpx.RequestError as exc:
         # Captures timeouts and network dropouts cleanly
         return False, f"network_exception: {exc!s}"
@@ -264,3 +262,90 @@ async def _get_owned_form(db: AsyncSession, user: User, form_id: str) -> FormDB:
 
 async def is_htmx(hx_request: str | None = Header(None, alias="HX-Request")) -> bool:
     return hx_request == "true"
+
+
+async def get_form_analytics(
+    request: Request,
+    form: FormDB,
+    db: AsyncSession,
+    user: User,
+    search: str | None,
+    status: str | None,
+    form_id: str,
+):
+    # --- START ANALYTICS CALCULATION ---
+    # Matches your model's UTC structure
+    time_24h_ago = datetime.now(UTC) - timedelta(hours=24)
+
+    stats_query = (
+        select(
+            # 1. Total Submissions for this form
+            func.count(Submission.id).label("total"),
+            # 2. Submissions in the last 24 hours
+            func.count(Submission.id)
+            .filter(Submission.created_at >= time_24h_ago)
+            .label("last_24h"),
+            # 3. Unread submissions (where opened is False)
+            func.count(Submission.id)
+            .filter(Submission.opened == False)
+            .label("unread"),
+            # 4. Spam submissions (where status is REJECTED)
+            func.count(Submission.id)
+            .filter(Submission.status == SubmissionStatus.REJECTED)
+            .label("spam"),
+        ).where(
+            Submission.form_id == form_id
+        )  # Filters data down to your specific form target
+    )
+
+    # Execute the query block
+    result = await db.execute(stats_query)
+    stats = result.mappings().one()
+
+    stats = {
+        "total": stats.total,
+        "last_24h": stats.last_24h,
+        "unread": stats.unread,
+        "spam": stats.spam,
+    }
+    # --- END ANALYTICS CALCULATION ---
+
+    # Build dynamic query for submissions matching this form
+    submission_query = (
+        select(Submission)
+        .where(Submission.form_id == form_id)
+        .order_by(desc(Submission.created_at))
+    )
+
+    # Apply backend filtering for Status
+    if status:
+        submission_query = submission_query.where(Submission.status == status)
+
+    # Apply backend filtering for JSONB Search (checks common keys like email, name)
+    if search:
+        search_pattern = f"%{search}%"
+        submission_query = submission_query.where(
+            (Submission.payload["email"].astext.ilike(search_pattern))
+            | (Submission.payload["name"].astext.ilike(search_pattern))
+        )
+
+    # Execute submission filter query
+    submissions_result = await db.execute(submission_query)
+    submissions = submissions_result.scalars().all()
+
+    context = {
+        "request": request,
+        "form": form,
+        "submissions": submissions,
+        "search": search or "",
+        "status": status or "",
+        "stats": stats,
+        "active_tab": "submissions",
+        "active_tab_template": TAB_TEMPLATES[FormTab.submissions],
+        "tab_labels": TAB_LABELS,
+        "email": user.email,
+        "name": user.name,
+        "user_id": user.id,
+        "page": "projects",
+    }
+    return context

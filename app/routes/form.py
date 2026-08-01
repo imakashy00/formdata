@@ -1,7 +1,6 @@
 import io
 import json
 import uuid
-from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
 import openpyxl
@@ -19,7 +18,7 @@ from fastapi import (
 from fastapi.responses import HTMLResponse, StreamingResponse
 from loguru import logger as log
 from pydantic import ValidationError
-from sqlalchemy import delete, desc, func, select
+from sqlalchemy import delete, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -39,6 +38,7 @@ from app.schemas.form import (
 from app.services.form import (
     _get_form_analytics,
     _get_owned_form,
+    get_form_analytics,
     is_htmx,
     update_form_settings,
 )
@@ -310,66 +310,9 @@ async def handle_get_project_form_submissions(
         if not form:
             raise HTTPException(status_code=404, detail="Form not found.")
 
-        # --- START ANALYTICS CALCULATION ---
-        # Matches your model's UTC structure
-        time_24h_ago = datetime.now(UTC) - timedelta(hours=24)
-
-        stats_query = (
-            select(
-                # 1. Total Submissions for this form
-                func.count(Submission.id).label("total"),
-                # 2. Submissions in the last 24 hours
-                func.count(Submission.id)
-                .filter(Submission.created_at >= time_24h_ago)
-                .label("last_24h"),
-                # 3. Unread submissions (where opened is False)
-                func.count(Submission.id)
-                .filter(Submission.opened == False)
-                .label("unread"),
-                # 4. Spam submissions (where status is REJECTED)
-                func.count(Submission.id)
-                .filter(Submission.status == SubmissionStatus.REJECTED)
-                .label("spam"),
-            ).where(
-                Submission.form_id == form_id
-            )  # Filters data down to your specific form target
+        context = await get_form_analytics(
+            request, form, db, user, search, status, form_id
         )
-
-        # Execute the query block
-        result = await db.execute(stats_query)
-        stats = result.mappings().one()
-
-        stats = {
-            "total": stats.total,
-            "last_24h": stats.last_24h,
-            "unread": stats.unread,
-            "spam": stats.spam,
-        }
-        # --- END ANALYTICS CALCULATION ---
-
-        # Build dynamic query for submissions matching this form
-        submission_query = (
-            select(Submission)
-            .where(Submission.form_id == form_id)
-            .order_by(desc(Submission.created_at))
-        )
-
-        # Apply backend filtering for Status
-        if status:
-            submission_query = submission_query.where(Submission.status == status)
-
-        # Apply backend filtering for JSONB Search (checks common keys like email, name)
-        if search:
-            search_pattern = f"%{search}%"
-            submission_query = submission_query.where(
-                (Submission.payload["email"].astext.ilike(search_pattern))
-                | (Submission.payload["name"].astext.ilike(search_pattern))
-            )
-
-        # Execute submission filter query
-        submissions_result = await db.execute(submission_query)
-        submissions = submissions_result.scalars().all()
-
         # Target partial block template for HTMX filter requests, full template for tabs
         if htmx_req:
             # If HTMX request came directly from filters, swap just the table body element
@@ -379,27 +322,185 @@ async def handle_get_project_form_submissions(
                 template = "form_submissions.html"
         else:
             template = "form.html"
-
-        context = {
-            "request": request,
-            "form": form,
-            "submissions": submissions,
-            "search": search or "",
-            "status": status or "",
-            "stats": stats,
-            "active_tab": "submissions",
-            "active_tab_template": TAB_TEMPLATES[FormTab.submissions],
-            "tab_labels": TAB_LABELS,
-            "email": user.email,
-            "name": user.name,
-            "user_id": user.id,
-            "page": "projects",
-        }
         return temp.TemplateResponse(request, template, context)
 
     except SQLAlchemyError as e:
         log.exception(f"Something went wrong while fetching form details: {e}")
         raise HTTPException(status_code=500, detail="Database retrieval error.")
+
+
+@form_router.get(
+    "/{project_id}/forms/{form_id}/submissions/{submission_id}",
+    response_class=HTMLResponse,
+)
+async def handle_get_form_submission_by_id(
+    request: Request,
+    form_id: str,
+    project_id: str,
+    submission_id: str,
+    htmx_req: Annotated[bool, Depends(is_htmx)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
+):
+    # 1. Validate UUID format to prevent database query crashes
+    try:
+        submission_uuid = uuid.UUID(submission_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid submission ID format.",
+        )
+
+    # 2. Fetch submission and eager-load the related form
+    query = select(Submission).where(
+        Submission.id == submission_uuid, Submission.form_id == form_id
+    )
+    result = await db.execute(query)
+    submission = result.scalar_one_or_none()
+
+    if not submission:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Submission not found."
+        )
+
+    # 3. Optional: Mark submission as opened automatically if it wasn't already
+    if not submission.opened:
+        submission.opened = True
+        await db.commit()
+
+    form_query = select(FormDB).where(FormDB.id == form_id)
+    form_result = await db.execute(form_query)
+    form = form_result.scalar_one_or_none()
+
+    # 4. Render context
+    context = {
+        "request": request,
+        "project_id": project_id,
+        "form_id": form_id,
+        "form": form,
+        "active_tab": "submissions",
+        "active_tab_template": TAB_TEMPLATES[FormTab.submissions],
+        "tab_labels": TAB_LABELS,
+        "submission": submission,
+    }
+
+    # If it's a direct browser refresh (non-HTMX), you might want to wrap it in a full layout
+    if not htmx_req:
+        return temp.TemplateResponse(request, "submission_details.html", context)
+
+    return temp.TemplateResponse(
+        request, "partials/submission_details_card.html", context
+    )
+
+
+@form_router.post(
+    "/{project_id}/forms/{form_id}/submissions/{submission_id}/toggle-status",
+    response_class=HTMLResponse,
+)
+async def handle_toggele_status_form_submission(
+    request: Request,
+    form_id: str,
+    project_id: str,
+    action: str,
+    submission_id: str,
+    htmx_req: Annotated[bool, Depends(is_htmx)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
+):
+    # 1. Validate UUID format
+    try:
+        submission_uuid = uuid.UUID(submission_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid ID format.")
+
+    # 2. Fetch the submission
+    query = select(Submission).where(
+        Submission.id == submission_uuid, Submission.form_id == form_id
+    )
+    result = await db.execute(query)
+    submission = result.scalar_one_or_none()
+
+    if not submission:
+        raise HTTPException(status_code=404, detail="Submission not found.")
+    form_query = select(FormDB).where(FormDB.id == form_id)
+    form_result = await db.execute(form_query)
+    form = form_result.scalar_one_or_none()
+    # 3. Apply state mutation based on single action argument
+    if action == "spam":
+        submission.status = (
+            SubmissionStatus.REJECTED
+        )  # Make sure this matches your Enum value
+    elif action == "unspam":
+        submission.status = SubmissionStatus.ACCEPTED
+    else:
+        raise HTTPException(status_code=400, detail="Invalid action parameter.")
+
+    await db.commit()
+    await db.refresh(submission)
+
+    # 4. Return just the specific table row fragment (`<tr>...</tr>`) to swap out
+    # 'sub' context variable is passed so it maps cleanly to your existing template naming
+    return temp.TemplateResponse(
+        request,
+        "partials/submission_row.html",
+        context={"sub": submission, "form": form},
+    )
+
+
+@form_router.delete(
+    "/{project_id}/forms/{form_id}/submissions/{submission_id}/delete",
+    response_class=HTMLResponse,
+)
+async def handle_delete_form_submission(
+    request: Request,
+    form_id: str,
+    project_id: str,
+    submission_id: str,
+    htmx_req: Annotated[bool, Depends(is_htmx)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
+):
+    # 1. Parse and validate the UUID
+    try:
+        submission_uuid = uuid.UUID(submission_id)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid submission ID format.",
+        )
+
+    # 2. Fetch the target database record
+    query = select(Submission).where(
+        Submission.id == submission_uuid, Submission.form_id == form_id
+    )
+    result = await db.execute(query)
+    submission = result.scalar_one_or_none()
+
+    if not submission:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Submission already deleted or not found.",
+        )
+
+    # 3. Perform database deletion
+    await db.delete(submission)
+    await db.commit()
+
+    # 4. Handle frontend DOM updates via HTMX
+    # If the request comes from the "Details" screen, redirect them back to the full table list.
+    # if action == "redirect_to_list":
+    #     response = HTMLResponse(content="", status_code=status.HTTP_200_OK)
+    #     # Instructs HTMX to perform a client-side layout swap to the table view
+    #     response.headers["HX-Redirect"] = (
+    #         f"/projects/{project_id}/forms/{form_id}/submissions"
+    #     )
+    #     return response
+
+    # Default action: If clicking "Delete" directly from a table row, return empty content.
+    # Combined with hx-target="closest tr" and hx-swap="outerHTML", this removes the row seamlessly.
+    response = HTMLResponse(content="", status_code=status.HTTP_200_OK)
+    response.headers["HX-Push-Url"] = "false"
+    return response
 
 
 @form_router.get("/{project_id}/forms/{form_id}/setup", response_class=HTMLResponse)

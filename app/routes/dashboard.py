@@ -1,15 +1,16 @@
 from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
+from fastapi import APIRouter, Depends, Request
+from fastapi.responses import HTMLResponse
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.db import get_db
 from app.core.templates import temp
 from app.models.user import Form as FormDB
 from app.models.user import Project, Submission, User
 from app.routes.page import get_current_user
-from fastapi import APIRouter, Depends, Request
-from fastapi.responses import HTMLResponse
-from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 dash_router = APIRouter()
 
@@ -162,26 +163,6 @@ async def _get_dashboard_summary(db: AsyncSession, user: User) -> dict:
         for s in recent_accepted_query.all()
     ]
 
-    recent_rejected_query = await db.execute(
-        select(Submission, FormDB.name.label("form_name"))
-        .join(FormDB, Submission.form_id == FormDB.id)
-        .join(Project, FormDB.project_id == Project.id)
-        .where(Project.user_id == user_id)
-        .where(Submission.status == "rejected")
-        .order_by(Submission.created_at.desc())
-        .limit(5)
-    )
-    failed_submissions = [
-        {
-            "sender_name": s.Submission.sender_name or "Spam Bot",
-            "sender_email": s.Submission.sender_email or "N/A",
-            "form_name": s.form_name,
-            "reason": "Spam Filter",  # no per-submission reason stored yet
-            "created_at": s.Submission.created_at.strftime("%Y-%m-%d %H:%M"),
-        }
-        for s in recent_rejected_query.all()
-    ]
-
     return {
         "projects_count": projects_count or 0,
         "forms_count": forms_count,
@@ -197,7 +178,6 @@ async def _get_dashboard_summary(db: AsyncSession, user: User) -> dict:
         "top_forms": top_forms,
         "spam_stats": spam_stats,
         "recent_submissions": recent_submissions,
-        "failed_submissions": failed_submissions,
     }
 
 

@@ -1,109 +1,113 @@
-<div x-show="activeTab === 'submissions'" x-data="exportManager"  class="space-y-5">
-
-    <!-- Form Analytics / Summary Bar -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4 w-full">
-        <!-- Total Submissions Card -->
-        <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
-            <div>
-                <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Total Submissions</p>
-                <h3 class="text-2xl font-bold text-gray-900 mt-1">{{"{:,}".format(stats.total)}}</h3>
+<div x-show="activeTab === 'submissions'" x-data="exportManager" class="space-y-5">
+    <div id="submissions">
+        <!-- Form Analytics / Summary Bar -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4 w-full">
+            <!-- Total Submissions Card -->
+            <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Total Submissions</p>
+                    <h3 class="text-2xl font-bold text-gray-900 mt-1">{{"{:,}".format(stats.total)}}</h3>
+                </div>
+                <div class="p-3 bg-brand-light/10 text-brand-mid rounded-xl">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                        </path>
+                    </svg>
+                </div>
             </div>
-            <div class="p-3 bg-brand-light/10 text-brand-mid rounded-xl">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
-                    </path>
-                </svg>
+
+            <!-- Last 24 Hours Card -->
+            <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Last 24 Hours</p>
+                    <h3 class="text-2xl font-bold text-gray-900 mt-1">{{"{:,}".format(stats.last_24h)}}</h3>
+                </div>
+                <div class="p-3 bg-green-50 text-green-600 rounded-xl">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Unread Card -->
+            <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Unread Inbox</p>
+                    <h3 class="text-2xl font-bold text-blue-600 mt-1">{{"{:,}".format(stats.unread)}}</h3>
+                </div>
+                <div class="p-3 bg-blue-50 text-blue-600 rounded-xl">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z">
+                        </path>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Spam / Rejected Card -->
+            <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Spam Filtered</p>
+                    <h3 class="text-2xl font-bold text-gray-900 mt-1">{{"{:,}".format(stats.spam)}}</h3>
+                </div>
+                <div class="p-3 bg-red-50 text-red-500 rounded-xl">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
+                        </path>
+                    </svg>
+                </div>
             </div>
         </div>
 
-        <!-- Last 24 Hours Card -->
-        <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
-            <div>
-                <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Last 24 Hours</p>
-                <h3 class="text-2xl font-bold text-gray-900 mt-1">{{"{:,}".format(stats.last_24h)}}</h3>
+        <div id="submissions-container" class="space-y-5">
+            <!-- Search and Filter Bar -->
+            <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex flex-col md:flex-row gap-4 items-center justify-between"
+                hx-get="/projects/{{ form.project_id }}/forms/{{ form.id }}/submissions"
+                hx-trigger="keyup delay:300ms from:input[name='search'], change from:select[name='status']"
+                hx-target="#submissions-table-container" hx-include="this">
+
+                <!-- Search Input -->
+                <div class="relative w-full md:w-80">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                    </span>
+                    <input type="text" name="search" value="{{ search }}" placeholder="Search submissions..."
+                        class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-mid focus:ring-1 focus:ring-brand-mid transition-colors">
+                </div>
+
+                <!-- Filter Dropdowns & Actions -->
+                <div class="flex items-center gap-3 w-full md:w-auto justify-end">
+                    <select name="status" x-model="status"
+                        class="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:border-brand-mid">
+                        <option value="" {% if status=="" %}selected{% endif %}>All Statuses</option>
+                        <option value="accepted" {% if status=='accepted' or not status %}selected{% endif %}>Inbox
+                        </option>
+                        <option value="rejected" {% if status=='rejected' %}selected{% endif %}>Spam</option>
+                    </select>
+
+                    <button type="button" @click="downloadExcel"
+                        class="px-4 py-2 bg-gray-50 border text-gray-600 rounded-lg text-sm font-medium flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                        </svg>
+                        Export as Sheet
+                    </button>
+
+                </div>
             </div>
-            <div class="p-3 bg-green-50 text-green-600 rounded-xl">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
-                </svg>
+
+            <!-- Submissions Data Table Container Wrapper -->
+            <div id="submissions-table-container">
+                {% include "partials/submissions_table.html" %}
             </div>
         </div>
-
-        <!-- Unread Card -->
-        <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
-            <div>
-                <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Unread Inbox</p>
-                <h3 class="text-2xl font-bold text-blue-600 mt-1">{{"{:,}".format(stats.unread)}}</h3>
-            </div>
-            <div class="p-3 bg-blue-50 text-blue-600 rounded-xl">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z">
-                    </path>
-                </svg>
-            </div>
-        </div>
-
-        <!-- Spam / Rejected Card -->
-        <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between">
-            <div>
-                <p class="text-xs font-medium text-gray-400 uppercase tracking-wider">Spam Filtered</p>
-                <h3 class="text-2xl font-bold text-gray-900 mt-1">{{"{:,}".format(stats.spam)}}</h3>
-            </div>
-            <div class="p-3 bg-red-50 text-red-500 rounded-xl">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z">
-                    </path>
-                </svg>
-            </div>
-        </div>
-    </div>
-
-    <!-- Search and Filter Bar -->
-    <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-4 flex flex-col md:flex-row gap-4 items-center justify-between"
-        hx-get="/projects/{{ form.project_id }}/forms/{{ form.id }}/submissions"
-        hx-trigger="keyup delay:300ms from:input[name='search'], change from:select[name='status']"
-        hx-target="#submissions-table-container" hx-include="this">
-
-        <!-- Search Input -->
-        <div class="relative w-full md:w-80">
-            <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                </svg>
-            </span>
-            <input type="text" name="search" value="{{ search }}" placeholder="Search submissions..."
-                class="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand-mid focus:ring-1 focus:ring-brand-mid transition-colors">
-        </div>
-
-        <!-- Filter Dropdowns & Actions -->
-        <div class="flex items-center gap-3 w-full md:w-auto justify-end">
-            <select name="status" x-model="status"
-                class="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:border-brand-mid">
-                <option value="" {% if status=="" %}selected{% endif %}>All Statuses</option>
-                <option value="accepted" {% if status=='accepted' or not status %}selected{% endif %}>Inbox</option>
-                <option value="rejected" {% if status=='rejected' %}selected{% endif %}>Spam</option>
-            </select>
-
-            <button type="button" @click="downloadExcel"
-                class="px-4 py-2 bg-gray-50 border text-gray-600 rounded-lg text-sm font-medium flex items-center gap-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-                </svg>
-                Export as Sheet
-            </button>
-
-        </div>
-    </div>
-
-    <!-- Submissions Data Table Container Wrapper -->
-    <div id="submissions-table-container">
-        {% include "partials/submissions_table.html" %}
     </div>
 </div>
 
