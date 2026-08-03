@@ -4,6 +4,7 @@
 {% block title %}Dashboard — Formdata{% endblock %}
 
 {% block content %}
+
 <div class="page animate-slide-up" id="page-billing">
     <div class="p-5 md:p-7">
 
@@ -116,6 +117,74 @@
 
     </div>
 </div>
+<div class="page animate-slide-up flex-1 w-1" id="page-account">
+    <div class="p-5 md:p-7 max-w-lg flex flex-1 w-1 justify-around">
+
+        <!-- Profile -->
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm mb-5">
+            <div class="px-5 py-4 border-b border-gray-50">
+                <p class="text-sm font-semibold text-gray-900">Profile</p>
+            </div>
+            <div class="p-5 space-y-4">
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-xs font-semibold text-gray-500">Full name</label>
+                    <input id="accountName" type="text" value="{{name}}"
+                        class="border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-brand transition-colors" />
+                </div>
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-xs font-semibold text-gray-500">Email address</label>
+                    <input id="accountEmail" type="email" value="{{email}}"
+                        class="border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-brand transition-colors" />
+                </div>
+                <button onclick="saveAccount()"
+                    class="bg-brand hover:bg-brand-dark text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors">
+                    Save changes
+                </button>
+            </div>
+        </div>
+
+        <!-- Password -->
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm mb-5">
+            <div class="px-5 py-4 border-b border-gray-50">
+                <p class="text-sm font-semibold text-gray-900">Change password</p>
+            </div>
+            <div class="p-5 space-y-4">
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-xs font-semibold text-gray-500">Current password</label>
+                    <input type="password" placeholder="••••••••"
+                        class="border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-brand transition-colors" />
+                </div>
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-xs font-semibold text-gray-500">New password</label>
+                    <input type="password" placeholder="••••••••"
+                        class="border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-brand transition-colors" />
+                </div>
+                <button onclick="showToast('Password updated')"
+                    class="bg-brand hover:bg-brand-dark text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors">
+                    Update password
+                </button>
+            </div>
+        </div>
+
+        <!-- Danger zone -->
+        <div class="bg-white rounded-xl border border-red-100 shadow-sm">
+            <div class="px-5 py-4 border-b border-red-50">
+                <p class="text-sm font-semibold text-brand">Danger zone</p>
+            </div>
+            <div class="p-5">
+                <p class="text-xs text-gray-400 mb-4">Deleting your account is permanent. All forms and
+                    submissions will be erased.</p>
+                <button onclick="showToast('Contact support to delete your account')"
+                    class="bg-brand-light text-brand border border-brand-mid text-sm font-semibold px-5 py-2.5 rounded-lg hover:bg-red-100 transition-colors">
+                    Delete account
+                </button>
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+
 {% endblock %}
 
 

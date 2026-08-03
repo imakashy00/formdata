@@ -1,21 +1,22 @@
 from datetime import UTC, datetime
+from typing import Annotated
 
-from app.core.db import get_db
-from app.core.templates import temp
-from app.models.user import User
-from app.schemas.user import DBUser
-from app.services.dependencies import current_user
 from fastapi import APIRouter, Depends, Request, Response
 from fastapi.responses import FileResponse, HTMLResponse
 from loguru import logger as log
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.db import get_db
+from app.core.templates import temp
+from app.models.user import User
+from app.services.dependencies import current_user
+
 page_router = APIRouter()
 
 
 async def get_current_user(
-    request: Request, db: AsyncSession = Depends(get_db)
+    request: Request, db: Annotated[AsyncSession, Depends(get_db)]
 ) -> User | None:
     """FastAPI Dependency to retrieve the logged-in user from request state."""
     payload = getattr(request.state, "user", None)
@@ -26,23 +27,23 @@ async def get_current_user(
     return result.scalars().first()
 
 
-@page_router.get("/account", response_class=HTMLResponse)
-async def account(request: Request, user: User = Depends(get_current_user)):
+@page_router.get("/profile", response_class=HTMLResponse)
+async def account(request: Request, user: Annotated[User, Depends(get_current_user)]):
 
     return temp.TemplateResponse(
         request,
-        "account.html",
+        "billing.html",
         {
             "email": user.email,
             "name": user.name,
             "user_id": user.id,
-            "page": "account",
+            "page": "profile",
         },
     )
 
 
 @page_router.get("/billing", response_class=HTMLResponse)
-async def billing(request: Request, user: User = Depends(get_current_user)):
+async def billing(request: Request, user: Annotated[User, Depends(get_current_user)]):
 
     return temp.TemplateResponse(
         request,
@@ -69,8 +70,8 @@ def robots_txt():
 @page_router.get("/help", response_class=HTMLResponse)
 async def help_page(
     request: Request,
-    user: DBUser = Depends(current_user),
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(current_user)],
 ):
     log.info("Help page sending")
     return temp.TemplateResponse(
