@@ -27,21 +27,6 @@ async def get_current_user(
     return result.scalars().first()
 
 
-@page_router.get("/profile", response_class=HTMLResponse)
-async def account(request: Request, user: Annotated[User, Depends(get_current_user)]):
-
-    return temp.TemplateResponse(
-        request,
-        "billing.html",
-        {
-            "email": user.email,
-            "name": user.name,
-            "user_id": user.id,
-            "page": "profile",
-        },
-    )
-
-
 @page_router.get("/billing", response_class=HTMLResponse)
 async def billing(request: Request, user: Annotated[User, Depends(get_current_user)]):
 
@@ -114,7 +99,7 @@ async def sitemap_xml(request: Request) -> Response:
     def route_exists(path: str) -> bool:
         try:
             return any(getattr(r, "path", None) == path for r in request.app.routes)
-        except Exception:
+        except ValueError:
             return False
 
     today = datetime.now(UTC).date().isoformat()

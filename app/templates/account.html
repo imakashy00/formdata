@@ -1,73 +1,425 @@
-<!-- acount.html -->
+<!-- account.html -->
 {% extends 'base.html' %}
 
-{% block title %}Dashboard — Formdata{% endblock %}
+{% block title %}Account — Formdata{% endblock %}
 
 {% block content %}
-<div class="page animate-slide-up" id="page-account">
-    <div class="p-5 md:p-7 max-w-lg">
 
-        <!-- Profile -->
-        <div class="bg-white rounded-xl border border-gray-100 shadow-sm mb-5">
+<div class="page animate-slide-up" id="page-account">
+    <div class="p-5 md:p-7 max-w-4xl mx-auto space-y-8">
+
+        <!-- 1. Profile Section: Name and Email horizontally side-by-side -->
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm">
             <div class="px-5 py-4 border-b border-gray-50">
-                <p class="text-sm font-semibold text-gray-900">Profile</p>
+                <h2 class="text-sm font-semibold text-gray-900">Profile Information</h2>
             </div>
-            <div class="p-5 space-y-4">
+            <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="flex flex-col gap-1.5">
                     <label class="text-xs font-semibold text-gray-500">Full name</label>
-                    <input id="accountName" type="text" value="{{name}}"
-                        class="border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-brand transition-colors" />
+                    <input id="accountName" type="text" value="{{name}}" disabled
+                        class="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-brand transition-colors" />
                 </div>
                 <div class="flex flex-col gap-1.5">
                     <label class="text-xs font-semibold text-gray-500">Email address</label>
-                    <input id="accountEmail" type="email" value="{{email}}"
-                        class="border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-brand transition-colors" />
+                    <input id="accountEmail" type="email" value="{{email}}" disabled
+                        class="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-brand transition-colors" />
                 </div>
-                <button onclick="saveAccount()"
-                    class="bg-brand hover:bg-brand-dark text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors">
-                    Save changes
-                </button>
             </div>
         </div>
 
-        <!-- Password -->
-        <div class="bg-white rounded-xl border border-gray-100 shadow-sm mb-5">
-            <div class="px-5 py-4 border-b border-gray-50">
-                <p class="text-sm font-semibold text-gray-900">Change password</p>
-            </div>
-            <div class="p-5 space-y-4">
-                <div class="flex flex-col gap-1.5">
-                    <label class="text-xs font-semibold text-gray-500">Current password</label>
-                    <input type="password" placeholder="••••••••"
-                        class="border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-brand transition-colors" />
-                </div>
-                <div class="flex flex-col gap-1.5">
-                    <label class="text-xs font-semibold text-gray-500">New password</label>
-                    <input type="password" placeholder="••••••••"
-                        class="border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-brand transition-colors" />
-                </div>
-                <button onclick="showToast('Password updated')"
-                    class="bg-brand hover:bg-brand-dark text-white text-sm font-semibold px-5 py-2.5 rounded-lg transition-colors">
-                    Update password
-                </button>
-            </div>
-        </div>
-
-        <!-- Danger zone -->
-        <div class="bg-white rounded-xl border border-red-100 shadow-sm">
+        <!-- 2. Danger Zone: Positioned directly under profile details -->
+        <div class="bg-white rounded-xl border shadow-sm">
             <div class="px-5 py-4 border-b border-red-50">
-                <p class="text-sm font-semibold text-brand">Danger zone</p>
+                <p class="text-sm font-semibold text-red-500">Danger zone</p>
             </div>
-            <div class="p-5">
-                <p class="text-xs text-gray-400 mb-4">Deleting your account is permanent. All forms and
-                    submissions will be erased.</p>
+            <div class="p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <p class="text-xs text-gray-400 ">Deleting your account is permanent. All forms and
+                    submissions will be permanently erased.</p>
                 <button onclick="showToast('Contact support to delete your account')"
-                    class="bg-brand-light text-brand border border-brand-mid text-sm font-semibold px-5 py-2.5 rounded-lg hover:bg-red-100 transition-colors">
+                    class="bg-red-500/10 text-red-500 border border-red-500 text-sm font-semibold px-5 py-2.5 rounded-lg hover:bg-red-100 transition-colors whitespace-nowrap">
                     Delete account
                 </button>
             </div>
         </div>
 
+        <!-- 3. Account Usage Area: Split into two horizontal data components -->
+        <div class="space-y-4">
+            <div class="flex items-center justify-between pl-1">
+                <h3 class="text-sm font-bold text-gray-900 uppercase tracking-wider">Account Usage</h3>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                <!-- Form Submissions Component -->
+                <div class="bg-white rounded-xl border border-gray-100 shadow-sm">
+                    <div class="px-5 py-4 border-b border-gray-50 flex justify-between items-center">
+                        <p class="text-sm font-semibold text-gray-900">Form Submissions</p>
+                        <span class="text-xs text-green-600 bg-green-50 font-medium px-2 py-0.5 rounded-full">+12% this
+                            week</span>
+                    </div>
+                    <div class="p-5">
+                        <div class="flex gap-6 mb-6">
+                            <div>
+                                <p class="text-xs font-medium text-gray-400">Total Submissions</p>
+                                <p class="text-xl font-bold text-gray-900">1,248</p>
+                            </div>
+                            <div>
+                                <p class="text-xs font-medium text-gray-400">Spam Blocked</p>
+                                <p class="text-xl font-bold text-gray-900">142</p>
+                            </div>
+                        </div>
+                        <div class="w-full bg-gray-100 h-2.5 rounded-full overflow-hidden">
+                            <div class="bg-brand h-full rounded-full" style="width: 60%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Account Storage Component -->
+                <div class="bg-white rounded-xl border border-gray-100 shadow-sm">
+                    <div class="px-5 py-4 border-b border-gray-50">
+                        <p class="text-sm font-semibold text-gray-900">Account Storage</p>
+                    </div>
+                    <div class="p-5 space-y-4">
+                        <div class="flex justify-between items-end">
+                            <div>
+                                <p class="text-2xl font-bold text-gray-900">1.2 GB</p>
+                                <p class="text-xs text-gray-500 mt-0.5">Used of 2.0 GB limit</p>
+                            </div>
+                            <span class="text-xs font-semibold text-brand bg-brand/10 px-2 py-1 rounded-md">60%
+                                Used</span>
+                        </div>
+                        <div class="w-full bg-gray-100 h-2.5 rounded-full overflow-hidden">
+                            <div class="bg-brand h-full rounded-full" style="width: 60%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. Plan and Billing Footer Box -->
+        <!-- 4. Plan and Billing Adaptive System Box -->
+        <div class="space-y-6">
+            <div
+                class="bg-gradient-to-r from-blue-600 to-blue-500 rounded-xl p-6 text-white shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+
+                <!-- Left Hand: Context Status Area -->
+                <div class="space-y-1">
+                    <span
+                        class="text-xs font-semibold tracking-wider text-white uppercase px-2.5 py-1 rounded-md bg-white/20">
+                        Subscription Status
+                    </span>
+
+                    {% if user_plan_status == 'trial' %}
+                    <!-- OPTION 1: FREE TRIAL LOOK -->
+                    <h3 class="text-xl font-bold pt-1">Free Trial Developer Plan</h3>
+                    <p class="text-xs text-blue-100">Your free trial expires in <span class="font-bold underline">{{
+                            trial_days_left }} days</span>. Select a monthly tier below to upgrade your pipeline.</p>
+
+                    {% elif user_plan_status == 'active' %}
+                    <!-- OPTION 2: ACTIVE LOOK -->
+                    <h3 class="text-xl font-bold pt-1">Current Active Plan: <span
+                            class="text-yellow-300 uppercase tracking-wide font-mono text-sm px-2 py-0.5 rounded bg-black/20">{{
+                            current_tier_name }}</span></h3>
+                    <p class="text-xs text-blue-100">Your monthly subscription is active. Select a tier below to switch
+                        your
+                        plan level.</p>
+
+                    {% else %}
+                    <!-- OPTION 3: CANCELED/EXPIRED LOOK -->
+                    <h3 class="text-xl font-bold pt-1">Free Trial</h3>
+                    <p class="text-xs text-red-200">Your Formspree alternative features are paused. Select a plan below
+                        to
+                        reactivate.</p>
+                    {% endif %}
+                </div>
+
+                <!-- Right Hand: Adaptive Cancel Button for Active Subscribers -->
+                {% if user_plan_status == 'active' %}
+                <div class="w-full sm:w-auto">
+                    <button onclick="handleCancelSubscription('{{ paddle_subscription_id }}')"
+                        class="w-full sm:w-auto bg-transparent border border-white/40 text-white text-sm font-semibold px-5 py-2.5 rounded-lg hover:bg-white/10 transition-colors">
+                        Cancel Subscription
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- ── Interactive Pricing Tier Matrix ── -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                <!-- Hobby Tier Card -->
+                <div
+                    class="relative bg-white border-2 border-gray-100 rounded-2xl overflow-hidden shadow-sm transition-all hover:border-brand/40 group [&:has(input:checked)]:border-brand [&:has(input:checked)]:ring-2 [&:has(input:checked)]:ring-brand/10">
+
+                    <!-- Native Radio Input (Accessible & functional) -->
+                    <input type="radio" name="plan_tier_select" id="tier_hobby" value="HOBBY" checked
+                        class="peer absolute top-6 right-6 h-5 w-5 text-brand focus:ring-brand border-gray-300 z-20 cursor-pointer" />
+
+                    <!-- Clickable Label Overlay covering the card selection area safely -->
+                    <label for="tier_hobby" class="absolute inset-0 cursor-pointer z-10">
+                        <span class="sr-only">Select Plus Plan</span>
+                    </label>
+
+                    <!-- Card Content Layer (Blocks pointer events so it doesn't steal label clicks) -->
+                    <div class="relative z-0 pointer-events-none p-8 pb-0">
+                        <h4 class="text-sm font-bold text-gray-900">Plus Plan</h4>
+
+                        <p class="mt-2 uppercase tracking-widest text-xs font-semibold text-brand">
+                            Solo
+                        </p>
+
+                        <div class="mt-3 flex items-end gap-2">
+                            <span class="text-6xl font-extrabold text-gray-900">$5</span>
+                            <span class="text-gray-500 mb-2 font-medium">/month</span>
+                        </div>
+
+                        <p class="mt-5 text-sm text-gray-500 leading-relaxed">
+                            Perfect for personal websites, portfolios and waitlists.
+                        </p>
+                    </div>
+
+                    <!-- Divider Line -->
+                    <div class="border-t border-gray-100 mt-8"></div>
+
+                    <!-- Features List -->
+                    <ul class="relative z-0 pointer-events-none p-8 space-y-5">
+                        <li class="flex gap-3 items-start">
+                            <span class="text-green-500 font-bold">✓</span>
+                            <div class="text-sm">
+                                <p class="font-medium text-gray-900">1,000 submissions / month</p>
+                                <p class="text-xs text-gray-500">$1 per extra 200 submissions</p>
+                            </div>
+                        </li>
+                        <li class="flex gap-3 text-sm text-gray-700"><span class="text-green-500 font-bold">✓</span>
+                            Email notifications
+                        </li>
+                        <li class="flex gap-3 text-sm text-gray-700"><span class="text-green-500 font-bold">✓</span>
+                            Spam filtering</li>
+                        <li class="flex gap-3 text-sm text-gray-700"><span class="text-green-500 font-bold">✓</span>
+                            Dashboard & search
+                        </li>
+                        <li class="flex gap-3 text-sm text-gray-700"><span class="text-green-500 font-bold">✓</span>
+                            Lead status
+                            tracking</li>
+                        <li class="flex gap-3 text-sm text-gray-700"><span class="text-green-500 font-bold">✓</span> No
+                            Formdata
+                            branding</li>
+                        <li class="flex gap-3 text-sm text-gray-700"><span class="text-green-500 font-bold">✓</span>
+                            Works with every
+                            framework</li>
+                        <li class="flex gap-3 text-sm text-gray-400"><span class="font-bold">✕</span> File uploads</li>
+                        <li class="flex gap-3 text-sm text-gray-400"><span class="font-bold">✕</span> Slack, Zapier &
+                            Webhooks</li>
+                    </ul>
+
+                    <!-- Action Button (Elevated above label layer so hx-post works independently) -->
+                    <div class="relative z-20 px-8 pb-8">
+                        <button hx-post="/auth"
+                            class="w-full py-3 rounded-xl border-2 border-brand text-brand font-semibold hover:bg-brand hover:text-white transition-all shadow-sm active:scale-[0.98]">
+                            Start Free
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Pro Tier Card -->
+                <div
+                    class="relative bg-white border-2 border-gray-100 rounded-2xl overflow-hidden shadow-sm transition-all hover:border-brand/40 group [&:has(input:checked)]:border-brand [&:has(input:checked)]:ring-2 [&:has(input:checked)]:ring-brand/10">
+
+                    <!-- Native Radio Input (Accessible & functional) -->
+                    <input type="radio" name="plan_tier_select" id="tier_pro" value="PRO"
+                        class="peer absolute top-6 right-6 h-5 w-5 text-brand focus:ring-brand border-gray-300 z-20 cursor-pointer" />
+
+                    <!-- Clickable Label Overlay covering the card selection area safely -->
+                    <label for="tier_pro" class="absolute inset-0 cursor-pointer z-10">
+                        <span class="sr-only">Select Pro Plan</span>
+                    </label>
+
+                    <!-- Card Content Layer (Blocks pointer events so it doesn't steal label clicks) -->
+                    <div class="relative z-0 pointer-events-none p-8 pb-0">
+                        <div class="flex justify-between items-start pr-8">
+                            <div>
+                                <h4 class="text-sm font-bold text-gray-900">Pro Plan</h4>
+                                <p class="mt-2 uppercase tracking-widest text-xs font-semibold text-brand">
+                                    Studio
+                                </p>
+                            </div>
+                            <!-- Popular Badge updated to Brand Blue color scheme -->
+                            <span
+                                class="bg-brand/10 text-brand text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+                                Most Popular
+                            </span>
+                        </div>
+
+                        <div class="mt-3 flex items-end gap-2">
+                            <span class="text-6xl font-extrabold text-gray-900">$10</span>
+                            <span class="text-gray-500 mb-2 font-medium">/month</span>
+                        </div>
+
+                        <p class="mt-5 text-sm text-gray-500 leading-relaxed">
+                            Everything in Solo plus attachments and integrations.
+                        </p>
+                    </div>
+
+                    <!-- Divider Line -->
+                    <div class="border-t border-gray-100 mt-8"></div>
+
+                    <!-- Features List -->
+                    <ul class="relative z-0 pointer-events-none p-8 space-y-5">
+                        <li class="flex gap-3 items-start">
+                            <span class="text-green-500 font-bold">✓</span>
+                            <div class="text-sm">
+                                <p class="font-medium text-gray-900">2,000 submissions / month</p>
+                                <p class="text-xs text-gray-500">$1 per extra 200 submissions</p>
+                            </div>
+                        </li>
+                        <li class="flex gap-3 text-sm text-gray-700"><span class="text-green-500 font-bold">✓</span>
+                            Email notifications
+                        </li>
+                        <li class="flex gap-3 text-sm text-gray-700"><span class="text-green-500 font-bold">✓</span>
+                            Spam filtering</li>
+                        <li class="flex gap-3 text-sm text-gray-700"><span class="text-green-500 font-bold">✓</span>
+                            Dashboard & search
+                        </li>
+                        <li class="flex gap-3 text-sm text-gray-700"><span class="text-green-500 font-bold">✓</span>
+                            Lead status
+                            tracking</li>
+                        <li class="flex gap-3 text-sm text-gray-700"><span class="text-green-500 font-bold">✓</span> No
+                            Formdata
+                            branding</li>
+                        <li class="flex gap-3 text-sm text-gray-700"><span class="text-green-500 font-bold">✓</span>
+                            Works with every
+                            framework</li>
+                        <li class="flex gap-3 items-start text-sm text-gray-700">
+                            <span class="text-green-500 font-bold">✓</span>
+                            <div>
+                                <p class="font-medium text-gray-900">File uploads</p>
+                                <p class="text-xs text-gray-500">2GB included • $1/GB extra</p>
+                            </div>
+                        </li>
+                        <li class="flex gap-3 text-sm text-gray-700">
+                            <span class="text-green-500 font-bold">✓</span>
+                            <span>Slack • Zapier • Sheets • Webhooks</span>
+                        </li>
+                    </ul>
+
+                    <!-- Action Button (Solid style for the Pro tier, elevated to z-20 for independent click) -->
+                    <div class="relative z-20 px-8 pb-8">
+                        <button hx-post="/auth"
+                            class="w-full py-3 rounded-xl bg-brand text-white font-semibold hover:bg-brand/90 transition-all shadow-sm active:scale-[0.98]">
+                            Start 30-Day Free Trial
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Master Action Trigger Button -->
+            <div class="flex justify-end">
+                <button onclick="handleAdaptiveCheckout()"
+                    class="w-full sm:w-auto bg-brand text-white text-sm font-semibold px-8 py-3.5 rounded-lg hover:bg-brand/90 transition-all shadow-md shadow-brand/20 text-center font-medium">
+                    {% if user_plan_status == 'active' %} Update Subscription {% else %} Checkout & Activate Selected
+                    Plan {%
+                    endif %}
+                </button>
+            </div>
+        </div>
+
+
     </div>
 </div>
+
+{% endblock %}
+
+
+{% block script %}
+<script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
+<script>
+    // Paddle init
+    Paddle.Environment.set("sandbox");
+    Paddle.Initialize({ token: "test_925224efe3fbbe342e5bb6f88d5" });
+
+    const MONTHLY_PRICE_ID = "pri_01kwhvyj0hfbj2919wqk70h15x";
+    const YEARLY_PRICE_ID = "pri_01kwhvxjre9b0hbjvnfwhe69bp";
+
+    // ── Navigation ──
+    // function navigate(pageId, btn) {
+    //     document.querySelectorAll('.nav-item').forEach(el => {
+    //         el.classList.remove('active', 'bg-brand-light', 'text-brand', 'font-semibold');
+    //         el.classList.add('text-gray-500', 'hover:bg-gray-100', 'hover:text-gray-900');
+    //     });
+    //     document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+
+    //     btn.classList.add('active', 'bg-brand-light', 'text-brand', 'font-semibold');
+    //     btn.classList.remove('text-gray-500', 'hover:bg-gray-100', 'hover:text-gray-900');
+
+    //     const pg = document.getElementById('page-' + pageId);
+    //     pg.classList.add('active');
+
+    //     const titles = { dashboard: 'Dashboard', projects: 'Projects', account: 'Account', billing: 'Billing' };
+    //     document.getElementById('topbarTitle').textContent = titles[pageId] || pageId;
+
+    //     document.getElementById('sidebar').classList.remove('translate-x-0');
+    //     document.getElementById('sidebar').classList.add('-translate-x-full');
+    //     document.getElementById('sidebarBackdrop').classList.add('hidden');
+    // }
+
+    // Set initial active state styles
+    // document.querySelector('[data-page="dashboard"]').classList.add('bg-brand-light', 'text-brand');
+
+    // function toggleSidebar() {
+    //     const sb = document.getElementById('sidebar');
+    //     const bd = document.getElementById('sidebarBackdrop');
+    //     const isOpen = !sb.classList.contains('-translate-x-full');
+    //     if (isOpen) {
+    //         sb.classList.add('-translate-x-full');
+    //         sb.classList.remove('translate-x-0');
+    //         bd.classList.add('hidden');
+    //     } else {
+    //         sb.classList.remove('-translate-x-full');
+    //         sb.classList.add('translate-x-0');
+    //         bd.classList.remove('hidden');
+    //     }
+    // }
+
+    // ── Billing toggle ──
+    function updateBillingDisplay() {
+        const yearly = document.getElementById('billingToggle').checked;
+        document.getElementById('priceAmount').textContent = yearly ? '190' : '19';
+        document.getElementById('cycleLabel').textContent = yearly ? 'per year (save $38)' : 'per month';
+
+        const lblM = document.getElementById('lbl-monthly');
+        const lblY = document.getElementById('lbl-yearly');
+        lblM.className = yearly
+            ? 'text-sm font-medium text-gray-400'
+            : 'text-sm font-semibold text-brand';
+        lblY.className = yearly
+            ? 'text-sm font-semibold text-brand'
+            : 'text-sm font-medium text-gray-400';
+    }
+
+    function handleCheckout() {
+        const priceId = document.getElementById('billingToggle').checked ? YEARLY_PRICE_ID : MONTHLY_PRICE_ID;
+        Paddle.Checkout.open({
+            items: [{ priceId, quantity: 1 }],
+            customData: { user_id: "{{ user_id }}" }
+        });
+    }
+
+    // ── Toast ──
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.classList.remove('opacity-0', 'translate-y-2');
+        t.classList.add('opacity-100', 'translate-y-0');
+        setTimeout(() => {
+            t.classList.add('opacity-0', 'translate-y-2');
+            t.classList.remove('opacity-100', 'translate-y-0');
+        }, 2600);
+    }
+
+    // ── Copy endpoint ──
+    function copyEndpoint() {
+        navigator.clipboard.writeText('https://formdata.co/f/your-id')
+            .then(() => showToast('Endpoint copied!'));
+    }
+</script>
 {% endblock %}

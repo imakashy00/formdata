@@ -6,11 +6,11 @@ from sqlalchemy import text
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.core.db import engine
+from app.core.logger import setup_logger
 from app.core.middlewares.exception_handlers import register_exception_handlers
 from app.core.middlewares.middleware import register_middlewares
 from app.core.middlewares.rate_limit import setup_rate_limiting
 from app.core.settings import settings
-from app.core.logger import setup_logger
 from app.routes.account import account_router
 from app.routes.auth import router
 from app.routes.client_form import client_form_router
@@ -34,7 +34,7 @@ async def verify_services() -> None:
         raise
 
     try:
-        await redis_client.ping() # type: ignore
+        await redis_client.ping()  # type: ignore
         log.info("✅ Redis is reachable.")
     except Exception as exc:
         log.error(f"❌ Redis is not reachable: {exc}")
