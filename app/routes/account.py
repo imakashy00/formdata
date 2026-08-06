@@ -8,8 +8,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_db
 from app.core.templates import temp
-from app.models.user import Form as FormDB, Subscription
-from app.models.user import Project, Submission, User
+from app.models.user import Form as FormDB
+from app.models.user import Project, Submission, Subscription, User
 from app.routes.page import get_current_user
 
 account_router = APIRouter()

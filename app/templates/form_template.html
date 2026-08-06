@@ -1,25 +1,42 @@
-<!-- Tab View: TEMPLATES -->
-<div x-show="activeTab === 'templates'" class="p-5 md:p-7" x-cloak>
+<!-- Tab View: TEMPLATES (Targeting Form Users' Customers) -->
+<div id="template-container" x-show="activeTab === 'templates'" class="p-5 md:p-7" x-cloak>
     <div class="max-w-2xl bg-white rounded-xl border border-gray-100 shadow-sm p-6">
-        <h3 class="text-sm font-semibold text-gray-900 mb-1">Email Templates</h3>
-        <p class="text-xs text-gray-400 mb-5">Customize the email notifications sent out on new form responses.</p>
+        <h3 class="text-sm font-semibold text-gray-900 mb-1">Customer Auto-Responder</h3>
+        <p class="text-xs text-gray-400 mb-5">Configure the automatic confirmation email sent directly to clients after
+            submitting this form.</p>
 
-        <form hx-post="projects/{{form.project_id}}/formss/{{form.id}}/template" hx-swap="none">
+        <form hx-post="/projects/{{form.project_id}}/forms/{{form.id}}/template" hx-target="#template-container"
+            hx-swap="outerHTML">
             <div class="mb-4">
-                <label class="block text-xs font-semibold text-gray-700 mb-2">Subject Line</label>
+                <label class="block text-xs font-semibold text-gray-700 mb-2">Email Subject Line</label>
                 <input type="text" name="subject"
-                    class="w-full px-3.5 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-light transition-all placeholder:text-gray-400 text-gray-900"
-                    value="New Submission Alert: [Form Name]">
+                    class="w-full px-3.5 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-light transition-all text-gray-900"
+                    value="{{ form.customer_subject }}">
+                <span class="text-[10px] text-gray-400 mt-1 block">Available placeholders:
+                    <code>{form_name}</code></span>
             </div>
+
             <div class="mb-5">
-                <label class="block text-xs font-semibold text-gray-700 mb-2">Email Body (Markdown or HTML)</label>
-                <textarea rows="6" name="body"
-                    class="w-full px-3.5 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-light transition-all placeholder:text-gray-400 text-gray-900">You received a new message submission through your form!&#10;&#10;[Submission Details]</textarea>
+                <label class="block text-xs font-semibold text-gray-700 mb-2">Email Message Body (Markdown
+                    Supported)</label>
+                <textarea rows="8" name="body"
+                    class="w-full px-3.5 py-2 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-light transition-all text-gray-900 font-mono">{{ form.customer_body }}</textarea>
+
+                <div class="mt-2 bg-gray-50 border border-gray-100 rounded-lg p-3 text-[11px] text-gray-500 space-y-1">
+                    <p class="font-semibold text-gray-700">💡 Dynamic Personalization Merge Tags:</p>
+                    <p>• Use <code>{submission_details}</code> to print all form inputs automatically.</p>
+                    <p>• Match input names directly to template tags: <code>{first_name}</code> matches
+                        <code>&lt;input name="first_name"&gt;</code>.
+                    </p>
+                </div>
             </div>
-            <button type="submit"
-                class="px-4 py-2 text-xs font-medium text-white bg-brand hover:bg-brand-dark rounded-lg shadow-sm transition-colors">
-                Save Template
-            </button>
+
+            <div class="flex justify-end">
+                <button type="submit"
+                    class="px-4 py-2 text-xs font-medium text-white bg-brand hover:bg-brand-dark rounded-lg shadow-sm transition-colors">
+                    Save Customer Template
+                </button>
+            </div>
         </form>
     </div>
 </div>

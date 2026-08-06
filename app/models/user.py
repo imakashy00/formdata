@@ -11,6 +11,7 @@ from sqlalchemy import (
     Index,
     Integer,
     String,
+    Text,
     UniqueConstraint,
     func,
     select,
@@ -245,6 +246,18 @@ class Form(Base):
         String(100), nullable=True
     )
     turnstile_secret: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
+    # Add these inside your Form class definition
+
+    # Template configurations sent to your users' customers
+    customer_subject: Mapped[str] = mapped_column(
+        String(255), nullable=False, server_default="Submission Recieved."
+    )
+    customer_body: Mapped[str] = mapped_column(
+        Text,
+        nullable=False,
+        server_default="Hi,\n\nThank you for reaching out! We received your submission.",
+    )
 
     # Store form structures, fields, inputs, or schemas easily using raw strings or a JSON block
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)

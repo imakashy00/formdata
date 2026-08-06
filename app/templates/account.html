@@ -5,10 +5,25 @@
 
 {% block content %}
 
+{#
+── Color system (predefined, reused everywhere below) ──────────────────
+brand → primary actions: purchase, upgrade, resume (bg-brand / text-brand)
+emerald → positive status: active, current plan
+amber → caution: paused, downgrade-adjacent warnings
+red → destructive only: cancel, delete account, payment failed
+gray → neutral: disabled, secondary, current-plan lock state
+Recipe for a soft "pill" button of a given tone:
+bg-{tone}-50 text-{tone}-600 border border-{tone}-200 hover:bg-{tone}-100
+#}
+
+{% set plan_display = {'solo': ('Solo', 5), 'studio': ('Studio', 10)} %}
+{% set current_plan = current_plan | default('none') %}
+{% set subscription_status = subscription_status | default('none') %}
+
 <div class="page animate-slide-up" id="page-account">
     <div class="p-5 md:p-7 max-w-4xl mx-auto space-y-8">
 
-        <!-- 1. Profile Section: Name and Email horizontally side-by-side -->
+        <!-- 1. Profile Section -->
         <div class="bg-white rounded-xl border border-gray-100 shadow-sm">
             <div class="px-5 py-4 border-b border-gray-50">
                 <h2 class="text-sm font-semibold text-gray-900">Profile Information</h2>
@@ -16,45 +31,45 @@
             <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="flex flex-col gap-1.5">
                     <label class="text-xs font-semibold text-gray-500">Full name</label>
-                    <input id="accountName" type="text" value="{{name}}" disabled
+                    <input id="accountName" type="text" value="{{ name }}" disabled
                         class="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-brand transition-colors" />
                 </div>
                 <div class="flex flex-col gap-1.5">
                     <label class="text-xs font-semibold text-gray-500">Email address</label>
-                    <input id="accountEmail" type="email" value="{{email}}" disabled
+                    <input id="accountEmail" type="email" value="{{ email }}" disabled
                         class="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-brand transition-colors" />
                 </div>
             </div>
         </div>
 
-        <!-- 2. Danger Zone: Positioned directly under profile details -->
+        <!-- 2. Danger Zone -->
         <div class="bg-white rounded-xl border shadow-sm">
             <div class="px-5 py-4 border-b border-red-50">
-                <p class="text-sm font-semibold text-red-500">Danger zone</p>
+                <p class="text-sm font-semibold text-red-600">Danger zone</p>
             </div>
             <div class="p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <p class="text-xs text-gray-400 ">Deleting your account is permanent. All forms and
+                <p class="text-xs text-gray-400">Deleting your account is permanent. All forms and
                     submissions will be permanently erased.</p>
                 <button onclick="showToast('Contact support to delete your account')"
-                    class="bg-red-500/10 text-red-500 border border-red-500 text-sm font-semibold px-5 py-2.5 rounded-lg hover:bg-red-100 transition-colors whitespace-nowrap">
+                    class="bg-red-50 text-red-600 border border-red-200 text-sm font-semibold px-5 py-2.5 rounded-lg hover:bg-red-100 transition-colors whitespace-nowrap">
                     Delete account
                 </button>
             </div>
         </div>
 
-        <!-- 3. Account Usage Area: Split into two horizontal data components -->
+        <!-- 3. Account Usage -->
         <div class="space-y-4">
             <div class="flex items-center justify-between pl-1">
                 <h3 class="text-sm font-bold text-gray-900 uppercase tracking-wider">Account Usage</h3>
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-                <!-- Form Submissions Component -->
+                <!-- Form Submissions -->
                 <div class="bg-white rounded-xl border border-gray-100 shadow-sm">
                     <div class="px-5 py-4 border-b border-gray-50 flex justify-between items-center">
                         <p class="text-sm font-semibold text-gray-900">Form Submissions</p>
-                        <span class="text-xs text-green-600 bg-green-50 font-medium px-2 py-0.5 rounded-full">+12% this
-                            week</span>
+                        <span class="text-xs text-emerald-700 bg-emerald-50 font-medium px-2 py-0.5 rounded-full">+12%
+                            this week</span>
                     </div>
                     <div class="p-5">
                         <div class="flex gap-6 mb-6">
@@ -73,7 +88,7 @@
                     </div>
                 </div>
 
-                <!-- Account Storage Component -->
+                <!-- Account Storage -->
                 <div class="bg-white rounded-xl border border-gray-100 shadow-sm">
                     <div class="px-5 py-4 border-b border-gray-50">
                         <p class="text-sm font-semibold text-gray-900">Account Storage</p>
@@ -95,208 +110,279 @@
             </div>
         </div>
 
-        <!-- MAIN BILLING INTERFACE CONTAINER -->
-        <div class="max-w-4xl mx-auto px-4 py-12">
+        <!-- 4. Billing & Subscription -->
+        <div class="space-y-6">
 
-            <!-- Page Header -->
-            <div class="mb-10">
-                <h1 class="text-3xl font-extrabold tracking-tight text-gray-900">Billing & Subscription</h1>
-                <p class="mt-2 text-sm text-gray-500">Manage your subscription tier, billing cycles, and payment
-                    settings.</p>
+            <div>
+                <h1 class="text-2xl font-extrabold tracking-tight text-gray-900">Billing & Subscription</h1>
+                <p class="mt-1 text-sm text-gray-500">Manage your plan, payment method, and subscription status.</p>
             </div>
 
-            <div class="space-y-8">
+            <!-- Status banner: exactly one of these four states renders -->
+            {% if current_plan == 'none' or subscription_status == 'none' %}
+            <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+                <p class="text-lg font-bold text-gray-900">No active plan</p>
+                <p class="text-sm text-gray-500 mt-1">Choose Solo or Studio below to start collecting submissions.</p>
+            </div>
 
-                <!-- 1. HORIZONTAL CURRENT PLAN STATUS BANNER -->
-                <div
-                    class="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-
-                    <!-- Left side: Plan & Renewal breakdown -->
+            {% else %}
+            <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+                <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
                     <div class="space-y-1">
                         <div class="flex items-center gap-2.5">
-                            <span class="text-2xl font-extrabold text-gray-900">Solo Plan</span>
+                            <span class="text-2xl font-extrabold text-gray-900">{{ plan_display[current_plan][0] }}
+                                Plan</span>
+                            {% if subscription_status == 'active' %}
                             <span
-                                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800">Active</span>
+                                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">Active</span>
+                            {% elif subscription_status == 'paused' %}
+                            <span
+                                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-700">Paused</span>
+                            {% elif subscription_status == 'past_due' %}
+                            <span
+                                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">Payment
+                                failed</span>
+                            {% else %}
+                            <span
+                                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">{{
+                                subscription_status | capitalize }}</span>
+                            {% endif %}
                         </div>
-                        <p class="text-sm text-gray-500">Renews at $5/month on Sept 1, 2026</p>
+
+                        {% if subscription_status == 'active' %}
+                        <p class="text-sm text-gray-500">Renews at ${{ plan_display[current_plan][1] }}/month{% if
+                            renews_at %} on {{ renews_at }}{% endif %}</p>
+                        {% elif subscription_status == 'paused' %}
+                        <p class="text-sm text-gray-500">{% if resumes_at %}Paused — resumes {{ resumes_at }}{% else
+                            %}Paused indefinitely{% endif %}</p>
+                        {% elif subscription_status == 'past_due' %}
+                        <p class="text-sm text-red-600">We couldn't process your last payment. Update your payment
+                            method to keep your plan active.</p>
+                        {% endif %}
                     </div>
 
-                    <!-- Center: Payment & Invoice Metadata context -->
                     <div
-                        class="flex flex-wrap items-center gap-x-8 gap-y-2 text-xs border-t md:border-t-0 pt-4 md:pt-0 border-gray-100">
+                        class="flex flex-wrap items-center gap-x-8 gap-y-3 text-xs border-t md:border-t-0 pt-4 md:pt-0 border-gray-100">
+                        {% if card_last4 %}
                         <div>
                             <span class="text-gray-400 block font-medium uppercase tracking-wider mb-0.5">Payment
-                                Method</span>
-                            <span class="font-semibold text-gray-700 flex items-center gap-1.5">
-                                Visa •••• 4242
-                            </span>
+                                method</span>
+                            <span class="font-semibold text-gray-700">{{ card_brand | default('Card') }} •••• {{
+                                card_last4 }}</span>
                         </div>
+                        {% endif %}
+                        {% if invoices_url %}
                         <div>
-                            <span class="text-gray-400 block font-medium uppercase tracking-wider mb-0.5">Invoice
-                                History</span>
-                            <a href="#" class="font-bold text-red-600 hover:text-red-700 transition">View Receipts</a>
+                            <span class="text-gray-400 block font-medium uppercase tracking-wider mb-0.5">Billing
+                                history</span>
+                            <a href="{{ invoices_url }}" target="_blank" rel="noopener"
+                                class="font-semibold text-brand hover:underline">View invoices</a>
                         </div>
+                        {% endif %}
                     </div>
-
-
-                    <!-- Right side: Critical Self-Service Account Actions -->
-                    <div class="border-t md:border-t-0 pt-4 md:pt-0 border-gray-100 flex items-center">
-                        <button onclick="cancelSubscription()"
-                            class="text-xs font-semibold text-gray-400 hover:text-red-600 transition tracking-wide uppercase">
-                            Cancel Subscription
-                        </button>
-                    </div>
-                    <div>
-                        <p class="uppercase text-gray-400 tracking-wider text-xs font-semibold">Billing</p>
-                        <p class="mt-2">
-                            <button onclick="handleUpdatePaymentMethod()"
-                                class="text-blue-600 font-semibold hover:text-blue-700 transition bg-transparent border-0 p-0 cursor-pointer">
-                                Manage billing
-                            </button>
-                        </p>
-                    </div>
-
-
                 </div>
 
-                <!-- 2. PREMIUM BILLING CYCLE CADENCE RIBBON (20% OFF) -->
+                <!-- Action row: which buttons show depends on subscription_status -->
+                <div class="mt-6 pt-5 border-t border-gray-100 flex flex-wrap items-center gap-3">
+                    <button onclick="updatePaymentMethod(this)"
+                        class="px-4 py-2 rounded-lg border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition">
+                        Update payment method
+                    </button>
 
-                <div class="mt-10 flex justify-center">
+                    {% if subscription_status == 'paused' %}
+                    <button onclick="resumeSubscription(this)"
+                        class="px-4 py-2 rounded-lg bg-brand text-white text-sm font-semibold hover:bg-brand/90 transition">
+                        Resume subscription
+                    </button>
+                    {% elif subscription_status == 'active' %}
+                    <button onclick="pauseSubscription(this)"
+                        class="px-4 py-2 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 text-sm font-semibold hover:bg-amber-100 transition">
+                        Pause subscription
+                    </button>
+                    {% endif %}
+
+                    <button onclick="cancelSubscription(this)"
+                        class="px-4 py-2 rounded-lg bg-red-50 text-red-600 border border-red-200 text-sm font-semibold hover:bg-red-100 transition ml-auto">
+                        Cancel subscription
+                    </button>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Plan cards (monthly only) -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                <!-- SOLO -->
+                <div id="card-solo"
+                    class="relative bg-white rounded-2xl border {{ 'border-brand ring-1 ring-brand' if current_plan == 'solo' else 'border-gray-200' }} shadow-sm overflow-hidden flex flex-col justify-between">
+                    {% if current_plan == 'solo' %}
                     <div
-                        class="bg-gray-100 border border-gray-200 rounded-full p-1 inline-flex items-center relative shadow-inner">
-                        <!-- Hidden input to maintain framework state parity -->
-                        <input type="checkbox" id="billingToggle" class="sr-only" data-current-plan="solo"
-                            data-current-cycle="monthly" onchange="updateBillingDisplay()">
-
-                        <!-- Monthly Capsule Option Button -->
-                        <button id="btn-toggle-monthly" onclick="setBillingToggle(false)" type="button"
-                            class="px-5 py-2 rounded-full text-s  transition-all duration-200 shadow-sm bg-red-600 text-white">
-                            Monthly
+                        class="absolute top-5 right-5 bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
+                        Current plan
+                    </div>
+                    {% endif %}
+                    <div>
+                        <div class="p-8">
+                            <p class="uppercase tracking-widest text-sm font-semibold text-brand">Solo</p>
+                            <div class="mt-3 flex items-end gap-2">
+                                <span class="text-6xl font-extrabold text-gray-900">$5</span>
+                                <span class="text-gray-500 mb-2">/month</span>
+                            </div>
+                            <p class="mt-5 text-sm text-gray-500">Perfect for personal websites, portfolios and
+                                waitlists.</p>
+                        </div>
+                        <div class="border-t border-gray-100"></div>
+                        <ul class="p-8 space-y-4 text-sm text-gray-700">
+                            <li class="flex gap-3">
+                                <span class="text-emerald-500 font-bold">✓</span>
+                                <div>
+                                    <p class="font-medium">1,000 submissions / month</p>
+                                    <p class="text-xs text-gray-500">$1 per extra 200 submissions</p>
+                                </div>
+                            </li>
+                            <li class="flex gap-3"><span class="text-emerald-500 font-bold">✓</span>Email notifications
+                            </li>
+                            <li class="flex gap-3"><span class="text-emerald-500 font-bold">✓</span>Spam filtering</li>
+                            <li class="flex gap-3"><span class="text-emerald-500 font-bold">✓</span>Lead status tracking
+                            </li>
+                            <li class="flex gap-3"><span class="text-emerald-500 font-bold">✓</span>No Formdata branding
+                            </li>
+                            <li class="flex gap-3"><span class="text-emerald-500 font-bold">✓</span>Works with every
+                                framework</li>
+                            <li class="flex gap-3 text-gray-400"><span>✕</span>File uploads</li>
+                            <!-- <li class="flex gap-3 text-gray-400"><span>✕</span>Slack, Zapier & Webhooks</li> -->
+                        </ul>
+                    </div>
+                    <div class="px-8 pb-8">
+                        {% if current_plan == 'none' %}
+                        <button onclick="purchasePlan('solo', this)" id="btn-solo"
+                            class="w-full py-3 rounded-xl border-2 border-brand text-brand font-semibold hover:bg-brand/5 transition text-sm">
+                            Choose Solo
                         </button>
-
-                        <!-- Yearly Capsule Option Button -->
-                        <button id="btn-toggle-yearly" onclick="setBillingToggle(true)" type="button"
-                            class="px-5 py-2 rounded-full text-s text-gray-500 transition-all duration-200 flex items-center gap-1.5">
-                            Yearly
-                            <span id="badge-yearly-discount"
-                                class="text-[12px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-extrabold uppercase tracking-wider">Save
-                                20%</span>
+                        {% elif current_plan == 'solo' %}
+                        <button disabled id="btn-solo"
+                            class="w-full py-3 rounded-xl bg-gray-100 text-gray-400 font-semibold cursor-not-allowed transition text-sm">
+                            ✓ Current plan
                         </button>
+                        {% else %}
+                        <button onclick="changePlan('solo', this)" id="btn-solo"
+                            {{ 'disabled title="Resume your subscription to change plans"' | safe if
+                            subscription_status=='paused' }}
+                            class="w-full py-3 rounded-xl border-2 border-gray-300 text-gray-600 font-semibold hover:bg-gray-50 transition text-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent">
+                            Downgrade to Solo
+                        </button>
+                        {% endif %}
                     </div>
                 </div>
 
-
-                <!-- 3. TIERS GRID LAYOUT -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-                    <!-- PRODUCT TIER CARD: SOLO -->
-                    <div id="card-solo"
-                        class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col justify-between">
-                        <div>
-                            <div class="p-8">
-                                <p class="uppercase tracking-widest text-sm font-semibold text-red-600">Solo</p>
-                                <div class="mt-3 flex items-end gap-2">
-                                    <span id="price-solo" class="text-6xl font-extrabold text-gray-900">$5</span>
-                                    <span id="cycle-solo" class="text-gray-500 mb-2">/month</span>
-                                </div>
-                                <p class="mt-5 text-sm text-gray-500">Perfect for personal websites, portfolios and
-                                    waitlists.
-                                </p>
-                            </div>
-                            <div class="border-t border-gray-100"></div>
-                            <ul class="p-8 space-y-4 text-sm text-gray-700">
-                                <li class="flex gap-3">
-                                    <span class="text-green-500 font-bold">✓</span>
-                                    <div>
-                                        <p class="font-medium">1,000 submissions / month</p>
-                                        <p class="text-xs text-gray-500">$1 per extra 200 submissions</p>
-                                    </div>
-                                </li>
-                                <li class="flex gap-3"><span class="text-green-500 font-bold">✓</span>Email
-                                    notifications</li>
-                                <li class="flex gap-3"><span class="text-green-500 font-bold">✓</span>Spam filtering
-                                </li>
-                                <li class="flex gap-3"><span class="text-green-500 font-bold">✓</span>Lead status
-                                    tracking</li>
-                                <li class="flex gap-3"><span class="text-green-500 font-bold">✓</span>No Formdata
-                                    branding</li>
-                                <li class="flex gap-3"><span class="text-green-500 font-bold">✓</span>Works with every
-                                    framework
-                                </li>
-                                <li class="flex gap-3 text-gray-400"><span>✕</span>File uploads</li>
-                                <!-- <li class="flex gap-3 text-gray-400"><span>✕</span>Slack, Zapier & Webhooks</li> -->
-                            </ul>
-                        </div>
-                        <div class="px-8 pb-8">
-                            <button onclick="handleCheckout('solo')" id="btn-solo"
-                                class="w-full py-3 rounded-xl border-2 border-red-600 text-red-600 font-semibold hover:bg-red-50 transition text-sm">
-                                Manage Solo
-                            </button>
-                        </div>
+                <!-- STUDIO -->
+                <div id="card-studio"
+                    class="relative bg-white rounded-2xl border {{ 'border-brand ring-1 ring-brand' if current_plan == 'studio' else 'border-gray-200' }} shadow-sm overflow-hidden flex flex-col justify-between">
+                    {% if current_plan == 'studio' %}
+                    <div
+                        class="absolute top-5 right-5 bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
+                        Current plan
                     </div>
-
-                    <!-- PRODUCT TIER CARD: STUDIO -->
-                    <div id="card-studio"
-                        class="relative bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col justify-between">
-                        <div
-                            class="absolute top-5 right-5 bg-red-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
-                            MOST POPULAR
-                        </div>
-                        <div>
-                            <div class="p-8">
-                                <p class="uppercase tracking-widest text-sm font-semibold text-red-600">Studio</p>
-                                <div class="mt-3 flex items-end gap-2">
-                                    <span id="price-studio" class="text-6xl font-extrabold text-gray-900">$10</span>
-                                    <span id="cycle-studio" class="text-gray-500 mb-2">/month</span>
-                                </div>
-                                <p class="mt-5 text-sm text-gray-500">Everything in Solo plus attachments and
-                                    integrations.</p>
-                            </div>
-                            <div class="border-t border-gray-100"></div>
-                            <ul class="p-8 space-y-4 text-sm text-gray-700">
-                                <li class="flex gap-3">
-                                    <span class="text-green-500 font-bold">✓</span>
-                                    <div>
-                                        <p class="font-medium">2,000 submissions / month</p>
-                                        <p class="text-xs text-gray-500">$1 per extra 200 submissions</p>
-                                    </div>
-                                </li>
-                                <li class="flex gap-3"><span class="text-green-500 font-bold">✓</span>Email
-                                    notifications</li>
-                                <li class="flex gap-3"><span class="text-green-500 font-bold">✓</span>Spam filtering
-                                </li>
-                                <li class="flex gap-3"><span class="text-green-500 font-bold">✓</span>Lead status
-                                    tracking</li>
-                                <li class="flex gap-3"><span class="text-green-500 font-bold">✓</span>No Formdata
-                                    branding</li>
-                                <li class="flex gap-3"><span class="text-green-500 font-bold">✓</span>Works with every
-                                    framework
-                                </li>
-                                <li class="flex gap-3">
-                                    <span class="text-green-500 font-bold">✓</span>
-                                    <div>
-                                        <p class="font-medium">File uploads</p>
-                                        <p class="text-xs text-gray-500">2GB included • $1/GB/month extra</p>
-                                    </div>
-                                </li>
-                                <!-- <li class="flex gap-3"><span class="text-green-500 font-bold">✓</span>Slack • Zapier •
-                                    Sheets •
-                                    Webhooks
-                                </li> -->
-                            </ul>
-                        </div>
-                        <div class="px-8 pb-8">
-                            <button onclick="handleCheckout('studio')" id="btn-studio"
-                                class="w-full py-3 rounded-xl bg-red-600 text-white font-semibold hover:bg-red-700 transition text-sm shadow-md">
-                                Upgrade to Studio
-                            </button>
-                        </div>
+                    {% else %}
+                    <div
+                        class="absolute top-5 right-5 bg-brand text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
+                        Most popular
                     </div>
-
+                    {% endif %}
+                    <div>
+                        <div class="p-8">
+                            <p class="uppercase tracking-widest text-sm font-semibold text-brand">Studio</p>
+                            <div class="mt-3 flex items-end gap-2">
+                                <span class="text-6xl font-extrabold text-gray-900">$10</span>
+                                <span class="text-gray-500 mb-2">/month</span>
+                            </div>
+                            <p class="mt-5 text-sm text-gray-500">Everything in Solo plus attachments and integrations.
+                            </p>
+                        </div>
+                        <div class="border-t border-gray-100"></div>
+                        <ul class="p-8 space-y-4 text-sm text-gray-700">
+                            <li class="flex gap-3">
+                                <span class="text-emerald-500 font-bold">✓</span>
+                                <div>
+                                    <p class="font-medium">2,000 submissions / month</p>
+                                    <p class="text-xs text-gray-500">$1 per extra 200 submissions</p>
+                                </div>
+                            </li>
+                            <li class="flex gap-3"><span class="text-emerald-500 font-bold">✓</span>Email notifications
+                            </li>
+                            <li class="flex gap-3"><span class="text-emerald-500 font-bold">✓</span>Spam filtering</li>
+                            <li class="flex gap-3"><span class="text-emerald-500 font-bold">✓</span>Lead status tracking
+                            </li>
+                            <li class="flex gap-3"><span class="text-emerald-500 font-bold">✓</span>No Formdata branding
+                            </li>
+                            <li class="flex gap-3"><span class="text-emerald-500 font-bold">✓</span>Works with every
+                                framework</li>
+                            <li class="flex gap-3">
+                                <span class="text-emerald-500 font-bold">✓</span>
+                                <div>
+                                    <p class="font-medium">File uploads</p>
+                                    <p class="text-xs text-gray-500">2GB included • $1/GB/month extra</p>
+                                </div>
+                            </li>
+                            <!-- <li class="flex gap-3"><span class="text-emerald-500 font-bold">✓</span>Slack • Zapier • Sheets • Webhooks</li> -->
+                        </ul>
+                    </div>
+                    <div class="px-8 pb-8">
+                        {% if current_plan == 'none' %}
+                        <button onclick="purchasePlan('studio', this)" id="btn-studio"
+                            class="w-full py-3 rounded-xl bg-brand text-white font-semibold hover:bg-brand/90 transition text-sm shadow-md">
+                            Choose Studio
+                        </button>
+                        {% elif current_plan == 'studio' %}
+                        <button disabled id="btn-studio"
+                            class="w-full py-3 rounded-xl bg-gray-100 text-gray-400 font-semibold cursor-not-allowed transition text-sm">
+                            ✓ Current plan
+                        </button>
+                        {% else %}
+                        <button onclick="changePlan('studio', this)" id="btn-studio"
+                            {{ 'disabled title="Resume your subscription to change plans"' | safe if
+                            subscription_status=='paused' }}
+                            class="w-full py-3 rounded-xl bg-brand text-white font-semibold hover:bg-brand/90 transition text-sm shadow-md disabled:opacity-50 disabled:cursor-not-allowed">
+                            Upgrade to Studio
+                        </button>
+                        {% endif %}
+                    </div>
                 </div>
 
             </div>
         </div>
+
+        <!-- Reusable confirmation dialog for consequential actions (pause / downgrade / cancel fallback) -->
+        <dialog id="confirmDialog"
+            class="w-full max-w-sm rounded-2xl border border-gray-200 p-0 shadow-xl [&::backdrop]:bg-gray-900/40">
+            <div class="p-6 space-y-4">
+                <h3 id="confirmTitle" class="text-base font-bold text-gray-900"></h3>
+                <p id="confirmDescription" class="text-sm text-gray-500"></p>
+                <div class="flex justify-end gap-3 pt-2">
+                    <button type="button" onclick="closeConfirmDialog()"
+                        class="px-4 py-2 rounded-lg text-sm font-semibold text-gray-600 hover:bg-gray-50 transition">
+                        Never mind
+                    </button>
+                    <button type="button" id="confirmActionButton"
+                        class="px-4 py-2 rounded-lg text-sm font-semibold text-white transition"></button>
+                </div>
+            </div>
+        </dialog>
+
+        <!--
+          Config for the billing script below. Rendered as JSON (not interpolated directly into
+          JS strings) so server values can never break out of a string literal — the classic
+          Jinja-in-a-<script> XSS footgun.
+        -->
+        {% set billing_config = {
+        'userId': user_id | default(''),
+        'subId': sub_id | default(''),
+        'currentPlan': current_plan,
+        'subscriptionStatus': subscription_status,
+        'paddleClientToken': paddle_client_token | default('test_925224efe3fbbe342e5bb6f88d5'),
+        'paddleEnvironment': paddle_environment | default('sandbox'),
+        } %}
+        <script type="application/json" id="billing-config">{{ billing_config | tojson }}</script>
 
     </div>
 </div>
@@ -307,304 +393,293 @@
 {% block script %}
 <script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
 <script>
-    /**
-     * Global Price ID Registry Matrix Mapping for Paddle Checkout Execution.
-     * Replace placeholders with your actual production Paddle price identifiers.
-     */
-    const PRICE_MAP = {
-        solo: {
-            monthly: "pri_01kwhvxjre9b0hbjvnfwhe69bp", // Your live Solo monthly token mapping
-            yearly: "pri_01kz9ppvrpnqa3eswxrscbkyf7"      // Assign your Paddle Yearly Solo price token here
-        },
-        studio: {
-            monthly: "pri_01kz9pnhgpaz1qkafrypwmm20b",   // Assign your Paddle Monthly Studio price token here
-            yearly: "pri_01kwhvyj0hfbj2919wqk70h15x"    // Your live Studio yearly token mapping
-        }
+    "use strict";
+
+    const CONFIG = JSON.parse(document.getElementById("billing-config").textContent);
+
+    // Monthly-only price catalog. Order is used to tell an upgrade from a downgrade.
+    const PLANS = {
+        solo: { label: "Solo", priceId: "pri_01kwhvxjre9b0hbjvnfwhe69bp", order: 1 },
+        studio: { label: "Studio", priceId: "pri_01kz9pnhgpaz1qkafrypwmm20b", order: 1 },
     };
 
     /**
-     * Direct Trigger to Update Hidden Checkbox State and Fire Recalculations
-     * @param {boolean} isYearly - Explicit state directive target
+     * Backend contract this page relies on (implement server-side — never call
+     * Paddle's secret API key from the browser):
+     *   POST /billing/checkout-transaction   -> { transactionId }              used for updating a card on file
+     *   POST /billing/change-plan            { plan }                          PATCHes the Paddle subscription's items
+     *   POST /billing/pause                                                    POST /subscriptions/{id}/pause
+     *   POST /billing/resume                                                   POST /subscriptions/{id}/resume
+     *   POST /billing/cancel                                                   fallback only, see cancelSubscription()
      */
-    function setBillingToggle(isYearly) {
-        const toggleElement = document.getElementById('billingToggle');
-        if (!toggleElement) return;
 
-        if (toggleElement.checked !== isYearly) {
-            toggleElement.checked = isYearly;
-            updateBillingDisplay();
-        }
-    }
-
-    /**
-     * Controller to Dynamically Toggle Calculations, Price Fields and Capsule Pill BG Classes
-     */
-    function updateBillingDisplay() {
-        const toggleElement = document.getElementById('billingToggle');
-        if (!toggleElement) return;
-
-        const isYearly = toggleElement.checked;
-
-        // Calculates a 20% discount structure upfront ($5 -> $4/mo billed annually)
-        const soloPrice = isYearly ? (5 * 12 * 0.8) : 5;
-        const studioPrice = isYearly ? (10 * 12 * 0.8) : 10;
-
-        // Write text transformations to the UI price labels
-        document.getElementById('price-solo').textContent = `$${soloPrice}`;
-        document.getElementById('price-studio').textContent = `$${studioPrice}`;
-
-        document.getElementById('cycle-solo').textContent = isYearly ? '/year' : '/month';
-        document.getElementById('cycle-studio').textContent = isYearly ? '/year' : '/month';
-
-        // Toggle Background/Text color configurations on the capsule selection pills
-        const btnMonthly = document.getElementById('btn-toggle-monthly');
-        const btnYearly = document.getElementById('btn-toggle-yearly');
-        const badgeDiscount = document.getElementById('badge-yearly-discount');
-
-        if (isYearly) {
-            // Activate Yearly Pill background styling
-            btnMonthly.className = "px-5 py-2 rounded-full text-s  text-gray-500 transition-all duration-200";
-            btnYearly.className = "px-5 py-2 rounded-full text-s  transition-all duration-200 shadow-sm bg-red-600 text-white flex items-center gap-1.5";
-
-            // Mute internal element discount badge colors to read beautifully on solid red
-            if (badgeDiscount) badgeDiscount.className = "text-[12px] bg-red-700 text-white px-1.5 py-0.5 rounded font-extrabold uppercase tracking-wider";
-        } else {
-            // Activate Monthly Pill background styling
-            btnMonthly.className = "px-5 py-2 rounded-full text-s  transition-all duration-200 shadow-sm bg-red-600 text-white";
-            btnYearly.className = "px-5 py-2 rounded-full text-s  text-gray-500 transition-all duration-200 flex items-center gap-1.5";
-
-            // Revert internal element discount badge colors to active light red accents
-            if (badgeDiscount) badgeDiscount.className = "text-[12px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded font-extrabold uppercase tracking-wider";
-        }
-
-        // Sync lower grid buttons to current lifecycle configuration markers
-        renderPlanActionButtons(isYearly ? 'yearly' : 'monthly');
-    }
-
-    /**
-     * State Transformer logic to alter button displays (Upgrade, Downgrade, Switch or Current)
-     */
-    function renderPlanActionButtons(selectedCycle) {
-        const toggleElement = document.getElementById('billingToggle');
-        if (!toggleElement) return;
-
-        const userPlan = toggleElement.getAttribute('data-current-plan') || 'solo';
-        const userCycle = toggleElement.getAttribute('data-current-cycle') || 'monthly';
-
-        const btnSolo = document.getElementById('btn-solo');
-        const btnStudio = document.getElementById('btn-studio');
-        const cardSolo = document.getElementById('card-solo');
-        const cardStudio = document.getElementById('card-studio');
-        const badgeSolo = document.getElementById('badge-solo');
-
-        // Reset elements to safe foundational design primitives
-        cardSolo.className = "rounded-3xl border bg-white shadow-sm p-8 hover:shadow-xl transition flex flex-col justify-between";
-        cardStudio.className = "rounded-3xl border bg-white shadow-sm p-8 hover:-translate-y-1 hover:shadow-2xl transition relative flex flex-col justify-between";
-
-        if (badgeSolo) badgeSolo.className = "hidden";
-
-        // CONDITION A: Logged in user matches Solo tier parameters
-        if (userPlan === 'solo') {
-            cardSolo.className = "rounded-3xl border-2 border-blue-500 bg-white shadow-sm p-8 hover:shadow-xl transition flex flex-col justify-between";
-            if (badgeSolo) badgeSolo.className = "bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-sm font-medium";
-
-            if (selectedCycle === userCycle) {
-                btnSolo.textContent = "✓ Current Plan";
-                btnSolo.disabled = true;
-                btnSolo.className = "mt-8 w-full h-14 rounded-xl bg-gray-100 text-gray-400 font-semibold cursor-not-allowed transition";
-            } else {
-                btnSolo.textContent = `Switch to ${selectedCycle === 'yearly' ? 'Yearly' : 'Monthly'}`;
-                btnSolo.disabled = false;
-                btnSolo.className = "mt-8 w-full h-14 rounded-xl border-2 border-red-600 text-red-600 font-semibold hover:bg-red-50 transition";
-            }
-
-            btnStudio.textContent = "Upgrade to Studio →";
-            btnStudio.className = "mt-8 w-full h-14 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold shadow-md transition";
-        }
-
-        // CONDITION B: Logged in user matches premium Studio tier parameters
-        else if (userPlan === 'studio') {
-            cardStudio.className = "rounded-3xl border-2 border-emerald-500 bg-white shadow-sm p-8 hover:shadow-xl transition relative flex flex-col justify-between";
-
-            btnSolo.textContent = "Downgrade Plan";
-            btnSolo.className = "mt-8 w-full h-14 rounded-xl border-2 border-gray-300 text-gray-600 font-semibold hover:bg-gray-50 transition";
-
-            if (selectedCycle === userCycle) {
-                btnStudio.textContent = "✓ Current Plan";
-                btnStudio.disabled = true;
-                btnStudio.className = "mt-8 w-full h-14 rounded-xl bg-gray-100 text-gray-400 font-semibold cursor-not-allowed transition";
-            } else {
-                btnStudio.textContent = `Switch to ${selectedCycle === 'yearly' ? 'Yearly' : 'Monthly'}`;
-                btnStudio.disabled = false;
-                btnStudio.className = "mt-8 w-full h-14 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold shadow-md transition";
-            }
-        }
-    }
-
-    /**
-       * Update payment method via a server-generated transaction ID.
-       * Your server should create a transaction via the Paddle API and return its ID.
-       * NOTE: Passing a raw `url` to Paddle.Checkout.open() is not a documented pattern.
-       */
-    async function handleUpdatePaymentMethod() {
+    // ---------------------------------------------------------------------
+    // Paddle setup — initialized once on load, reused by every action below.
+    // ---------------------------------------------------------------------
+    function initializePaddle() {
         if (!window.Paddle) {
-            showToast("Billing Error: Paddle SDK failed to initialize.");
+            showToast("Billing is temporarily unavailable. Please refresh the page.");
             return;
         }
-
-        try {
-            showToast("Opening secure billing profile...");
-
-            // Your server should return a Paddle transaction ID (e.g. txn_01abc...)
-            const response = await fetch('/update-payment', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' }
-            });
-
-            const data = await response.json();
-
-            if (data.transactionId) {
-                // Open checkout using a transaction ID — the documented approach
-                Paddle.Checkout.open({
-                    transactionId: data.transactionId
-                });
-            } else {
-                showToast("Failed to generate a valid billing session.");
-            }
-        } catch (err) {
-            console.error("Payment Update Error:", err);
-            showToast("Server error fetching billing credentials.");
-        }
-    }
-
-
-    /**
-     * Paddle Checkout Wrapper Execution Script
-     */
-    function handleCheckout(plan) {
-        const isYearly = document.getElementById('billingToggle').checked;
-        const cycle = isYearly ? 'yearly' : 'monthly';
-        const priceId = PRICE_MAP[plan][cycle];
-
-        if (priceId.includes('placeholder')) {
-            showToast(`Error: Please populate real price ID tokens for ${plan} (${cycle}) configuration.`);
-            return;
-        }
-
-        if (window.Paddle) {
-            Paddle.Checkout.open({
-                items: [{ priceId: priceId, quantity: 1 }],
-                customData: { user_id: "{{ user_id }}" },
-                settings: {
-                    displayMode: "overlay",
-                    successUrl: window.location.href
-                }
-            });
-        } else {
-            showToast("Billing Error: Paddle SDK failed to initialize.");
-        }
-    }
-
-
-    /**
-     * Client-Side Paddle Event Webhook Router Integration
-     */
-    function initializePaddleEventListeners() {
-        if (!window.Paddle) return;
-        Paddle.Environment.set("sandbox");
+        Paddle.Environment.set(CONFIG.paddleEnvironment);
         Paddle.Initialize({
-            token: "test_925224efe3fbbe342e5bb6f88d5",
+            token: CONFIG.paddleClientToken,
             checkout: {
-                settings: {
-                    displayMode: "overlay" // Set display mode here, not in Checkout.open()
-                }
+                settings: { displayMode: "overlay" },
             },
             eventCallback: function (event) {
                 if (!event.name) return;
-
-                // These are checkout-level events only — not subscription webhook events.
                 if (event.name === "checkout.completed") {
-                    showToast("Payment successful! Processing your subscription...");
-                    setTimeout(() => { window.location.reload(); }, 2500);
-                }
-
-                if (event.name === "checkout.closed") {
+                    showToast("Payment successful! Updating your account...");
+                    setTimeout(() => window.location.reload(), 2000);
+                } else if (event.name === "checkout.closed") {
                     showToast("Checkout closed.");
-                }
-
-                if (event.name === "checkout.payment.failed") {
-                    showToast("Payment failed! Please check your payment details.");
-                }
-            }
-        });
-    }
-    function cancelSubscription() {
-        Paddle.Environment.set("sandbox");
-        Paddle.Initialize({
-            token: "test_925224efe3fbbe342e5bb6f88d5",
-            checkout: {
-                settings: {
-                    displayMode: "overlay" // Set display mode here, not in Checkout.open()
+                } else if (event.name === "checkout.payment.failed") {
+                    showToast("Payment failed. Please check your payment details.");
                 }
             },
-        })
-        Paddle.Retain.initCancellationFlow({
-            subscriptionId: "{{sub_id}}",
-        })
-            .then((result) => {
-                if (result.status === "retained" || result.status === "aborted") {
-                    console.log("Customer retained!");
-                } else if (result.status === "error") {
-                    console.log("There was a problem starting the cancellation flow.");
-                } else {
-                    console.log("Customer proceeded with cancellation.");
-                }
-            });
+        });
     }
 
-    /**
-     * Utility Toast Notifier Window
-     */
+    // ---------------------------------------------------------------------
+    // Purchase — no existing subscription yet. Opens Paddle's checkout overlay.
+    // ---------------------------------------------------------------------
+    function purchasePlan(plan, triggerButton) {
+        if (!window.Paddle) {
+            showToast("Billing is temporarily unavailable. Please refresh the page.");
+            return;
+        }
+        Paddle.Checkout.open({
+            items: [{ priceId: PLANS[plan].priceId, quantity: 1 }],
+            customData: { user_id: CONFIG.userId, plan: plan },
+            settings: {
+                displayMode: "overlay",
+                successUrl: window.location.href,
+            },
+        });
+    }
+
+    // ---------------------------------------------------------------------
+    // Upgrade / downgrade — an existing subscription changes its items.
+    // Paddle recommends doing this as a server-side PATCH to the subscription
+    // (with proration), not a new checkout — so this calls our own backend.
+    // ---------------------------------------------------------------------
+    function changePlan(newPlan, triggerButton) {
+        const isDowngrade = PLANS[newPlan].order < PLANS[CONFIG.currentPlan].order;
+        if (isDowngrade) {
+            openConfirmDialog({
+                title: `Downgrade to ${PLANS[newPlan].label}?`,
+                description: "Your plan changes immediately and any unused time on your current plan is credited toward your next invoice.",
+                confirmLabel: "Downgrade",
+                confirmTone: "neutral",
+                onConfirm: () => submitPlanChange(newPlan, triggerButton),
+            });
+        } else {
+            submitPlanChange(newPlan, triggerButton);
+        }
+    }
+
+    async function submitPlanChange(newPlan, triggerButton) {
+        setButtonLoading(triggerButton, "Updating…");
+        try {
+            const res = await fetch("/billing/change-plan", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ plan: newPlan }),
+            });
+            if (!res.ok) throw new Error("Request failed");
+            showToast(`Plan updated to ${PLANS[newPlan].label}.`);
+            setTimeout(() => window.location.reload(), 1200);
+        } catch (err) {
+            console.error("Plan change error:", err);
+            showToast("Couldn't update your plan. Please try again.");
+            resetButton(triggerButton);
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // Update payment method — create a transaction server-side, then let
+    // Paddle's checkout overlay collect the new card against it.
+    // ---------------------------------------------------------------------
+    async function updatePaymentMethod(triggerButton) {
+        if (!window.Paddle) {
+            showToast("Billing is temporarily unavailable. Please refresh the page.");
+            return;
+        }
+        setButtonLoading(triggerButton, "Opening…");
+        try {
+            const res = await fetch("/billing/checkout-transaction", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+            });
+            const data = await res.json();
+            if (!res.ok || !data.transactionId) throw new Error("No transaction returned");
+
+            Paddle.Checkout.open({ transactionId: data.transactionId });
+            resetButton(triggerButton);
+        } catch (err) {
+            console.error("Update payment method error:", err);
+            showToast("Couldn't open the payment update flow. Please try again.");
+            resetButton(triggerButton);
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // Pause — not available through Paddle's client SDK or customer portal,
+    // so this always goes through our own backend.
+    // ---------------------------------------------------------------------
+    function pauseSubscription(triggerButton) {
+        openConfirmDialog({
+            title: "Pause your subscription?",
+            description: "You won't be billed while paused, but your forms will stop accepting new submissions until you resume.",
+            confirmLabel: "Pause subscription",
+            confirmTone: "caution",
+            onConfirm: () => submitPause(triggerButton),
+        });
+    }
+
+    async function submitPause(triggerButton) {
+        setButtonLoading(triggerButton, "Pausing…");
+        try {
+            const res = await fetch("/billing/pause", { method: "POST" });
+            if (!res.ok) throw new Error("Request failed");
+            showToast("Subscription paused.");
+            setTimeout(() => window.location.reload(), 1200);
+        } catch (err) {
+            console.error("Pause error:", err);
+            showToast("Couldn't pause your subscription. Please try again.");
+            resetButton(triggerButton);
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // Resume — low-risk/expected action, no confirmation needed.
+    // ---------------------------------------------------------------------
+    async function resumeSubscription(triggerButton) {
+        setButtonLoading(triggerButton, "Resuming…");
+        try {
+            const res = await fetch("/billing/resume", { method: "POST" });
+            if (!res.ok) throw new Error("Request failed");
+            showToast("Subscription resumed.");
+            setTimeout(() => window.location.reload(), 1200);
+        } catch (err) {
+            console.error("Resume error:", err);
+            showToast("Couldn't resume your subscription. Please try again.");
+            resetButton(triggerButton);
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // Cancel — prefer Paddle Retain's built-in cancellation flow (handles the
+    // cancellation with Paddle directly). Fall back to our own backend if the
+    // Retain add-on isn't enabled for this account.
+    // Note: Paddle.Initialize() may only be called once per page — Retain is
+    // wired up by the single initializePaddle() call on load, so we just call
+    // initCancellationFlow() here. Also, Retain only runs against live data;
+    // it won't appear in sandbox environments even with a valid token.
+    // ---------------------------------------------------------------------
+    function cancelSubscription(triggerButton) {
+        if (window.Paddle && window.Paddle.Retain) {
+            Paddle.Retain.initCancellationFlow({ subscriptionId: CONFIG.subId })
+                .then((result) => {
+                    if (result.status === "cancelled") {
+                        showToast("Your subscription has been canceled.");
+                        setTimeout(() => window.location.reload(), 1200);
+                    }
+                    // "retained" or "aborted" — customer stayed on the flow or backed out, nothing to do.
+                })
+                .catch((err) => {
+                    console.error("Retain cancellation flow error:", err);
+                    showToast("Couldn't open the cancellation flow. Please try again.");
+                });
+            return;
+        }
+
+        openConfirmDialog({
+            title: "Cancel your subscription?",
+            description: "You'll keep access until the end of your current billing period, then your forms will stop accepting submissions.",
+            confirmLabel: "Cancel subscription",
+            confirmTone: "danger",
+            onConfirm: () => submitCancel(triggerButton),
+        });
+    }
+
+    async function submitCancel(triggerButton) {
+        setButtonLoading(triggerButton, "Canceling…");
+        try {
+            const res = await fetch("/billing/cancel", { method: "POST" });
+            if (!res.ok) throw new Error("Request failed");
+            showToast("Your subscription has been canceled.");
+            setTimeout(() => window.location.reload(), 1200);
+        } catch (err) {
+            console.error("Cancel error:", err);
+            showToast("Couldn't cancel your subscription. Please try again.");
+            resetButton(triggerButton);
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // Small reusable helpers: confirmation dialog + button loading state.
+    // ---------------------------------------------------------------------
+    let pendingConfirmAction = null;
+
+    function openConfirmDialog({ title, description, confirmLabel, confirmTone = "danger", onConfirm }) {
+        const toneClasses = {
+            danger: "bg-red-600 hover:bg-red-700",
+            caution: "bg-amber-600 hover:bg-amber-700",
+            neutral: "bg-gray-900 hover:bg-gray-800",
+        };
+
+        document.getElementById("confirmTitle").textContent = title;
+        document.getElementById("confirmDescription").textContent = description;
+
+        const actionBtn = document.getElementById("confirmActionButton");
+        actionBtn.textContent = confirmLabel;
+        actionBtn.className = `px-4 py-2 rounded-lg text-sm font-semibold text-white transition ${toneClasses[confirmTone] || toneClasses.danger}`;
+
+        pendingConfirmAction = onConfirm;
+        document.getElementById("confirmDialog").showModal();
+    }
+
+    function closeConfirmDialog() {
+        document.getElementById("confirmDialog").close();
+        pendingConfirmAction = null;
+    }
+
+    function setButtonLoading(button, loadingText) {
+        if (!button) return;
+        button.dataset.originalText = button.textContent;
+        button.textContent = loadingText;
+        button.disabled = true;
+        button.classList.add("opacity-60", "cursor-not-allowed");
+    }
+
+    function resetButton(button) {
+        if (!button) return;
+        button.textContent = button.dataset.originalText || button.textContent;
+        button.disabled = false;
+        button.classList.remove("opacity-60", "cursor-not-allowed");
+    }
+
     function showToast(msg) {
-        const t = document.getElementById('toast');
+        const t = document.getElementById("toast");
         if (!t) return;
         t.textContent = msg;
-        t.classList.remove('opacity-0', 'translate-y-2');
-        t.classList.add('opacity-100', 'translate-y-0');
+        t.classList.remove("opacity-0", "translate-y-2");
+        t.classList.add("opacity-100", "translate-y-0");
         setTimeout(() => {
-            t.classList.add('opacity-0', 'translate-y-2');
-            t.classList.remove('opacity-100', 'translate-y-0');
+            t.classList.add("opacity-0", "translate-y-2");
+            t.classList.remove("opacity-100", "translate-y-0");
         }, 4000);
     }
 
-    /**
-     * Lifecycle Bootstrap Execution Hook
-     */
     document.addEventListener("DOMContentLoaded", () => {
-        const toggleElement = document.getElementById('billingToggle');
-        if (!toggleElement) return;
-
-        const currentCycle = toggleElement.getAttribute('data-current-cycle') || 'monthly';
-
-        toggleElement.checked = (currentCycle === 'yearly');
-        updateBillingDisplay();
-        initializePaddleEventListeners();
+        initializePaddle();
+        document.getElementById("confirmActionButton").addEventListener("click", () => {
+            const action = pendingConfirmAction;
+            closeConfirmDialog();
+            if (action) action();
+        });
     });
 </script>
-<!-- <script type="text/javascript">
-    function cancelSubscription() {
-        Paddle.Retain.initCancellationFlow({
-            subscriptionId: "{{sub_id}}",
-        })
-            .then((result) => {
-                if (result.status === "retained" || result.status === "aborted") {
-                    console.log("Customer retained!");
-                } else if (result.status === "error") {
-                    console.log("There was a problem starting the cancellation flow.");
-                } else {
-                    console.log("Customer proceeded with cancellation.");
-                }
-            });
-    }
-</script> -->
 {% endblock %}

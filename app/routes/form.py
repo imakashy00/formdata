@@ -744,6 +744,54 @@ async def handle_get_project_form_template(
         log.exception(f"Something went wrong while fetching form details: {e}")
 
 
+@form_router.post("/{project_id}/forms/{form_id}/template", response_class=HTMLResponse)
+async def handle_update_form_template(
+    request: Request,
+    form_id: str,
+    project_id: str,
+    htmx_req: Annotated[bool, Depends(is_htmx)],
+    subject: Annotated[str, Form()],
+    body: Annotated[str, Form()],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(get_current_user)],
+):
+    try:
+        result = await db.execute(
+            select(FormDB).where(FormDB.id == form_id, FormDB.project_id == project_id)
+        )
+        form = result.scalar_one_or_none()
+        if not form:
+            raise HTTPException(status_code=404, detail="Form not found.")
+
+        # Persist user custom values
+        form.customer_subject = subject
+        form.customer_body = body
+
+        await db.commit()
+        if htmx_req:
+            template = "form_template.html"
+        else:
+            template = "form.html"
+
+        context = {
+            "request": request,
+            "form": form,
+            "active_tab": "templates",
+            "active_tab_template": TAB_TEMPLATES[FormTab.templates],
+            "tab_labels": TAB_LABELS,
+            "email": user.email,
+            "name": user.name,
+            "user_id": user.id,
+            "page": "projects",
+        }
+        return temp.TemplateResponse(request, template, context)
+
+    except SQLAlchemyError as e:
+        await db.rollback()
+        log.exception(f"Failed to update form template: {e}")
+        raise HTTPException(status_code=500, detail="Could not save template.")
+
+
 @form_router.get("/{project_id}/forms/{form_id}/export")
 async def export_form_submission_excel(
     db: Annotated[AsyncSession, Depends(get_db)],
