@@ -2,15 +2,16 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
-from app.core.settings import settings
-from app.models.user import Subscription, User
-from app.schemas.user import SubscriptionStatus
-from app.services.bill_calculation import bill_overage, calculate_overage
 from fastapi import HTTPException
 from fastapi import status as FastApiStatus
 from loguru import logger as log
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.settings import settings
+from app.models.user import Subscription, User
+from app.schemas.user import SubscriptionStatus
+from app.services.bill_calculation import bill_overage, calculate_overage
 
 headers = {
     "Authorization": f"Bearer {settings.PADDLE_API_KEY!s}",
@@ -22,10 +23,8 @@ class SubscriptionNotFoundError(Exception):
     """Raised when a subscription does not exist."""
 
 
-
 class InvalidWebhookPayloadError(Exception):
     """Raised when InvalidWebhookPayloadError occurs."""
-
 
 
 SYNC_EVENTS = {
@@ -298,7 +297,7 @@ async def handle_subscription_sync(payload: dict, db: AsyncSession):
         # Extract values from the incoming Paddle payload
         data = SubscriptionWebhook.from_payload(payload)
         ctx = await resolve_subscription_context(data, db)
-        
+
         if ctx.subscription is not None and _period_rolled_over(ctx.subscription, data):
             overage = calculate_overage(ctx.subscription)
             billed_ok = await bill_overage(ctx.subscription.subscription_id, overage)

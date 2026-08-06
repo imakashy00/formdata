@@ -3,19 +3,21 @@ import hmac
 from typing import Annotated
 
 import httpx
-from app.core.db import get_db
-from app.core.settings import settings
-from app.core.templates import temp
-from app.models.user import ProcessedWebhook, Subscription
-from app.schemas.user import DBUser, SubscriptionStatus
-from app.services.dependencies import current_user
-from app.services.subscription import handle_paddle_webhook
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from loguru import logger as log
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.db import get_db
+from app.core.settings import settings
+from app.core.templates import temp
+from app.models.user import ProcessedWebhook, Subscription, User
+from app.routes.page import get_current_user
+from app.schemas.user import DBUser, SubscriptionStatus
+from app.services.dependencies import current_user
+from app.services.subscription import handle_paddle_webhook
 
 user_router = APIRouter()
 
@@ -191,3 +193,46 @@ async def process_webhook(
         await db.rollback()
         log.exception(f"Webhook processing crashed for event {webhook_data.event_id}")
         raise HTTPException(status_code=400, detail=f"Invalid payload schema: {e}")
+
+
+@user_router.post("/update-payment")
+async def update_payment_url(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    # Retrieve the subscription ID for the logged-in user
+    # Replace this with however you store/retrieve the user's Paddle subscription ID
+    sub_query = select(Subscription).filter(Subscription.user_id == user.id)
+    result = await db.execute(sub_query)
+    subscription = result.scalar_one_or_none()
+
+    if not subscription:
+        raise HTTPException(status_code=400, detail="No active subscription found.")
+
+
+    headers = {
+        "Authorization": f"Bearer {settings.PADDLE_API_KEY}",
+        "Content-Type": "application/json",
+    }
+
+    async with httpx.AsyncClient() as client:
+        paddle_response = await client.get(
+            f"{settings.PADDLE_BASE_URL}/subscriptions/{subscription.subscription_id}/update-payment-method-transaction",
+            headers=headers,
+        )
+    print(f"paddle_response==>{paddle_response.content}")
+    if paddle_response.status_code != 200:
+        raise HTTPException(
+            status_code=paddle_response.status_code,
+            detail="Failed to fetch payment method update transaction from Paddle.",
+        )
+
+    data = paddle_response.json()
+
+
+    # Return the transaction ID to the frontend
+    # The frontend will pass this to Paddle.Checkout.open({ transactionId: ... })
+    transaction_id = data["data"]["id"]
+
+    return {"transactionId": transaction_id}
