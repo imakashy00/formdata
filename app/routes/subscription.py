@@ -4,7 +4,7 @@ from typing import Annotated
 
 import httpx
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import JSONResponse
 from loguru import logger as log
 from pydantic import BaseModel
 from sqlalchemy import select
@@ -12,11 +12,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_db
 from app.core.settings import settings
-from app.core.templates import temp
 from app.models.user import ProcessedWebhook, Subscription, User
 from app.routes.page import get_current_user
-from app.schemas.user import DBUser, SubscriptionStatus
-from app.services.dependencies import current_user
 from app.services.subscription import handle_paddle_webhook
 
 user_router = APIRouter()
@@ -26,102 +23,6 @@ headers = {
     "Content-Type": "application/json",
     "Accept": "application/json",
 }
-
-
-@user_router.get("/modal", response_class=HTMLResponse)
-async def subscription_modal(
-    request: Request,
-    db: AsyncSession = Depends(get_db),
-    user: DBUser = Depends(current_user),
-):
-    result = await db.execute(
-        select(Subscription).filter(Subscription.user_id == user.id)
-    )
-    subs = result.scalars().first()
-    is_active = bool(subs and subs.status == SubscriptionStatus.ACTIVE)
-    template = (
-        "components/manage_modal.html" if is_active else "components/pricing_modal.html"
-    )
-    return temp.TemplateResponse(
-        request,
-        template,
-        {
-            "request": request,
-            "email": user.email,
-            "user_id": user.id,
-            # pricing values only used by pricing modal
-            "monthly_price_id": settings.PADDLE_PRICE_ID_SOLO,
-            "yearly_price_id": settings.PADDLE_PRICE_ID_STUDIO,
-            "monthly_amount": 1900,
-            "yearly_amount": 19900,
-            "currency": "USD",
-            "features": [
-                "Unlimited AI-generated notes",
-                "Folder organization",
-                "Rich-text editor",
-                "AI chatbot",
-                "Priority support & PDF export",
-            ],
-            # manage modal extras
-            "current_period_end": getattr(subs, "current_period_end", None),
-        },
-    )
-
-
-class CancelReason(BaseModel):
-    reason: str
-
-
-@user_router.post("/subscription/cancel")
-async def cancel_subscription_req(
-    reason: CancelReason,
-    db: AsyncSession = Depends(get_db),
-    user: DBUser = Depends(current_user),
-):
-    if not settings.PADDLE_API_KEY:
-        raise HTTPException(status_code=500, detail="Paddle API key not configured")
-
-    result = await db.execute(
-        select(Subscription).filter(Subscription.user_id == user.id)
-    )
-    subs = result.scalars().first()
-    if not subs or not subs.subscription_id:
-        raise HTTPException(status_code=404, detail="Active subscription not found")
-    if subs.status == SubscriptionStatus.CANCELED:
-        raise HTTPException(
-            status_code=400,
-            detail="Subscription already canceled",
-        )
-
-    url = f"{settings.PADDLE_BASE_URL}/subscriptions/{subs.subscription_id}/cancel"
-
-    try:
-        async with httpx.AsyncClient() as client:
-            response = await client.post(url, headers=headers)
-
-        if response.status_code not in [200, 201]:
-            # log.error( f"Paddle cancel failed: " f"{response.status_code} " f"{response.text}" )
-            raise HTTPException(
-                status_code=response.status_code,
-                detail="Failed to cancel subscription",
-            )
-        else:
-            return JSONResponse(
-                status_code=200,
-                content={
-                    "success": True,
-                    "message": (
-                        "Subscription cancellation scheduled "
-                        "for the end of the billing period."
-                    ),
-                },
-            )
-
-    except Exception as e:
-        print(f"❌ Error canceling subscription: {e}")
-        raise HTTPException(
-            status_code=500, detail="Error requesting cancellation from Paddle"
-        )
 
 
 class Webhook(BaseModel):
@@ -159,7 +60,7 @@ def verify_signature(sig_header: str, raw_body: bytes) -> bool:
 @user_router.post("/webhook/paddle")
 async def process_webhook(
     request: Request,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
     paddle_signature: Annotated[str | None, Header()] = None,
 ):
     if not settings.PADDLE_WEBHOOK_SECRET:
@@ -195,44 +96,83 @@ async def process_webhook(
         raise HTTPException(status_code=400, detail=f"Invalid payload schema: {e}")
 
 
-@user_router.post("/update-payment")
-async def update_payment_url(
+@user_router.post("/billing/pause")
+async def handle_billing_pause(
     request: Request,
-    db: AsyncSession = Depends(get_db),
-    user: User = Depends(get_current_user),
+    user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
-    # Retrieve the subscription ID for the logged-in user
-    # Replace this with however you store/retrieve the user's Paddle subscription ID
-    sub_query = select(Subscription).filter(Subscription.user_id == user.id)
-    result = await db.execute(sub_query)
-    subscription = result.scalar_one_or_none()
-
+    sub_query = select(Subscription).where(Subscription.user_id == user.id)
+    query_result = await db.execute(sub_query)
+    subscription = query_result.scalar_one_or_none()
     if not subscription:
-        raise HTTPException(status_code=400, detail="No active subscription found.")
-
+        raise HTTPException(404, "Subscription not found")
+    SUBSCRIPTION_ID = subscription.subscription_id
+    url = f"{settings.PADDLE_BASE_URL}/subscriptions/{SUBSCRIPTION_ID}/pause"
 
     headers = {
         "Authorization": f"Bearer {settings.PADDLE_API_KEY}",
         "Content-Type": "application/json",
     }
+    payload = {
+        "effective_from": "next_billing_period"  # or "immediately"
+    }
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(url, headers=headers, json=payload)
 
-    async with httpx.AsyncClient() as client:
-        paddle_response = await client.get(
-            f"{settings.PADDLE_BASE_URL}/subscriptions/{subscription.subscription_id}/update-payment-method-transaction",
-            headers=headers,
+            # Raise an exception for HTTP errors (4xx or 5xx)
+            response.raise_for_status()
+    except httpx.HTTPStatusError as e:
+        log.error(
+            f"Paddle returned an error pausing subscription for user {user.id}: {e.response.text}"
         )
-    print(f"paddle_response==>{paddle_response.content}")
-    if paddle_response.status_code != 200:
         raise HTTPException(
-            status_code=paddle_response.status_code,
-            detail="Failed to fetch payment method update transaction from Paddle.",
+            status_code=502, detail="Failed to pause subscription with Paddle"
         )
+    except Exception as e:
+        log.error(f"Unexpected error pausing subscription for user {user.id}: {e}")
+        raise HTTPException(status_code=500, detail="Unexpected error")
 
-    data = paddle_response.json()
+    return {"message": "Subscription paused successfully"}
 
 
-    # Return the transaction ID to the frontend
-    # The frontend will pass this to Paddle.Checkout.open({ transactionId: ... })
-    transaction_id = data["data"]["id"]
+@user_router.post("/billing/resume")
+async def handle_billing_resume(
+    request: Request,
+    user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    sub_query = select(Subscription).where(Subscription.user_id == user.id)
+    query_result = await db.execute(sub_query)
+    subscription = query_result.scalar_one_or_none()
+    if not subscription:
+        raise HTTPException(404, "Subscription not found")
 
-    return {"transactionId": transaction_id}
+    SUBSCRIPTION_ID = subscription.subscription_id
+    url = f"{settings.BASE_URL}/subscriptions/{SUBSCRIPTION_ID}/resume"
+    headers = {
+        "Authorization": f"Bearer {settings.PADDLE_API_KEY}",
+        "Content-Type": "application/json",
+    }
+    payload = {
+        "effective_from": "next_billing_period"  # or "immediately"
+    }
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(url, headers=headers, json=payload)
+
+            # Raise an exception for HTTP errors (4xx or 5xx)
+            response.raise_for_status()
+    except httpx.HTTPStatusError as e:
+        log.error(
+            f"Paddle returned an error pausing subscription for user {user.id}: {e.response.text}"
+        )
+        raise HTTPException(
+            status_code=502, detail="Failed to pause subscription with Paddle"
+        )
+    except Exception as e:
+        log.error(f"Unexpected error pausing subscription for user {user.id}: {e}")
+        raise HTTPException(status_code=500, detail="Unexpected error")
+
+    return {"message": "Subscription paused successfully"}

@@ -7,14 +7,13 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     ENV: Literal["development", "production"] = "development"
-    BASE_URL: AnyHttpUrl   # eg. https://ytnotes.co
-
+    BASE_URL: AnyHttpUrl  # eg. https://ytnotes.co
 
     SECRET: str
 
     DATABASE_URL: PostgresDsn
-    DB_POOL_SIZE: int 
-    DB_MAX_OVERFLOW: int 
+    DB_POOL_SIZE: int
+    DB_MAX_OVERFLOW: int
 
     # JWT
     JWT_ALGO: str
@@ -27,7 +26,7 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_SECRET: str
 
     # Third party
-    REDIS_URL: RedisDsn 
+    REDIS_URL: RedisDsn
 
     # Paddle
     PADDLE_API_KEY: str
@@ -35,28 +34,34 @@ class Settings(BaseSettings):
     PADDLE_BASE_URL: str = "https://sandbox-api.paddle.com"
     PADDLE_PRICE_ID_SOLO: str
     PADDLE_PRICE_ID_STUDIO: str
+    PADDLE_CLIENT_TOKEN: str
+    PADDLE_ENVIRONMENT: str
 
-    PADDLE_PRICE_ID_EXTRA_SUBMISSIONS: str   # pri_xxx — $1 per 200-submission block
-    PADDLE_PRICE_ID_EXTRA_STORAGE: str       # pri_xxx — $1 per GB
+    PADDLE_PRICE_ID_EXTRA_SUBMISSIONS: str  # pri_xxx — $1 per 200-submission block
+    PADDLE_PRICE_ID_EXTRA_STORAGE: str  # pri_xxx — $1 per GB
 
     # Rate Limiting
     RATE_LIMIT_ENABLED: bool = True
     RATE_LIMIT_PER_MINUTE: int = 100
 
     # Altcha
-    SESSION_SECRET:str
-    ALTCHA_HMAC_SECRET:str
-    ALTCHA_HMAC_KEY_SECRET:str
+    SESSION_SECRET: str
+    ALTCHA_HMAC_SECRET: str
+    ALTCHA_HMAC_KEY_SECRET: str
 
-    MIN_SUBMIT_SECONDS:float = 1.5  # reject submissions faster than a human could type
-    SESSION_TOKEN_MAX_AGE:int = 60 * 30  # sessions older than this are stale, not just "fast"
-    ALTCHA_CHALLENGE_EXPIRES:int = 120 # seconds a challenge stays valid
+    MIN_SUBMIT_SECONDS: float = 1.5  # reject submissions faster than a human could type
+    SESSION_TOKEN_MAX_AGE: int = (
+        60 * 30
+    )  # sessions older than this are stale, not just "fast"
+    ALTCHA_CHALLENGE_EXPIRES: int = 120  # seconds a challenge stays valid
 
-    RATE_LIMIT_IP:tuple = (20, 60)  # 20 requests / 60s per IP across all forms
-    RATE_LIMIT_FORM:tuple = (200, 60)  # 200 requests / 60s per form, isolates noisy tenants
+    RATE_LIMIT_IP: tuple = (20, 60)  # 20 requests / 60s per IP across all forms
+    RATE_LIMIT_FORM: tuple = (
+        200,
+        60,
+    )  # 200 requests / 60s per form, isolates noisy tenants
 
-    HONEYPOT_FIELD:str = "_hp"
-    
+    HONEYPOT_FIELD: str = "_hp"
 
     @property
     def SECURE_COOKIES(self) -> bool:
@@ -76,6 +81,3 @@ class Settings(BaseSettings):
 
 
 settings = Settings()  # type: ignore
-
-
-

@@ -5,17 +5,6 @@
 
 {% block content %}
 
-{#
-── Color system (predefined, reused everywhere below) ──────────────────
-brand → primary actions: purchase, upgrade, resume (bg-brand / text-brand)
-emerald → positive status: active, current plan
-amber → caution: paused, downgrade-adjacent warnings
-red → destructive only: cancel, delete account, payment failed
-gray → neutral: disabled, secondary, current-plan lock state
-Recipe for a soft "pill" button of a given tone:
-bg-{tone}-50 text-{tone}-600 border border-{tone}-200 hover:bg-{tone}-100
-#}
-
 {% set plan_display = {'solo': ('Solo', 5), 'studio': ('Studio', 10)} %}
 {% set current_plan = current_plan | default('none') %}
 {% set subscription_status = subscription_status | default('none') %}
@@ -64,27 +53,34 @@ bg-{tone}-50 text-{tone}-600 border border-{tone}-200 hover:bg-{tone}-100
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                {% set submissions_bar_tone = 'bg-red-500' if quota_percentage >= 100 else ('bg-amber-500' if
+                quota_percentage >= 80 else 'bg-brand') %}
                 <!-- Form Submissions -->
                 <div class="bg-white rounded-xl border border-gray-100 shadow-sm">
                     <div class="px-5 py-4 border-b border-gray-50 flex justify-between items-center">
                         <p class="text-sm font-semibold text-gray-900">Form Submissions</p>
-                        <span class="text-xs text-emerald-700 bg-emerald-50 font-medium px-2 py-0.5 rounded-full">+12%
-                            this week</span>
+                        <span class="text-xs text-gray-400 font-medium">This month</span>
                     </div>
                     <div class="p-5">
-                        <div class="flex gap-6 mb-6">
+                        <div class="flex items-end justify-between mb-3">
                             <div>
-                                <p class="text-xs font-medium text-gray-400">Total Submissions</p>
-                                <p class="text-xl font-bold text-gray-900">1,248</p>
+                                <p class="text-xs font-medium text-gray-400">Used this month</p>
+                                <p class="text-xl font-bold text-gray-900">{{ '{:,}'.format(quota_usage) }} <span
+                                        class="text-sm font-medium text-gray-400">/ {{ '{:,}'.format(quota_limit)
+                                        }}</span></p>
                             </div>
-                            <div>
-                                <p class="text-xs font-medium text-gray-400">Spam Blocked</p>
-                                <p class="text-xl font-bold text-gray-900">142</p>
-                            </div>
+                            <span
+                                class="text-xs font-semibold {{ 'text-red-600' if quota_percentage >= 100 else ('text-amber-600' if quota_percentage >= 80 else 'text-gray-500') }}">{{
+                                quota_percentage }}%</span>
                         </div>
                         <div class="w-full bg-gray-100 h-2.5 rounded-full overflow-hidden">
-                            <div class="bg-brand h-full rounded-full" style="width: 60%"></div>
+                            <div class="{{ submissions_bar_tone }} h-full rounded-full transition-all"
+                                style="width: {{ quota_percentage }}%"></div>
                         </div>
+                        {% if quota_percentage >= 100 %}
+                        <p class="text-xs text-red-600 mt-2">You've hit this month's limit — new submissions won't be
+                            accepted until it resets or you upgrade.</p>
+                        {% endif %}
                     </div>
                 </div>
 
@@ -94,17 +90,27 @@ bg-{tone}-50 text-{tone}-600 border border-{tone}-200 hover:bg-{tone}-100
                         <p class="text-sm font-semibold text-gray-900">Account Storage</p>
                     </div>
                     <div class="p-5 space-y-4">
+                        {% if storage_limit_bytes and storage_limit_bytes > 0 %}
+                        {% set storage_bar_tone = 'bg-red-500' if storage_percentage >= 100 else ('bg-amber-500' if
+                        storage_percentage >= 80 else 'bg-brand') %}
                         <div class="flex justify-between items-end">
                             <div>
-                                <p class="text-2xl font-bold text-gray-900">1.2 GB</p>
-                                <p class="text-xs text-gray-500 mt-0.5">Used of 2.0 GB limit</p>
+                                <p class="text-2xl font-bold text-gray-900">{{ storage_used_display }}</p>
+                                <p class="text-xs text-gray-500 mt-0.5">Used of {{ storage_limit_display }} limit</p>
                             </div>
-                            <span class="text-xs font-semibold text-brand bg-brand/10 px-2 py-1 rounded-md">60%
-                                Used</span>
+                            <span
+                                class="text-xs font-semibold {{ 'text-red-600 bg-red-50' if storage_percentage >= 100 else ('text-amber-600 bg-amber-50' if storage_percentage >= 80 else 'text-brand bg-brand-light') }} px-2 py-1 rounded-md">{{
+                                storage_percentage }}% used</span>
                         </div>
                         <div class="w-full bg-gray-100 h-2.5 rounded-full overflow-hidden">
-                            <div class="bg-brand h-full rounded-full" style="width: 60%"></div>
+                            <div class="{{ storage_bar_tone }} h-full rounded-full transition-all"
+                                style="width: {{ storage_percentage }}%"></div>
                         </div>
+                        {% else %}
+                        <p class="text-sm text-gray-500">File uploads aren't included on your plan.</p>
+                        <p class="text-xs text-gray-400">Upgrade to Studio for 2GB of storage, plus attachments and file
+                            uploads on your forms.</p>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -118,11 +124,31 @@ bg-{tone}-50 text-{tone}-600 border border-{tone}-200 hover:bg-{tone}-100
                 <p class="mt-1 text-sm text-gray-500">Manage your plan, payment method, and subscription status.</p>
             </div>
 
-            <!-- Status banner: exactly one of these four states renders -->
-            {% if current_plan == 'none' or subscription_status == 'none' %}
+            <!-- Status banner: exactly one of these states renders -->
+            {% if subscription_status == 'none' %}
             <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
                 <p class="text-lg font-bold text-gray-900">No active plan</p>
                 <p class="text-sm text-gray-500 mt-1">Choose Solo or Studio below to start collecting submissions.</p>
+            </div>
+
+            {% elif subscription_status == 'trial' %}
+            <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+                <div class="flex items-center gap-2.5">
+                    <span class="text-2xl font-extrabold text-gray-900">
+                        {% if current_plan != 'none' %}{{ plan_display[current_plan][0] }}{% else %}Free{% endif %}
+                        trial
+                    </span>
+                    <span
+                        class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-brand-light text-brand">Trial</span>
+                </div>
+                <p class="text-sm text-gray-500 mt-1">
+                    {% if trial_days_left is not none and trial_days_left > 0 %}
+                    {{ trial_days_left }} day{{ 's' if trial_days_left != 1 else '' }} left — choose a plan below before
+                    your trial ends.
+                    {% else %}
+                    Your trial has ended — choose a plan below to keep your forms active.
+                    {% endif %}
+                </p>
             </div>
 
             {% else %}
@@ -142,6 +168,9 @@ bg-{tone}-50 text-{tone}-600 border border-{tone}-200 hover:bg-{tone}-100
                             <span
                                 class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">Payment
                                 failed</span>
+                            {% elif subscription_status == 'canceled' %}
+                            <span
+                                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">Canceled</span>
                             {% else %}
                             <span
                                 class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">{{
@@ -158,6 +187,9 @@ bg-{tone}-50 text-{tone}-600 border border-{tone}-200 hover:bg-{tone}-100
                         {% elif subscription_status == 'past_due' %}
                         <p class="text-sm text-red-600">We couldn't process your last payment. Update your payment
                             method to keep your plan active.</p>
+                        {% elif subscription_status == 'canceled' %}
+                        <p class="text-sm text-gray-500">{% if renews_at %}Access ends {{ renews_at }}.{% else %}Your
+                            plan has been canceled.{% endif %} Choose a plan below to resubscribe.</p>
                         {% endif %}
                     </div>
 
@@ -182,16 +214,17 @@ bg-{tone}-50 text-{tone}-600 border border-{tone}-200 hover:bg-{tone}-100
                     </div>
                 </div>
 
-                <!-- Action row: which buttons show depends on subscription_status -->
+                <!-- Action row: only relevant while there's a live subscription to manage -->
+                {% if subscription_status in ['active', 'paused', 'past_due'] %}
                 <div class="mt-6 pt-5 border-t border-gray-100 flex flex-wrap items-center gap-3">
-                    <button onclick="updatePaymentMethod(this)"
+                    <a href="{{ paddle_link.update_payment_url }}" target="_blank"
                         class="px-4 py-2 rounded-lg border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition">
                         Update payment method
-                    </button>
+                    </a>
 
                     {% if subscription_status == 'paused' %}
                     <button onclick="resumeSubscription(this)"
-                        class="px-4 py-2 rounded-lg bg-brand text-white text-sm font-semibold hover:bg-brand/90 transition">
+                        class="px-4 py-2 rounded-lg bg-brand text-white text-sm font-semibold hover:bg-brand-dark transition">
                         Resume subscription
                     </button>
                     {% elif subscription_status == 'active' %}
@@ -201,21 +234,23 @@ bg-{tone}-50 text-{tone}-600 border border-{tone}-200 hover:bg-{tone}-100
                     </button>
                     {% endif %}
 
-                    <button onclick="cancelSubscription(this)"
+                    <a href="{{ paddle_link.cancel_url }}" target="_blank"
                         class="px-4 py-2 rounded-lg bg-red-50 text-red-600 border border-red-200 text-sm font-semibold hover:bg-red-100 transition ml-auto">
                         Cancel subscription
-                    </button>
+                    </a>
                 </div>
+                {% endif %}
             </div>
             {% endif %}
 
             <!-- Plan cards (monthly only) -->
+            {% set needs_purchase = subscription_status in ['none', 'trial', 'canceled'] %}
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
                 <!-- SOLO -->
                 <div id="card-solo"
-                    class="relative bg-white rounded-2xl border {{ 'border-brand ring-1 ring-brand' if current_plan == 'solo' else 'border-gray-200' }} shadow-sm overflow-hidden flex flex-col justify-between">
-                    {% if current_plan == 'solo' %}
+                    class="relative bg-white rounded-2xl border {{ 'border-brand ring-1 ring-brand' if (current_plan == 'solo' and not needs_purchase) else 'border-gray-200' }} shadow-sm overflow-hidden flex flex-col justify-between">
+                    {% if current_plan == 'solo' and not needs_purchase %}
                     <div
                         class="absolute top-5 right-5 bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
                         Current plan
@@ -254,9 +289,9 @@ bg-{tone}-50 text-{tone}-600 border border-{tone}-200 hover:bg-{tone}-100
                         </ul>
                     </div>
                     <div class="px-8 pb-8">
-                        {% if current_plan == 'none' %}
+                        {% if needs_purchase %}
                         <button onclick="purchasePlan('solo', this)" id="btn-solo"
-                            class="w-full py-3 rounded-xl border-2 border-brand text-brand font-semibold hover:bg-brand/5 transition text-sm">
+                            class="w-full py-3 rounded-xl border-2 border-brand text-brand font-semibold hover:bg-brand-light transition text-sm">
                             Choose Solo
                         </button>
                         {% elif current_plan == 'solo' %}
@@ -277,8 +312,8 @@ bg-{tone}-50 text-{tone}-600 border border-{tone}-200 hover:bg-{tone}-100
 
                 <!-- STUDIO -->
                 <div id="card-studio"
-                    class="relative bg-white rounded-2xl border {{ 'border-brand ring-1 ring-brand' if current_plan == 'studio' else 'border-gray-200' }} shadow-sm overflow-hidden flex flex-col justify-between">
-                    {% if current_plan == 'studio' %}
+                    class="relative bg-white rounded-2xl border {{ 'border-brand ring-1 ring-brand' if (current_plan == 'studio' and not needs_purchase) else 'border-gray-200' }} shadow-sm overflow-hidden flex flex-col justify-between">
+                    {% if current_plan == 'studio' and not needs_purchase %}
                     <div
                         class="absolute top-5 right-5 bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
                         Current plan
@@ -328,9 +363,9 @@ bg-{tone}-50 text-{tone}-600 border border-{tone}-200 hover:bg-{tone}-100
                         </ul>
                     </div>
                     <div class="px-8 pb-8">
-                        {% if current_plan == 'none' %}
+                        {% if needs_purchase %}
                         <button onclick="purchasePlan('studio', this)" id="btn-studio"
-                            class="w-full py-3 rounded-xl bg-brand text-white font-semibold hover:bg-brand/90 transition text-sm shadow-md">
+                            class="w-full py-3 rounded-xl bg-brand text-white font-semibold hover:bg-brand-dark transition text-sm shadow-md">
                             Choose Studio
                         </button>
                         {% elif current_plan == 'studio' %}
@@ -342,7 +377,7 @@ bg-{tone}-50 text-{tone}-600 border border-{tone}-200 hover:bg-{tone}-100
                         <button onclick="changePlan('studio', this)" id="btn-studio"
                             {{ 'disabled title="Resume your subscription to change plans"' | safe if
                             subscription_status=='paused' }}
-                            class="w-full py-3 rounded-xl bg-brand text-white font-semibold hover:bg-brand/90 transition text-sm shadow-md disabled:opacity-50 disabled:cursor-not-allowed">
+                            class="w-full py-3 rounded-xl bg-brand text-white font-semibold hover:bg-brand-dark transition text-sm shadow-md disabled:opacity-50 disabled:cursor-not-allowed">
                             Upgrade to Studio
                         </button>
                         {% endif %}
@@ -376,10 +411,11 @@ bg-{tone}-50 text-{tone}-600 border border-{tone}-200 hover:bg-{tone}-100
         -->
         {% set billing_config = {
         'userId': user_id | default(''),
+        'userEmail':email,
         'subId': sub_id | default(''),
         'currentPlan': current_plan,
         'subscriptionStatus': subscription_status,
-        'paddleClientToken': paddle_client_token | default('test_925224efe3fbbe342e5bb6f88d5'),
+        'paddleClientToken': paddle_client_token | default(''),
         'paddleEnvironment': paddle_environment | default('sandbox'),
         } %}
         <script type="application/json" id="billing-config">{{ billing_config | tojson }}</script>
@@ -400,7 +436,7 @@ bg-{tone}-50 text-{tone}-600 border border-{tone}-200 hover:bg-{tone}-100
     // Monthly-only price catalog. Order is used to tell an upgrade from a downgrade.
     const PLANS = {
         solo: { label: "Solo", priceId: "pri_01kwhvxjre9b0hbjvnfwhe69bp", order: 1 },
-        studio: { label: "Studio", priceId: "pri_01kz9pnhgpaz1qkafrypwmm20b", order: 1 },
+        studio: { label: "Studio", priceId: "pri_01kz9pnhgpaz1qkafrypwmm20b", order: 2 },
     };
 
     /**
@@ -450,11 +486,15 @@ bg-{tone}-50 text-{tone}-600 border border-{tone}-200 hover:bg-{tone}-100
             return;
         }
         Paddle.Checkout.open({
+            customer: {
+                email: CONFIG.userEmail, // Replace with your config's email property
+            },
             items: [{ priceId: PLANS[plan].priceId, quantity: 1 }],
             customData: { user_id: CONFIG.userId, plan: plan },
             settings: {
                 displayMode: "overlay",
                 successUrl: window.location.href,
+                allowLogout: false,
             },
         });
     }
@@ -493,33 +533,6 @@ bg-{tone}-50 text-{tone}-600 border border-{tone}-200 hover:bg-{tone}-100
         } catch (err) {
             console.error("Plan change error:", err);
             showToast("Couldn't update your plan. Please try again.");
-            resetButton(triggerButton);
-        }
-    }
-
-    // ---------------------------------------------------------------------
-    // Update payment method — create a transaction server-side, then let
-    // Paddle's checkout overlay collect the new card against it.
-    // ---------------------------------------------------------------------
-    async function updatePaymentMethod(triggerButton) {
-        if (!window.Paddle) {
-            showToast("Billing is temporarily unavailable. Please refresh the page.");
-            return;
-        }
-        setButtonLoading(triggerButton, "Opening…");
-        try {
-            const res = await fetch("/billing/checkout-transaction", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-            });
-            const data = await res.json();
-            if (!res.ok || !data.transactionId) throw new Error("No transaction returned");
-
-            Paddle.Checkout.open({ transactionId: data.transactionId });
-            resetButton(triggerButton);
-        } catch (err) {
-            console.error("Update payment method error:", err);
-            showToast("Couldn't open the payment update flow. Please try again.");
             resetButton(triggerButton);
         }
     }
@@ -569,54 +582,6 @@ bg-{tone}-50 text-{tone}-600 border border-{tone}-200 hover:bg-{tone}-100
         }
     }
 
-    // ---------------------------------------------------------------------
-    // Cancel — prefer Paddle Retain's built-in cancellation flow (handles the
-    // cancellation with Paddle directly). Fall back to our own backend if the
-    // Retain add-on isn't enabled for this account.
-    // Note: Paddle.Initialize() may only be called once per page — Retain is
-    // wired up by the single initializePaddle() call on load, so we just call
-    // initCancellationFlow() here. Also, Retain only runs against live data;
-    // it won't appear in sandbox environments even with a valid token.
-    // ---------------------------------------------------------------------
-    function cancelSubscription(triggerButton) {
-        if (window.Paddle && window.Paddle.Retain) {
-            Paddle.Retain.initCancellationFlow({ subscriptionId: CONFIG.subId })
-                .then((result) => {
-                    if (result.status === "cancelled") {
-                        showToast("Your subscription has been canceled.");
-                        setTimeout(() => window.location.reload(), 1200);
-                    }
-                    // "retained" or "aborted" — customer stayed on the flow or backed out, nothing to do.
-                })
-                .catch((err) => {
-                    console.error("Retain cancellation flow error:", err);
-                    showToast("Couldn't open the cancellation flow. Please try again.");
-                });
-            return;
-        }
-
-        openConfirmDialog({
-            title: "Cancel your subscription?",
-            description: "You'll keep access until the end of your current billing period, then your forms will stop accepting submissions.",
-            confirmLabel: "Cancel subscription",
-            confirmTone: "danger",
-            onConfirm: () => submitCancel(triggerButton),
-        });
-    }
-
-    async function submitCancel(triggerButton) {
-        setButtonLoading(triggerButton, "Canceling…");
-        try {
-            const res = await fetch("/billing/cancel", { method: "POST" });
-            if (!res.ok) throw new Error("Request failed");
-            showToast("Your subscription has been canceled.");
-            setTimeout(() => window.location.reload(), 1200);
-        } catch (err) {
-            console.error("Cancel error:", err);
-            showToast("Couldn't cancel your subscription. Please try again.");
-            resetButton(triggerButton);
-        }
-    }
 
     // ---------------------------------------------------------------------
     // Small reusable helpers: confirmation dialog + button loading state.
@@ -661,16 +626,11 @@ bg-{tone}-50 text-{tone}-600 border border-{tone}-200 hover:bg-{tone}-100
         button.classList.remove("opacity-60", "cursor-not-allowed");
     }
 
+    // base.html's toast is an Alpine component (#toast) that listens for a
+    // `show-toast` event on window and reads $event.detail.value — it isn't
+    // a plain div we can toggle classes on, so we dispatch instead.
     function showToast(msg) {
-        const t = document.getElementById("toast");
-        if (!t) return;
-        t.textContent = msg;
-        t.classList.remove("opacity-0", "translate-y-2");
-        t.classList.add("opacity-100", "translate-y-0");
-        setTimeout(() => {
-            t.classList.add("opacity-0", "translate-y-2");
-            t.classList.remove("opacity-100", "translate-y-0");
-        }, 4000);
+        window.dispatchEvent(new CustomEvent("show-toast", { detail: { value: msg } }));
     }
 
     document.addEventListener("DOMContentLoaded", () => {
