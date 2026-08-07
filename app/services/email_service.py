@@ -5,19 +5,10 @@ from typing import Any
 
 import markdown
 import resend  # Official SDK
-from pydantic_settings import BaseSettings
+
+from app.core.settings import settings
 
 log = logging.getLogger(__name__)
-
-
-class EmailSettings(BaseSettings):
-    resend_api_key: str = "re_your_api_key"
-    from_email: str = "notifications@yourdomain.com"
-    from_name: str = "Formspree Alternative"
-
-    class Config:
-        env_file = ".env"
-        extra = "ignore"
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -39,15 +30,13 @@ class SendParams:
     template: Any | None = None
 
 
-settings = EmailSettings()
-
 # Configure the global Resend client key
-resend.api_key = settings.resend_api_key
+resend.api_key = settings.RESEND_API_KEY
 
 
 class EmailService:
     def __init__(self):
-        self.from_addr = f"{settings.from_name} <{settings.from_email}>"
+        self.from_addr = f"{settings.FROM_NAME} <{settings.FROM_EMAIL}>"
 
     def _parse_template(
         self, subject_tpl: str, body_tpl: str, form_name: str, payload: dict[str, Any]
@@ -85,13 +74,21 @@ class EmailService:
         """Asynchronous HTTP call transport wrapper using the Resend REST API wrapper."""
         # If sending to an admin, set reply_to to the customer's email address
         reply_to_address = reply_to if reply_to else None
-        params = SendParams(
-            from_addr=self.from_addr,
-            to=[to_email],
-            subject=subject,
-            html=html_content,
-            reply_to=reply_to_address,  # Passed directly
-        )
+        # Ensure all local values match standard types to eliminate "Unknown" inference
+        from_address: str = self.from_addr
+        recipient_list: list[str] = [to_email]
+        email_subject: str = subject
+        email_html: str = html_content
+        reply_to_address: str | None = reply_to if reply_to else None
+
+        # Construct the exact TypedDict shape matching Resend's architecture
+        params: resend.Emails.SendParams = {
+            "from": from_address,  # Dict string allows using the 'from' keyword safely
+            "to": recipient_list,
+            "subject": email_subject,
+            "html": email_html,
+            "reply_to": reply_to_address if reply_to_address else "",
+        }
 
         try:
             # Native async execution using the official Resend SDK wrapper

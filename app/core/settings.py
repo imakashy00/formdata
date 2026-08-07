@@ -40,6 +40,10 @@ class Settings(BaseSettings):
     PADDLE_PRICE_ID_EXTRA_SUBMISSIONS: str  # pri_xxx — $1 per 200-submission block
     PADDLE_PRICE_ID_EXTRA_STORAGE: str  # pri_xxx — $1 per GB
 
+    RESEND_API_KEY: str
+    FROM_EMAIL: str
+    FROM_NAME: str
+
     # Rate Limiting
     RATE_LIMIT_ENABLED: bool = True
     RATE_LIMIT_PER_MINUTE: int = 100

@@ -437,7 +437,7 @@ async def handle_toggele_status_form_submission(
 
     await db.commit()
     await db.refresh(submission)
-
+    
     # 4. Return just the specific table row fragment (`<tr>...</tr>`) to swap out
     # 'sub' context variable is passed so it maps cleanly to your existing template naming
     return temp.TemplateResponse(

@@ -2,7 +2,15 @@ from typing import Annotated
 from urllib.parse import urlparse
 
 import pycountry
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    HTTPException,
+    Request,
+    Response,
+    status,
+)
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from loguru import logger as log
 from sqlalchemy import select
@@ -12,7 +20,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.db import get_db
 from app.core.settings import settings
 from app.models.user import Form as FormDB
-from app.models.user import Submission, SubmissionStatus
+from app.models.user import Project, Submission, SubmissionStatus, User
+from app.services.email_service import EmailService
 from app.services.form import (
     check_honeypot,
     check_rate_limit,
@@ -121,6 +130,7 @@ async def handle_form_submit(
     form_id: str,
     request: Request,
     db: Annotated[AsyncSession, Depends(get_db)],
+    background_task: BackgroundTasks,
 ):
 
     query = select(FormDB).where(FormDB.public_id == form_id)
@@ -368,6 +378,21 @@ async def handle_form_submit(
     # in the dashboard, persist `decision`/`reasons` onto the Submission row
     # here (not shown — depends on your schema) rather than relying on the
     # log line above.
+    user_query = select(User).where(
+        User.id
+        == select(Project.user_id)
+        .where(Project.id == form.project_id)
+        .scalar_subquery()
+    )
+
+    # 2. Execute and pull the object out of the session
+    result = await db.execute(user_query)
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(404, "user not found")
+    background_task.add_task(
+        EmailService().send_user_notification, user.email, form.name, form_data
+    )
     return _finish(
         request,
         form_data,
