@@ -324,7 +324,7 @@ class Submission(Base):
         server_default=SubmissionStatus.ACCEPTED.value,
         index=True,
     )
-    opened: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    opened: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     note: Mapped[str | None] = mapped_column(String(200), nullable=True)
     country: Mapped[str | None] = mapped_column(String(100), nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(
