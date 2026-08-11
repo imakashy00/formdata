@@ -1,12 +1,13 @@
 from datetime import UTC, datetime
 
-from app.models.user import Subscription, User
-from app.schemas.user import RegisterUser, SubscriptionStatus
 from fastapi import HTTPException, status
 from loguru import logger as log
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.user import Subscription, User
+from app.schemas.user import RegisterUser, SubscriptionStatus
 
 
 async def register_user(userinfo: RegisterUser, db: AsyncSession):

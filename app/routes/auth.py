@@ -1,5 +1,11 @@
 from typing import Annotated
 
+from fastapi import APIRouter, Depends, Request
+from fastapi.responses import RedirectResponse
+from loguru import logger as log
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.core.db import get_db
 from app.schemas.error import AuthenticationError, TokenGenerationError
 from app.schemas.user import RegisterUser
@@ -13,11 +19,6 @@ from app.services.dependencies import (
     _validate_userinfo,
 )
 from app.services.oauth import oauth
-from fastapi import APIRouter, Depends, Request
-from fastapi.responses import RedirectResponse
-from loguru import logger as log
-from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(tags=["auth"])
 
@@ -25,7 +26,7 @@ router = APIRouter(tags=["auth"])
 @router.post("/auth")
 async def login(request: Request):
     redirect_uri = request.url_for("auth_callback")
-    return await oauth.google.authorize_redirect(request, redirect_uri)  # type: ignore
+    return await oauth.google.authorize_redirect(request, redirect_uri)
 
 
 @router.get("/auth/callback")
@@ -42,7 +43,8 @@ async def auth_callback(request: Request, db: Annotated[AsyncSession, Depends(ge
     try:
         # Map validated data to the registration schema
         user_info_schema = RegisterUser(**user_data)
-
+        if user_info_schema.email != "yakashadav26@gmail.com":
+            return RedirectResponse(url="/", status_code=303)
         # and registration (if user is new) and return the internal user_id.
         user_id = await register_user(userinfo=user_info_schema, db=db)
         log.info(f"👤 User registration/lookup successful. Internal ID: {user_id}")

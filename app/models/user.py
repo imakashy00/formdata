@@ -303,9 +303,10 @@ class Form(Base):
 class Submission(Base):
     __tablename__ = "submissions"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
     )
+
     form_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("forms.id", ondelete="CASCADE"), nullable=False
     )
@@ -343,14 +344,12 @@ class IntegrationProvider(str, PyEnum):
 class Integration(Base):
     __tablename__ = "integrations"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        primary_key=True,
-        default=uuid.uuid4,
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
     )
 
     user_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        String(36),
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
@@ -387,20 +386,18 @@ class Integration(Base):
 class FormIntegration(Base):
     __tablename__ = "form_integrations"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        primary_key=True,
-        default=uuid.uuid4,
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
     )
 
     form_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        String(36),
         ForeignKey("forms.id", ondelete="CASCADE"),
         nullable=False,
     )
 
     integration_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
+        String(36),
         ForeignKey("integrations.id", ondelete="CASCADE"),
         nullable=False,
     )
@@ -417,5 +414,5 @@ class FormIntegration(Base):
         nullable=False,
     )
     created_at: Mapped[datetime] = mapped_column(
-            DateTime(timezone=True), default=lambda: datetime.now(UTC)
-        )
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
+    )
