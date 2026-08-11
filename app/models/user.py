@@ -332,3 +332,90 @@ class Submission(Base):
     )
 
     form: Mapped["Form"] = relationship("Form", back_populates="submissions")
+
+
+class IntegrationProvider(str, PyEnum):
+    GOOGLE_SHEETS = "google_sheets"
+    NOTION = "notion"
+    SLACK = "slack"
+
+
+class Integration(Base):
+    __tablename__ = "integrations"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    provider: Mapped[IntegrationProvider] = mapped_column(
+        Enum(IntegrationProvider, name="integrationprovider"),
+        nullable=False,
+    )
+
+    # OAuth access token
+    access_token: Mapped[str | None] = mapped_column(Text)
+
+    # OAuth refresh token where applicable
+    refresh_token: Mapped[str | None] = mapped_column(Text)
+
+    # Provider-specific information
+    integration_metadata: Mapped[dict] = mapped_column(
+        JSONB,
+        default=dict,
+        nullable=False,
+    )
+
+    enabled: Mapped[bool] = mapped_column(
+        Boolean,
+        default=True,
+        nullable=False,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
+    )
+
+
+class FormIntegration(Base):
+    __tablename__ = "form_integrations"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+
+    form_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("forms.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+
+    integration_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("integrations.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+
+    config: Mapped[dict] = mapped_column(
+        JSONB,
+        default=dict,
+        nullable=False,
+    )
+
+    enabled: Mapped[bool] = mapped_column(
+        Boolean,
+        default=True,
+        nullable=False,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+            DateTime(timezone=True), default=lambda: datetime.now(UTC)
+        )

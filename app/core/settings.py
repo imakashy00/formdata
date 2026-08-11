@@ -65,6 +65,16 @@ class Settings(BaseSettings):
         60,
     )  # 200 requests / 60s per form, isolates noisy tenants
 
+    # File limits
+    MAX_UPLOAD_BYTES: int
+    MAX_FILES_PER_SUBMISSION: int
+
+    # Cloudflare Storage
+    R2_ACCOUNT_ID: str
+    R2_ACCESS_KEY_ID: str
+    R2_SECRET_ACCESS_KEY: str
+    R2_BUCKET: str
+
     HONEYPOT_FIELD: str = "_hp"
 
     @property
