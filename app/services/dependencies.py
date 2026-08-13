@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from typing import Annotated
 
 from fastapi import Depends, HTTPException, Request
 from loguru import logger as log
@@ -10,8 +10,8 @@ from app.core.db import get_db
 from app.core.settings import settings
 from app.models.user import User
 from app.schemas.error import AuthenticationError, TokenGenerationError
-from app.services.auth import AuthService
-from app.services.blacklist import is_revoked, redis_client
+from app.services import blacklist
+from app.services.auth import decode
 from app.services.jwt import create_token
 from app.services.oauth import oauth
 
@@ -51,7 +51,9 @@ def _validate_userinfo(token: dict) -> dict:
     }
 
 
-async def _issue_and_store_tokens(user_id: str, email: str) -> tuple[str, str]:
+async def _issue_and_store_tokens(
+    db: AsyncSession, user_id: str, email: str
+) -> tuple[str, str]:
     """Generates and whitelists access and refresh tokens."""
     try:
         # 1. Issue JWTs
@@ -64,15 +66,8 @@ async def _issue_and_store_tokens(user_id: str, email: str) -> tuple[str, str]:
 
         log.info(f"🔑 Tokens issued for user_id: {user_id}. Refresh JTI: {refresh_jti}")
 
-        # 2. Store refresh token JTI in Redis (Whitelist)
-        now_ts = int(datetime.now(UTC).timestamp())
-        redis_ttl = refresh_exp - now_ts
-
-        # Security Note: Use a more specific key namespace for clarity and isolation
-        await redis_client.setex(
-            f"auth:refresh_jti:{refresh_jti}",
-            redis_ttl,
-            "1",  # Value '1' is arbitrary, just indicates presence
+        await blacklist.whitelist_refresh(
+            db, jti=refresh_jti, user_id=user_id, email=email, exp_unix=refresh_exp
         )
 
         return access, refresh
@@ -85,7 +80,7 @@ async def _issue_and_store_tokens(user_id: str, email: str) -> tuple[str, str]:
         raise TokenGenerationError("Failed to issue security tokens.")
 
 
-async def refresh_tokens(refresh_token: str):
+async def refresh_tokens(db: AsyncSession, refresh_token: str):
     """
     Validate refresh token and issue new access + refresh tokens.
     Flow:
@@ -96,7 +91,7 @@ async def refresh_tokens(refresh_token: str):
     5. Rotate tokens (delete old, create new)
     """
     try:
-        payload = AuthService.decode(refresh_token)
+        payload = decode(refresh_token)
     except Exception:
         raise HTTPException(401, "Invalid or expired refresh token")
 
@@ -107,12 +102,11 @@ async def refresh_tokens(refresh_token: str):
         raise HTTPException(401, "Wrong token type")
 
     # Check if token is revoked (blacklist)
-    if await is_revoked(jti):
+    if await blacklist.is_revoked(db, jti):
         raise HTTPException(401, "Refresh token revoked")
 
     # Check if token exists in whitelist
-    exists = await redis_client.exists(f"auth:refresh_jti:{jti}")
-    if not exists:
+    if not await blacklist.is_whitelisted(db, jti):
         raise HTTPException(401, "Refresh token expired or not found")
 
     # Extract user info for new tokens
@@ -120,7 +114,7 @@ async def refresh_tokens(refresh_token: str):
     email = payload["email"]
 
     # ROTATE refresh: delete old and add new
-    await redis_client.delete(f"auth:refresh_jti:{jti}")
+    await blacklist.remove_whitelist(db, jti)
 
     # Issue new tokens
     new_access, _, _ = create_token(
@@ -131,10 +125,8 @@ async def refresh_tokens(refresh_token: str):
     )
 
     # Store new refresh token in whitelist
-    await redis_client.setex(
-        f"auth:refresh_jti:{new_rjti}",
-        new_rexp - int(datetime.now(UTC).timestamp()),
-        "1",
+    await blacklist.whitelist_refresh(
+        db, jti=new_rjti, user_id=user_id, email=email, exp_unix=new_rexp
     )
 
     return new_access, new_refresh
@@ -142,7 +134,7 @@ async def refresh_tokens(refresh_token: str):
 
 async def current_user(
     request: Request,
-    db: AsyncSession = Depends(get_db),
+    db: Annotated[AsyncSession, Depends(get_db)],
 ):
     """
     Extract user from request.state (already JWT-validated)
@@ -150,7 +142,7 @@ async def current_user(
     """
     payload = getattr(request.state, "user", None)
     if not payload:
-        raise HTTPException(status_code=401, detail="Unauthorized")
+        return None
 
     user_id = payload.get("sub")
     # ✅ Fix: Use async select with eager loading

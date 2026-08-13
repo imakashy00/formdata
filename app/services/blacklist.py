@@ -1,39 +1,100 @@
+
 from datetime import UTC, datetime
+from typing import cast
 
-import redis.asyncio as redis
+from sqlalchemy import CursorResult, delete, select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.settings import settings
-
-# ✅ Use a single global Redis client (connection pool managed internally)
-redis_client = redis.from_url(str(settings.REDIS_URL), decode_responses=True)
-
-
-async def is_revoked(jti: str) -> bool:
-    """
-    Check if the token JTI is revoked.
-    Purpose:
-    Checks if a token's jti is in the blacklist.
-    How it works:
-    Returns True if the key jwt:blacklist:{jti} exists, meaning the token is revoked.
-
-    """
-    return await redis_client.exists(f"jwt:blacklist:{jti}") == 1
+from app.models.user import BLACKLIST, WHITELIST, AuthToken
 
 
-async def revoke(jti: str, exp_unix: int, delete_refresh_whitelist: bool = False):
-    """
-    Revoke a JWT by storing its JTI in Redis with TTL = token expiry.
-    Redis auto-cleans expired keys.
-    revoke(jti, exp_unix)
-    Purpose:
-    Adds a token's jti to the blacklist in Redis, with a TTL matching the token's expiry.
-    How it works:
-    Calculates the TTL: exp_unix - now.
-    Stores the key jwt:blacklist:{jti} with value '1' and TTL.
-    Effect:
-    After the token expires, Redis automatically deletes the key.
-    """
-    ttl = max(1, exp_unix - int(datetime.now(UTC).timestamp()))
-    await redis_client.setex(f"jwt:blacklist:{jti}", ttl, "1")
+async def is_revoked(db: AsyncSession, jti: str) -> bool:
+    stmt = select(AuthToken.jti).where(
+        AuthToken.jti == jti,
+        AuthToken.token_type == BLACKLIST,
+        AuthToken.expires_at > datetime.now(UTC),
+    )
+    return (await db.execute(stmt)).scalar_one_or_none() is not None
+
+
+async def revoke(
+    db: AsyncSession,
+    jti: str,
+    exp_unix: int,
+    user_id: str,
+    email: str | None = None,
+    delete_refresh_whitelist: bool = False,
+) -> None:
+    """Mark `jti` as revoked. If it was previously whitelisted (an active
+    refresh token), this upsert flips that same row to blacklisted —
+    is_whitelisted() now says no, is_revoked() now says yes."""
+    expires_at = datetime.fromtimestamp(exp_unix, tz=UTC)
+    stmt = (
+        pg_insert(AuthToken)
+        .values(
+            jti=jti,
+            user_id=user_id,
+            token_type=BLACKLIST,
+            email=email,
+            expires_at=expires_at,
+        )
+        .on_conflict_do_update(
+            index_elements=[AuthToken.jti],
+            set_={"token_type": BLACKLIST, "expires_at": expires_at},
+        )
+    )
+    await db.execute(stmt)
     if delete_refresh_whitelist:
-        await redis_client.delete(f"auth:refresh_jti:{jti}")
+        await db.execute(
+            delete(AuthToken).where(
+                AuthToken.jti == jti, AuthToken.token_type == WHITELIST
+            )
+        )
+    await db.commit()
+
+
+async def whitelist_refresh(
+    db: AsyncSession, jti: str, user_id: str, email: str, exp_unix: int
+) -> None:
+    expires_at = datetime.fromtimestamp(exp_unix, tz=UTC)
+    stmt = (
+        pg_insert(AuthToken)
+        .values(
+            jti=jti,
+            user_id=user_id,
+            token_type=WHITELIST,
+            email=email,
+            expires_at=expires_at,
+        )
+        .on_conflict_do_update(
+            index_elements=[AuthToken.jti],
+            set_={"token_type": WHITELIST, "expires_at": expires_at, "email": email},
+        )
+    )
+    await db.execute(stmt)
+    await db.commit()
+
+
+async def is_whitelisted(db: AsyncSession, jti: str) -> bool:
+    stmt = select(AuthToken.jti).where(
+        AuthToken.jti == jti,
+        AuthToken.token_type == WHITELIST,
+        AuthToken.expires_at > datetime.now(UTC),
+    )
+    return (await db.execute(stmt)).scalar_one_or_none() is not None
+
+
+async def remove_whitelist(db: AsyncSession, jti: str) -> None:
+    await db.execute(
+        delete(AuthToken).where(AuthToken.jti == jti, AuthToken.token_type == WHITELIST)
+    )
+    await db.commit()
+
+
+async def cleanup_expired(db: AsyncSession) -> int:
+    result = await db.execute(
+        delete(AuthToken).where(AuthToken.expires_at <= datetime.now(UTC))
+    )
+    await db.commit()
+    return cast(CursorResult, result).rowcount or 0

@@ -3,6 +3,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Literal
 
 import jwt
+
 from app.core.settings import settings
 
 
@@ -35,4 +36,3 @@ def create_token(
     }
     token = jwt.encode(payload, str(settings.JWT_SECRET), algorithm=settings.JWT_ALGO)
     return token, jti, payload["exp"]
-

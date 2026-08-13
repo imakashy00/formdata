@@ -1,5 +1,4 @@
 import re
-import time
 from datetime import UTC, datetime, timedelta
 
 import httpx
@@ -11,7 +10,6 @@ from app.core.settings import settings
 from app.models.user import Form as FormDB
 from app.models.user import Project, Submission, SubmissionStatus, User
 from app.schemas.form import TAB_LABELS, TAB_TEMPLATES, FormSettingsPayload, FormTab
-from app.services.blacklist import redis_client as r
 
 DISPOSABLE_EMAIL_DOMAINS = {
     "mailinator.com",
@@ -29,13 +27,13 @@ SPAM_PATTERNS = [
 ]
 
 
-async def check_rate_limit(scope: str, key: str, limit: int, window_s: int) -> bool:
-    """Returns True if the request is within limit."""
-    redis_key = f"rl:{scope}:{key}:{int(time.time()) // window_s}"
-    count = await r.incr(redis_key)
-    if count == 1:
-        await r.expire(redis_key, window_s)
-    return count <= limit
+# async def check_rate_limit(scope: str, key: str, limit: int, window_s: int) -> bool:
+#     """Returns True if the request is within limit."""
+#     redis_key = f"rl:{scope}:{key}:{int(time.time()) // window_s}"
+#     count = await r.incr(redis_key)
+#     if count == 1:
+#         await r.expire(redis_key, window_s)
+#     return count <= limit
 
 
 async def verify_turnstile(
