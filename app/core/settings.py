@@ -1,7 +1,7 @@
 from datetime import timedelta
 from typing import Literal
 
-from pydantic import AnyHttpUrl, PostgresDsn, RedisDsn, SecretStr
+from pydantic import AnyHttpUrl, PostgresDsn, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
