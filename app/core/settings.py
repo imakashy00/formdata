@@ -27,8 +27,6 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_ID: str
     GOOGLE_CLIENT_SECRET: str
 
-    # Third party
-    REDIS_URL: RedisDsn
 
     # Paddle
     PADDLE_API_KEY: str
