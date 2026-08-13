@@ -3,24 +3,27 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from enum import Enum as PyEnum
 
+from sqlalchemy import TIMESTAMP, CheckConstraint, Index, Integer, String, text
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.orm import Mapped, mapped_column
+
+from app.core.db import Base
+
+WHITELIST = "whitelist"
+BLACKLIST = "blacklist"
 from sqlalchemy import (
     Boolean,
     DateTime,
     Enum,
     ForeignKey,
-    Index,
-    Integer,
-    String,
     Text,
     UniqueConstraint,
     func,
     select,
-    text,
 )
-from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
-from sqlalchemy.orm import Mapped, column_property, mapped_column, relationship
+from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy.orm import column_property, relationship
 
-from app.core.db import Base
 from app.schemas.user import SubscriptionStatus
 
 
@@ -412,6 +415,61 @@ class FormIntegration(Base):
         Boolean,
         default=True,
         nullable=False,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
+    )
+
+
+class AuthToken(Base):
+    """One row per refresh-token JTI. `token_type` says whether the row is
+    an active refresh token (whitelist) or an explicitly revoked token
+    (blacklist). A jti goes whitelist -> deleted on normal rotation, or
+    whitelist -> blacklist on explicit revoke (see token_store.revoke)."""
+
+    __tablename__ = "auth_tokens"
+    __table_args__ = (
+        CheckConstraint(
+            "token_type IN ('whitelist', 'blacklist')", name="ck_auth_tokens_token_type"
+        ),
+        Index("ix_auth_tokens_expires_at", "expires_at"),
+        Index("ix_auth_tokens_user_id", "user_id"),
+        {"prefixes": ["UNLOGGED"]},
+    )
+
+    jti: Mapped[str] = mapped_column(String, primary_key=True)
+    user_id: Mapped[str] = mapped_column(String, nullable=False)
+    token_type: Mapped[str] = mapped_column(String, nullable=False)
+    email: Mapped[str | None] = mapped_column(String, nullable=True)
+    expires_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), nullable=False
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), nullable=False, server_default=text("now()")
+    )
+    # Free-form extras (device info, revoke reason, etc.) without a migration
+    # every time you want to attach something new to a token row.
+    meta: Mapped[dict] = mapped_column(
+        JSONB, nullable=False, server_default=text("'{}'::jsonb")
+    )
+
+
+class RateLimitBucket(Base):
+    """Fixed-window rate-limit counter: one row per (bucket_key, window_start).
+    `bucket_key` is typically f"{client_ip}:{route}" or just the client IP."""
+
+    __tablename__ = "rate_limit_buckets"
+
+    __table_args__ = {
+        "prefixes": ["UNLOGGED"]
+    }  
+
+    bucket_key: Mapped[str] = mapped_column(String, primary_key=True)
+    window_start: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), primary_key=True
+    )
+    request_count: Mapped[int] = mapped_column(
+        Integer, nullable=False, server_default=text("1")
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC)

@@ -35,7 +35,6 @@ from app.services.file_upload import (
 )
 from app.services.form import (
     check_honeypot,
-    check_rate_limit,
     check_user_agent,
     verify_bot_check,
 )
@@ -235,17 +234,18 @@ async def handle_form_submit(
     # code short-circuited before checking the form-level limit). Worth
     # reverting to sequential if limited IPs are a large fraction of your
     # traffic and store load matters more than latency here.
-    ip = _client_ip(request)
-    ip_ok, form_ok = await asyncio.gather(
-        check_rate_limit("ip", ip, *settings.RATE_LIMIT_IP),
-        check_rate_limit("form", form_id, *settings.RATE_LIMIT_FORM),
-    )
-    if not ip_ok:
-        return JSONResponse({"error": "rate limit exceeded"}, status_code=429)
-    if not form_ok:
-        return JSONResponse(
-            {"error": "form is receiving too many submissions"}, status_code=429
-        )
+    # ip = _client_ip(request)
+
+    # ip_ok, form_ok = await asyncio.gather(
+    #     check_rate_limit("ip", ip, *settings.RATE_LIMIT_IP),
+    #     check_rate_limit("form", form_id, *settings.RATE_LIMIT_FORM),
+    # )
+    # if not ip_ok:
+    #     return JSONResponse({"error": "rate limit exceeded"}, status_code=429)
+    # if not form_ok:
+    #     return JSONResponse(
+    #         {"error": "form is receiving too many submissions"}, status_code=429
+    #     )
 
     # --- fast structural checks ---
     if not check_user_agent(request):

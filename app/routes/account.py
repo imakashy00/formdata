@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,9 +10,9 @@ from app.core.db import get_db
 from app.core.settings import settings
 from app.core.templates import temp
 from app.models.user import Form as FormDB
-from app.models.user import Project, Submission, Subscription, User
-from app.routes.page import get_current_user
+from app.models.user import Project, Submission, User
 from app.services.account import get_customer_portal_links
+from app.services.dependencies import current_user
 
 account_router = APIRouter()
 
@@ -59,22 +59,32 @@ def _format_bytes(n: int) -> str:
 @account_router.get("/account", response_class=HTMLResponse)
 async def handle_get_account_details(
     request: Request,
-    user: Annotated[User, Depends(get_current_user)],
+    user: Annotated[User, Depends(current_user)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
     now = datetime.now(UTC)
     month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
-    sub_query = select(Subscription).filter(Subscription.user_id == user.id)
-    result = await db.execute(sub_query)
-    subscription = result.scalar_one_or_none()
+    subscription = user.subscription
+
+    sub_id = None
+    current_plan = "none"
+    subscription_status = "inactive"
+    renews_at = None
+    resumes_at = None
+    trial_days_left = None
+    portal_links = {}
+    storage_used_bytes = 0
 
     # No subscription row at all. This shouldn't normally happen if a trial
     # row is created at signup, but the account page should still render in
     # a "no plan yet" state rather than 400 — the billing section already
     # knows how to show purchase CTAs for this.
     if not subscription:
-        raise HTTPException(404, "not account found")
+        return temp.TemplateResponse(
+            request,
+            "index.html",
+        )
     else:
         current_plan = PRICE_ID_TO_PLAN.get(str(subscription.price_id), "none")
         subscription_status = subscription.status

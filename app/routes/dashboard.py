@@ -10,7 +10,7 @@ from app.core.db import get_db
 from app.core.templates import temp
 from app.models.user import Form as FormDB
 from app.models.user import Project, Submission, User
-from app.routes.page import get_current_user
+from app.services.dependencies import current_user
 
 dash_router = APIRouter()
 
@@ -185,7 +185,7 @@ async def _get_dashboard_summary(db: AsyncSession, user: User) -> dict:
 async def home(
     request: Request,
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User | None, Depends(get_current_user)] = None,
+    user: Annotated[User | None, Depends(current_user)] = None,
 ):
     if not user:
         return temp.TemplateResponse(request, "index.html")

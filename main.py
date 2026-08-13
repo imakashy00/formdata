@@ -1,31 +1,56 @@
+import asyncio
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 from starlette.middleware.sessions import SessionMiddleware
 
-from app.core.db import engine
+from app.core.db import AsyncSessionLocal, engine
 from app.core.logger import setup_logger
 from app.core.middlewares.exception_handlers import register_exception_handlers
 from app.core.middlewares.middleware import register_middlewares
-from app.core.middlewares.rate_limit import setup_rate_limiting
+from app.core.middlewares.rate_limit import cleanup_expired_buckets, rate_limit
 from app.core.settings import settings
 from app.routes.account import account_router
-from app.routes.auth import router
+from app.routes.auth import auth_router
 from app.routes.client_form import client_form_router
 from app.routes.dashboard import dash_router
-from app.routes.email import email_router
 from app.routes.form import form_router
 from app.routes.page import page_router
 from app.routes.project import project_router
+from app.routes.resend_email import email_router
 from app.routes.subscription import user_router
-from app.services.blacklist import redis_client
+from app.services.blacklist import cleanup_expired
 
 log = setup_logger()
 
 
+async def _cleanup_loop():
+    while True:
+        try:
+            async with AsyncSessionLocal() as db:
+                tokens_deleted = await cleanup_expired(db)
+                buckets_deleted = await cleanup_expired_buckets(db)
+            if tokens_deleted or buckets_deleted:
+                log.info(
+                    f"🧹 Cleanup: removed {tokens_deleted} expired auth_tokens, "
+                    f"{buckets_deleted} stale rate_limit_buckets."
+                )
+        except Exception as e:
+            log.exception(f"🚫Cleanup task failed: {e}")
+
+        await asyncio.sleep(settings.CLEANUP_INTERVAL_SECONDS)
+
+
+def start_cleanup_task():
+    """Starts the background loop, returns a function to cancel it on shutdown."""
+    task = asyncio.create_task(_cleanup_loop())
+    return task.cancel
+
+
 async def verify_services() -> None:
+    """Replacement for the old verify_services() — Postgres only now, no Redis ping."""
     try:
         async with engine.connect() as connection:
             await connection.execute(text("SELECT 1"))
@@ -34,22 +59,20 @@ async def verify_services() -> None:
         log.error(f"❌ Postgres is not reachable: {exc}")
         raise
 
-    try:
-        await redis_client.ping()  # type: ignore
-        log.info("✅ Redis is reachable.")
-    except Exception as exc:
-        log.error(f"❌ Redis is not reachable: {exc}")
-        raise
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     log.info("🚀 Starting up...")
     await verify_services()
+    cleanup_task = asyncio.create_task(_cleanup_loop())
     yield
     log.info("🛑 Shutting down...")
+    cleanup_task.cancel()
+    try:
+        await cleanup_task
+    except asyncio.CancelledError:
+        pass
     await engine.dispose()
-    await redis_client.close()
 
 
 # Disable docs in production
@@ -62,17 +85,20 @@ app = FastAPI(
     redoc_url=redoc_url,
     title="YTranscript API",
     debug=(settings.ENV == "development"),
+    dependencies=[
+        Depends(rate_limit(limit=100, window_seconds=60)),
+    ],
 )
 
 # Register exception handlers
 register_exception_handlers(app)
 
 # Add rate limiting
-setup_rate_limiting(app)
 
-app.add_middleware(SessionMiddleware, secret_key=settings.SECRET)
 
-app.include_router(router=router)
+app.add_middleware(SessionMiddleware, secret_key=settings.SESSION_SECRET)
+
+app.include_router(router=auth_router)
 app.include_router(router=page_router)
 app.include_router(router=user_router)
 app.include_router(router=account_router)

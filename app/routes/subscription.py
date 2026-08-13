@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.db import get_db
 from app.core.settings import settings
 from app.models.user import ProcessedWebhook, Subscription, User
-from app.routes.page import get_current_user
+from app.services.dependencies import current_user
 from app.services.subscription import handle_paddle_webhook
 
 user_router = APIRouter()
@@ -99,7 +99,7 @@ async def process_webhook(
 @user_router.post("/billing/pause")
 async def handle_billing_pause(
     request: Request,
-    user: Annotated[User, Depends(get_current_user)],
+    user: Annotated[User, Depends(current_user)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
     sub_query = select(Subscription).where(Subscription.user_id == user.id)
@@ -140,7 +140,7 @@ async def handle_billing_pause(
 @user_router.post("/billing/resume")
 async def handle_billing_resume(
     request: Request,
-    user: Annotated[User, Depends(get_current_user)],
+    user: Annotated[User, Depends(current_user)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
     sub_query = select(Subscription).where(Subscription.user_id == user.id)

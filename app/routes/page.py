@@ -4,7 +4,6 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Request, Response
 from fastapi.responses import FileResponse, HTMLResponse
 from loguru import logger as log
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_db
@@ -15,20 +14,9 @@ from app.services.dependencies import current_user
 page_router = APIRouter()
 
 
-async def get_current_user(
-    request: Request, db: Annotated[AsyncSession, Depends(get_db)]
-) -> User | None:
-    """FastAPI Dependency to retrieve the logged-in user from request state."""
-    payload = getattr(request.state, "user", None)
-    if not payload:
-        return None
-
-    result = await db.execute(select(User).filter(User.id == payload["sub"]))
-    return result.scalars().first()
-
 
 @page_router.get("/billing", response_class=HTMLResponse)
-async def billing(request: Request, user: Annotated[User, Depends(get_current_user)]):
+async def billing(request: Request, user: Annotated[User, Depends(current_user)]):
 
     return temp.TemplateResponse(
         request,

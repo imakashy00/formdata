@@ -14,7 +14,7 @@ from sqlalchemy.orm import selectinload
 from app.core.db import get_db
 from app.core.templates import temp
 from app.models.user import Project, User
-from app.routes.page import get_current_user
+from app.services.dependencies import current_user
 
 project_router = APIRouter()
 
@@ -45,7 +45,7 @@ class NewProject(BaseModel):
 @project_router.get("/projects", response_class=HTMLResponse)
 async def get_projects(
     request: Request,
-    user: Annotated[User, Depends(get_current_user)],
+    user: Annotated[User, Depends(current_user)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
     try:
@@ -77,7 +77,7 @@ async def get_projects(
 async def create_project(
     request: Request,
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(get_current_user)],
+    user: Annotated[User, Depends(current_user)],
     name: str = Form(...),
 ):
     try:
@@ -137,7 +137,7 @@ async def create_project(
 async def get_project(
     request: Request,
     project_id: str,
-    user: Annotated[User, Depends(get_current_user)],
+    user: Annotated[User, Depends(current_user)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
     try:
@@ -169,7 +169,7 @@ async def get_project(
 async def update_project(
     request: Request,
     project_id: str,
-    user: Annotated[User, Depends(get_current_user)],
+    user: Annotated[User, Depends(current_user)],
     db: Annotated[AsyncSession, Depends(get_db)],
     project_name: str = Form(...),
 ):
@@ -225,7 +225,7 @@ async def update_project(
 async def delete_project(
     request: Request,
     project_id: str,
-    user: Annotated[User, Depends(get_current_user)],
+    user: Annotated[User, Depends(current_user)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
     try:

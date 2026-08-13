@@ -7,9 +7,10 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_db
+from app.models.user import User
 from app.schemas.error import AuthenticationError, TokenGenerationError
 from app.schemas.user import RegisterUser
-from app.services.auth import AuthService
+from app.services.auth import decode
 from app.services.blacklist import revoke
 from app.services.cookies import clear_auth_cookies, set_auth_cookies
 from app.services.crud.user import register_user
@@ -17,19 +18,20 @@ from app.services.dependencies import (
     _exchange_google_token,
     _issue_and_store_tokens,
     _validate_userinfo,
+    current_user,
 )
 from app.services.oauth import oauth
 
-router = APIRouter(tags=["auth"])
+auth_router = APIRouter(tags=["auth"])
 
 
-@router.post("/auth")
+@auth_router.post("/auth")
 async def login(request: Request):
     redirect_uri = request.url_for("auth_callback")
     return await oauth.google.authorize_redirect(request, redirect_uri)
 
 
-@router.get("/auth/callback")
+@auth_router.get("/auth/callback")
 async def auth_callback(request: Request, db: Annotated[AsyncSession, Depends(get_db)]):
     # 1. Token Exchange and User Info Validation
     try:
@@ -58,7 +60,7 @@ async def auth_callback(request: Request, db: Annotated[AsyncSession, Depends(ge
     # 3. Token Issuance and Storage
     try:
         access_token, refresh_token = await _issue_and_store_tokens(
-            user_id=user_id, email=user_data["email"]
+            db, user_id=user_id, email=user_data["email"]
         )
     except TokenGenerationError:
         return RedirectResponse(url="/", status_code=303)
@@ -71,8 +73,12 @@ async def auth_callback(request: Request, db: Annotated[AsyncSession, Depends(ge
     return resp
 
 
-@router.post("/logout")
-async def logout(request: Request):
+@auth_router.post("/logout")
+async def logout(
+    request: Request,
+    user: Annotated[User, Depends(current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
     resp = RedirectResponse(url="/", status_code=303)  # 303 = See Other
     # best-effort: try revoke access + refresh if present
     for name in ("access_token", "refresh_token"):
@@ -80,15 +86,17 @@ async def logout(request: Request):
         if not token:
             continue
         try:
-            payload = AuthService.decode(token)
+            payload = decode(token)
         except SQLAlchemyError:
             continue
         is_refresh = payload.get("type") == "refresh"
         await revoke(
-            payload["jti"], payload["exp"], delete_refresh_whitelist=is_refresh
+            db,
+            payload["jti"],
+            payload["exp"],
+            user.id,
+            user.email,
+            delete_refresh_whitelist=is_refresh,
         )
     clear_auth_cookies(resp)
     return resp
-
-
-#########

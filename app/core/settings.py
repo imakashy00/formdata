@@ -9,7 +9,9 @@ class Settings(BaseSettings):
     ENV: Literal["development", "production"] = "development"
     BASE_URL: AnyHttpUrl  # eg. https://ytnotes.co
 
-    SECRET: str
+    CLEANUP_INTERVAL_SECONDS: int
+
+    SESSION_SECRET: str
 
     DATABASE_URL: PostgresDsn
     DB_POOL_SIZE: int
@@ -48,10 +50,6 @@ class Settings(BaseSettings):
     RATE_LIMIT_ENABLED: bool = True
     RATE_LIMIT_PER_MINUTE: int = 100
 
-    # Altcha
-    SESSION_SECRET: str
-    ALTCHA_HMAC_SECRET: str
-    ALTCHA_HMAC_KEY_SECRET: str
 
     MIN_SUBMIT_SECONDS: float = 1.5  # reject submissions faster than a human could type
     SESSION_TOKEN_MAX_AGE: int = (

@@ -27,7 +27,6 @@ from app.core.db import get_db
 from app.core.templates import temp
 from app.models.user import Form as FormDB
 from app.models.user import Submission, SubmissionStatus, User
-from app.routes.page import get_current_user
 from app.schemas.form import (
     TAB_LABELS,
     TAB_TEMPLATES,
@@ -35,6 +34,7 @@ from app.schemas.form import (
     FormTab,
     NewForm,
 )
+from app.services.dependencies import current_user
 from app.services.form import (
     _get_form_analytics,
     _get_owned_form,
@@ -51,7 +51,7 @@ async def handle_create_form(
     request: Request,
     project_id: str,
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(get_current_user)],
+    user: Annotated[User, Depends(current_user)],
     name: str = Form(...),
 ):
     try:
@@ -129,7 +129,7 @@ async def handle_get_project_form(
     form_id: str,
     project_id: str,
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(get_current_user)],
+    user: Annotated[User, Depends(current_user)],
 ):
     try:
         result = await db.execute(
@@ -169,7 +169,7 @@ async def test_widget(request: Request):
 async def handle_get_forms(
     request: Request,
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(get_current_user)],
+    user: Annotated[User, Depends(current_user)],
     project_id: uuid.UUID | None = None,
 ):
     try:
@@ -206,7 +206,7 @@ async def handle_update_form_setting(
     request: Request,
     form_id: str,
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(get_current_user)],
+    user: Annotated[User, Depends(current_user)],
     payload: Annotated[FormSettingsPayload, Form()],
 ):
     try:
@@ -257,7 +257,7 @@ async def handle_delete_form(
     form_id: str,
     project_id: str,
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(get_current_user)],
+    user: Annotated[User, Depends(current_user)],
 ):
     try:
         # Explicit delete criteria safeguarding multi-tenant architecture
@@ -297,7 +297,7 @@ async def handle_get_project_form_submissions(
     project_id: str,
     htmx_req: Annotated[bool, Depends(is_htmx)],
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(get_current_user)],
+    user: Annotated[User, Depends(current_user)],
     search: str | None = Query(None),
     status: str | None = Query(None),
 ):
@@ -340,7 +340,7 @@ async def handle_get_form_submission_by_id(
     submission_id: str,
     htmx_req: Annotated[bool, Depends(is_htmx)],
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(get_current_user)],
+    user: Annotated[User, Depends(current_user)],
 ):
     # 1. Validate UUID format to prevent database query crashes
     try:
@@ -405,7 +405,7 @@ async def handle_toggele_status_form_submission(
     submission_id: str,
     htmx_req: Annotated[bool, Depends(is_htmx)],
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(get_current_user)],
+    user: Annotated[User, Depends(current_user)],
 ):
     # 1. Validate UUID format
     try:
@@ -437,7 +437,7 @@ async def handle_toggele_status_form_submission(
 
     await db.commit()
     await db.refresh(submission)
-    
+
     # 4. Return just the specific table row fragment (`<tr>...</tr>`) to swap out
     # 'sub' context variable is passed so it maps cleanly to your existing template naming
     return temp.TemplateResponse(
@@ -458,7 +458,7 @@ async def handle_delete_form_submission(
     submission_id: str,
     htmx_req: Annotated[bool, Depends(is_htmx)],
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(get_current_user)],
+    user: Annotated[User, Depends(current_user)],
 ):
     # 1. Parse and validate the UUID
     try:
@@ -510,7 +510,7 @@ async def handle_get_project_form_setup(
     project_id: str,
     htmx_req: Annotated[bool, Depends(is_htmx)],
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(get_current_user)],
+    user: Annotated[User, Depends(current_user)],
 ):
     try:
         result = await db.execute(
@@ -549,7 +549,7 @@ async def handle_get_project_form_setttings(
     project_id: str,
     htmx_req: Annotated[bool, Depends(is_htmx)],
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(get_current_user)],
+    user: Annotated[User, Depends(current_user)],
 ):
     try:
         result = await db.execute(
@@ -590,7 +590,7 @@ async def handle_get_project_form_integrations(
     project_id: str,
     htmx_req: Annotated[bool, Depends(is_htmx)],
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(get_current_user)],
+    user: Annotated[User, Depends(current_user)],
 ):
     try:
         result = await db.execute(
@@ -633,7 +633,7 @@ async def handle_form_analytics(
     request: Request,
     htmx_req: Annotated[bool, Depends(is_htmx)],
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(get_current_user)],
+    user: Annotated[User, Depends(current_user)],
     range: int = Query(7, ge=1, le=90, alias="range"),
 ):
     try:
@@ -673,7 +673,7 @@ async def handle_get_project_form_exports(
     project_id: str,
     htmx_req: Annotated[bool, Depends(is_htmx)],
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(get_current_user)],
+    user: Annotated[User, Depends(current_user)],
 ):
     try:
         result = await db.execute(
@@ -712,7 +712,7 @@ async def handle_get_project_form_template(
     project_id: str,
     htmx_req: Annotated[bool, Depends(is_htmx)],
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(get_current_user)],
+    user: Annotated[User, Depends(current_user)],
 ):
     try:
         result = await db.execute(
@@ -753,7 +753,7 @@ async def handle_update_form_template(
     subject: Annotated[str, Form()],
     body: Annotated[str, Form()],
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(get_current_user)],
+    user: Annotated[User, Depends(current_user)],
 ):
     try:
         result = await db.execute(
@@ -795,7 +795,7 @@ async def handle_update_form_template(
 @form_router.get("/{project_id}/forms/{form_id}/export")
 async def export_form_submission_excel(
     db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(get_current_user)],
+    user: Annotated[User, Depends(current_user)],
     form_id: str = Path(..., description="The UUID string of the parent form"),
     status: str = Query(
         "", description="Filter records by status string matching your Enum values"
