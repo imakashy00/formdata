@@ -1,6 +1,7 @@
 from datetime import UTC, datetime
 
 import redis.asyncio as redis
+
 from app.core.settings import settings
 
 # ✅ Use a single global Redis client (connection pool managed internally)
@@ -19,7 +20,7 @@ async def is_revoked(jti: str) -> bool:
     return await redis_client.exists(f"jwt:blacklist:{jti}") == 1
 
 
-async def revoke(jti: str, exp_unix: int,delete_refresh_whitelist:bool = False):
+async def revoke(jti: str, exp_unix: int, delete_refresh_whitelist: bool = False):
     """
     Revoke a JWT by storing its JTI in Redis with TTL = token expiry.
     Redis auto-cleans expired keys.

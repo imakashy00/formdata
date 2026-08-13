@@ -1,5 +1,11 @@
 from datetime import UTC, datetime
 
+from fastapi import Depends, HTTPException, Request
+from loguru import logger as log
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
+
 from app.core.db import get_db
 from app.core.settings import settings
 from app.models.user import User
@@ -8,11 +14,6 @@ from app.services.auth import AuthService
 from app.services.blacklist import is_revoked, redis_client
 from app.services.jwt import create_token
 from app.services.oauth import oauth
-from fastapi import Depends, HTTPException, Request
-from loguru import logger as log
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 
 async def _exchange_google_token(request: Request) -> dict:
@@ -100,20 +101,20 @@ async def refresh_tokens(refresh_token: str):
         raise HTTPException(401, "Invalid or expired refresh token")
 
     jti = payload["jti"]
-    
+
     # Verify token type
     if payload.get("type") != "refresh":
         raise HTTPException(401, "Wrong token type")
-    
+
     # Check if token is revoked (blacklist)
     if await is_revoked(jti):
         raise HTTPException(401, "Refresh token revoked")
-    
+
     # Check if token exists in whitelist
     exists = await redis_client.exists(f"auth:refresh_jti:{jti}")
     if not exists:
         raise HTTPException(401, "Refresh token expired or not found")
-    
+
     # Extract user info for new tokens
     user_id = payload["sub"]
     email = payload["email"]
@@ -128,7 +129,7 @@ async def refresh_tokens(refresh_token: str):
     new_refresh, new_rjti, new_rexp = create_token(
         sub=user_id, email=email, type="refresh", ttl=settings.REFRESH_TTL
     )
-    
+
     # Store new refresh token in whitelist
     await redis_client.setex(
         f"auth:refresh_jti:{new_rjti}",
@@ -162,4 +163,3 @@ async def current_user(
         raise HTTPException(status_code=401, detail="User not found")
 
     return user
-
