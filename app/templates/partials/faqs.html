@@ -1,0 +1,148 @@
+<section id="faq" class="py-20 bg-white px-4">
+    <div class="container md:px-6 max-w-3xl mx-auto">
+        <div class="text-center mb-12">
+            <h2 class="text-3xl md:text-4xl font-bold mb-3">Frequently asked questions</h2>
+            <p class="text-gray-500">Quick answers about Formdata</p>
+        </div>
+
+        <div class="space-y-5" id="faq-list">
+            <div class="space-y-3">
+                <div class="border border-gray-200 rounded-xl overflow-hidden">
+                    <button type="button"
+                        class="faq-toggle w-full flex justify-between items-center p-4 text-left bg-white hover:bg-gray-50 transition-colors"
+                        aria-expanded="false" aria-controls="faq-panel-1">
+                        <span class="font-medium text-gray-900 text-sm">Do I need to write any backend code?</span>
+                        <svg class="faq-chevron w-4 h-4 text-gray-400 transition-transform flex-shrink-0 ml-4"
+                            fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+                    <div id="faq-panel-1" class="faq-panel hidden px-4 pb-4 bg-gray-50 border-t border-gray-100">
+                        <p class="text-gray-600 text-sm pt-3">No. Just set the action attribute on your HTML form.
+                            Formdata receives the POST, processes it, and stores the data. Zero server-side code.</p>
+                    </div>
+                </div>
+
+                <div class="border border-gray-200 rounded-xl overflow-hidden">
+                    <button type="button"
+                        class="faq-toggle w-full flex justify-between items-center p-4 text-left bg-white hover:bg-gray-50 transition-colors"
+                        aria-expanded="false" aria-controls="faq-panel-2">
+                        <span class="font-medium text-gray-900 text-sm">Which site builders does Formdata work
+                            with?</span>
+                        <svg class="faq-chevron w-4 h-4 text-gray-400 transition-transform flex-shrink-0 ml-4"
+                            fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+                    <div id="faq-panel-2" class="faq-panel hidden px-4 pb-4 bg-gray-50 border-t border-gray-100">
+                        <p class="text-gray-600 text-sm pt-3">Anything that outputs HTML — Webflow, Framer, GitHub
+                            Pages, Hugo, Next.js, plain HTML files. If it can render a form, Formdata handles it.</p>
+                    </div>
+                </div>
+
+                <div class="border border-gray-200 rounded-xl overflow-hidden">
+                    <button type="button"
+                        class="faq-toggle w-full flex justify-between items-center p-4 text-left bg-white hover:bg-gray-50 transition-colors"
+                        aria-expanded="false" aria-controls="faq-panel-3">
+                        <span class="font-medium text-gray-900 text-sm">How is spam handled?</span>
+                        <svg class="faq-chevron w-4 h-4 text-gray-400 transition-transform flex-shrink-0 ml-4"
+                            fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+                    <div id="faq-panel-3" class="faq-panel hidden px-4 pb-4 bg-gray-50 border-t border-gray-100">
+                        <p class="text-gray-600 text-sm pt-3">Every endpoint includes a honeypot field. You can
+                            optionally enable reCAPTCHA v3 or hCaptcha from the dashboard in one click.</p>
+                    </div>
+                </div>
+
+                <div class="border border-gray-200 rounded-xl overflow-hidden">
+                    <button type="button"
+                        class="faq-toggle w-full flex justify-between items-center p-4 text-left bg-white hover:bg-gray-50 transition-colors"
+                        aria-expanded="false" aria-controls="faq-panel-4">
+                        <span class="font-medium text-gray-900 text-sm">Can I redirect after submission?</span>
+                        <svg class="faq-chevron w-4 h-4 text-gray-400 transition-transform flex-shrink-0 ml-4"
+                            fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+                    <div id="faq-panel-4" class="faq-panel hidden px-4 pb-4 bg-gray-50 border-t border-gray-100">
+                        <p class="text-gray-600 text-sm pt-3">Yes. Add a hidden input named _next with your redirect
+                            URL. Or handle the AJAX response yourself with our JSON API.</p>
+                    </div>
+                </div>
+
+                <div class="border border-gray-200 rounded-xl overflow-hidden">
+                    <button type="button"
+                        class="faq-toggle w-full flex justify-between items-center p-4 text-left bg-white hover:bg-gray-50 transition-colors"
+                        aria-expanded="false" aria-controls="faq-panel-5">
+                        <span class="font-medium text-gray-900 text-sm">Is there a free tier?</span>
+                        <svg class="faq-chevron w-4 h-4 text-gray-400 transition-transform flex-shrink-0 ml-4"
+                            fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+                    <div id="faq-panel-5" class="faq-panel hidden px-4 pb-4 bg-gray-50 border-t border-gray-100">
+                        <p class="text-gray-600 text-sm pt-3">Yes — the first 100 submissions are free. No credit card
+                            required to start.</p>
+                    </div>
+                </div>
+
+                <div class="border border-gray-200 rounded-xl overflow-hidden">
+                    <button type="button"
+                        class="faq-toggle w-full flex justify-between items-center p-4 text-left bg-white hover:bg-gray-50 transition-colors"
+                        aria-expanded="false" aria-controls="faq-panel-6">
+                        <span class="font-medium text-gray-900 text-sm">How much does extra usage cost?</span>
+                        <svg class="faq-chevron w-4 h-4 text-gray-400 transition-transform flex-shrink-0 ml-4"
+                            fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+                    <div id="faq-panel-6" class="faq-panel hidden px-4 pb-4 bg-gray-50 border-t border-gray-100">
+                        <p class="text-gray-600 text-sm pt-3">Extra submissions are billed at $1 per 100 submissions.
+                            File storage is billed at $1 per GB.</p>
+                    </div>
+                </div>
+
+                <div class="border border-gray-200 rounded-xl overflow-hidden">
+                    <button type="button"
+                        class="faq-toggle w-full flex justify-between items-center p-4 text-left bg-white hover:bg-gray-50 transition-colors"
+                        aria-expanded="false" aria-controls="faq-panel-7">
+                        <span class="font-medium text-gray-900 text-sm">What happens when storage is full?</span>
+                        <svg class="faq-chevron w-4 h-4 text-gray-400 transition-transform flex-shrink-0 ml-4"
+                            fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+                    <div id="faq-panel-7" class="faq-panel hidden px-4 pb-4 bg-gray-50 border-t border-gray-100">
+                        <p class="text-gray-600 text-sm pt-3">We email you before storage becomes a problem. If you do
+                            not add storage, new file uploads are paused, but submissions and notifications keep working
+                            normally.</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <script>
+            (function () {
+                const toggles = document.querySelectorAll('.faq-toggle');
+
+                toggles.forEach((toggle) => {
+                    toggle.addEventListener('click', () => {
+                        const panelId = toggle.getAttribute('aria-controls');
+                        const panel = document.getElementById(panelId);
+                        const chevron = toggle.querySelector('.faq-chevron');
+                        const isOpen = toggle.getAttribute('aria-expanded') === 'true';
+
+                        toggle.setAttribute('aria-expanded', String(!isOpen));
+                        panel.classList.toggle('hidden', isOpen);
+                        if (chevron) {
+                            chevron.classList.toggle('rotate-180', !isOpen);
+                        }
+                    });
+                });
+            })();
+        </script>
+    </div>
+</section>

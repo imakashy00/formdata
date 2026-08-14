@@ -1,0 +1,62 @@
+<section class="gradient-hero py-20 md:py-28 px-4">
+    <div class="container md:px-6 flex flex-col md:flex-row items-center gap-12">
+        <div class="flex-1 max-w-xl">
+            <span class="badge mb-4">Form backend for builders 👷</span>
+            <h1 class="text-4xl md:text-5xl font-extrabold text-gray-900 leading-tight mb-5">
+                Add forms to any site.<br />
+                <span class="text-brand">No backend needed.</span>
+            </h1>
+            <p class="text-lg text-gray-500 mb-8 leading-relaxed">
+                Point your HTML form at a Formdata endpoint and get submissions straight to your inbox — with spam
+                filtering, file uploads, Slack alerts, and a full dashboard.
+            </p>
+            <div class="flex flex-col sm:flex-row gap-3">
+                <form action="/auth" method="post">
+                    <button type="submit"
+                        class="text-white bg-[#1d4ed8] font-semibold bg- px-6 py-3 rounded-lg shadow-sm text-sm bg-brand hover:bg-brand-dark transition-colors">
+                        Start for free — no credit card
+                    </button>
+                </form>
+                <button
+                    class="border border-gray-300 text-gray-700 hover:border-red-300 font-medium px-6 py-3 rounded-lg text-sm"
+                    onclick="document.getElementById('how-it-works').scrollIntoView({behavior:'smooth'})">
+                    See how it works
+                </button>
+            </div>
+        </div>
+
+        <div class="flex-1 w-full max-w-lg">
+            <div class="code-block shadow-xl">
+                <div class="flex items-center gap-2 mb-4">
+                    <span class="w-3 h-3 rounded-full bg-red-400"></span>
+                    <span class="w-3 h-3 rounded-full bg-yellow-400"></span>
+                    <span class="w-3 h-3 rounded-full bg-green-400"></span>
+                    <span class="ml-3 text-xs text-slate-500">contact.html</span>
+                </div>
+                <!-- <span class="comment">&lt;!-- That's literally it 👇 --&gt;</span><br /> -->
+                <span class="keyword">&lt;form</span> <span class="attr">action</span>=<span
+                    class="string">"https://formdata.cloud/f/form-id"</span><br />
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="attr">method</span>=<span class="string">"POST"</span><span
+                    class="keyword">&gt;</span><br />
+                <br />
+                &nbsp;&nbsp;<span class="keyword">&lt;input</span> <span class="attr">type</span>=<span
+                    class="string">"text"</span> <span class="attr">name</span>=<span class="string">"name"</span><span
+                    class="keyword">/&gt;</span><br />
+                &nbsp;&nbsp;<span class="keyword">&lt;input</span> <span class="attr">type</span>=<span
+                    class="string">"email"</span> <span class="attr">name</span>=<span
+                    class="string">"email"</span><span class="keyword">/&gt;</span><br />
+                &nbsp;&nbsp;<span class="keyword">&lt;textarea</span> <span class="attr">name</span>=<span
+                    class="string">"message"</span><span class="keyword">&gt;&lt;/textarea&gt;</span><br />
+                <br />
+                &nbsp;&nbsp;<span class="keyword">&lt;button</span> <span class="attr">type</span>=<span
+                    class="string">"submit"</span><span class="keyword">&gt;</span>Send<span
+                    class="keyword">&lt;/button&gt;</span><br />
+                <span class="keyword">&lt;/form&gt;</span>
+            </div>
+            <div class="mt-3 flex items-center gap-2 text-xs text-gray-500 px-1">
+                <span class="live-dot w-2 h-2 rounded-full bg-green-500 inline-block"></span>
+                Submissions arrive in your dashboard instantly
+            </div>
+        </div>
+    </div>
+</section>
