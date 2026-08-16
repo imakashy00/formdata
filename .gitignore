@@ -75,3 +75,7 @@ Thumbs.db
 *.bak
 *.swp
 .~*
+
+# tailwind
+tailwindcss
+tailwindcss.exe
