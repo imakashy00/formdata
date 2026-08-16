@@ -1,7 +1,7 @@
 import asyncio
 from contextlib import asynccontextmanager
 
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, Response
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 from starlette.middleware.sessions import SessionMiddleware
@@ -83,7 +83,7 @@ app = FastAPI(
     lifespan=lifespan,
     docs_url=docs_url,
     redoc_url=redoc_url,
-    title="YTranscript API",
+    title="Formdata WebApp",
     debug=(settings.ENV == "development"),
     dependencies=[
         Depends(rate_limit(limit=100, window_seconds=60)),
@@ -112,3 +112,8 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 # register your moved middlewares
 register_middlewares(app)
+
+
+@app.get("/health")
+async def health_check() -> Response:
+    return Response(status_code=200, content="OK")

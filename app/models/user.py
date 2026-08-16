@@ -460,9 +460,7 @@ class RateLimitBucket(Base):
 
     __tablename__ = "rate_limit_buckets"
 
-    __table_args__ = {
-        "prefixes": ["UNLOGGED"]
-    }  
+    __table_args__ = {"prefixes": ["UNLOGGED"]}
 
     bucket_key: Mapped[str] = mapped_column(String, primary_key=True)
     window_start: Mapped[datetime] = mapped_column(

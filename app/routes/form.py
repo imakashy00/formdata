@@ -18,15 +18,13 @@ from fastapi import (
 from fastapi.responses import HTMLResponse, StreamingResponse
 from loguru import logger as log
 from pydantic import ValidationError
-from sqlalchemy import delete, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from app.core.db import get_db
 from app.core.templates import temp
-from app.models.user import Form as FormDB
-from app.models.user import Submission, SubmissionStatus, User
+from app.models.user import User
+from app.repositories.form_repository import FormRepository
 from app.schemas.form import (
     TAB_LABELS,
     TAB_TEMPLATES,
@@ -56,12 +54,8 @@ async def handle_create_form(
 ):
     try:
         form = NewForm(name=name)
-
-        query = select(FormDB).where(
-            FormDB.project_id == project_id, FormDB.name == form.name
-        )
-        result = await db.execute(query)
-        existing_form = result.scalar_one_or_none()
+        repository = FormRepository(db)
+        existing_form = await repository.get_by_name_and_project(form.name, project_id)
 
         if existing_form:
             # Option A: Trigger a failure Toast for HTMX without crashing the app
@@ -76,14 +70,7 @@ async def handle_create_form(
                 status_code=status.HTTP_200_OK,  # 200 tells HTMX to process the empty swap safely
             )
 
-        new_form = FormDB(
-            name=form.name,
-            project_id=project_id,
-            notification_email=user.email,
-        )
-        db.add(new_form)
-        await db.commit()
-        await db.refresh(new_form)
+        new_form = await repository.create(form.name, project_id, user.email)
 
         trigger_payload = json.dumps(
             {"show-toast": f"Form '{new_form.name}' created successfully!"}
@@ -132,12 +119,9 @@ async def handle_get_project_form(
     user: Annotated[User, Depends(current_user)],
 ):
     try:
-        result = await db.execute(
-            select(FormDB)
-            .where(FormDB.id == form_id, FormDB.project_id == project_id)
-            .options(selectinload(FormDB.submissions))
+        form = await FormRepository(db).get_by_id_and_project(
+            form_id, project_id, include_submissions=True
         )
-        form = result.scalar_one_or_none()
         if not form:
             raise HTTPException(status_code=404, detail="Form not found.")
 
@@ -174,10 +158,7 @@ async def handle_get_forms(
 ):
     try:
         # Fetch forms belonging to this user. Filter by project if provided.
-        query = select(FormDB).where(FormDB.project_id == user.id)
-
-        results = await db.execute(query)
-        forms = results.scalars().all()
+        forms = await FormRepository(db).list_for_project(user.id)
 
         return temp.TemplateResponse(
             request,
@@ -205,16 +186,13 @@ async def handle_get_forms(
 async def handle_update_form_setting(
     request: Request,
     form_id: str,
+    project_id: str,
     db: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(current_user)],
     payload: Annotated[FormSettingsPayload, Form()],
 ):
     try:
-        query = select(FormDB).where(
-            FormDB.id == form_id,
-        )
-        result = await db.execute(query)
-        db_form = result.scalars().first()
+        db_form = await FormRepository(db).get_by_id_and_project(form_id, project_id)
         if not db_form:
             trigger_payload = json.dumps({"show-toast": "Error: Form not found!"})
             return temp.TemplateResponse(
@@ -260,21 +238,11 @@ async def handle_delete_form(
     user: Annotated[User, Depends(current_user)],
 ):
     try:
-        # Explicit delete criteria safeguarding multi-tenant architecture
-        print(project_id)
-        stmt = (
-            delete(FormDB)
-            .where(FormDB.id == form_id, FormDB.project_id == project_id)
-            .returning(FormDB.id)
-        )
-        result = await db.execute(stmt)
-        deleted_id = result.scalar_one_or_none()
-        if deleted_id is None:
+        deleted = await FormRepository(db).delete_by_id_and_project(form_id, project_id)
+        if not deleted:
             raise HTTPException(
                 status_code=404, detail="Form asset not found or unauthorized."
             )
-
-        await db.commit()
 
         # Ideal for HTMX delete operations (returns empty layout chunk, removing it from UI array)
         return Response(
@@ -302,11 +270,7 @@ async def handle_get_project_form_submissions(
     status: str | None = Query(None),
 ):
     try:
-        # Base query fetching the specific form
-        result = await db.execute(
-            select(FormDB).where(FormDB.id == form_id, FormDB.project_id == project_id)
-        )
-        form = result.scalar_one_or_none()
+        form = await FormRepository(db).get_by_id_and_project(form_id, project_id)
         if not form:
             raise HTTPException(status_code=404, detail="Form not found.")
 
@@ -351,12 +315,8 @@ async def handle_get_form_submission_by_id(
             detail="Invalid submission ID format.",
         )
 
-    # 2. Fetch submission and eager-load the related form
-    query = select(Submission).where(
-        Submission.id == submission_uuid, Submission.form_id == form_id
-    )
-    result = await db.execute(query)
-    submission = result.scalar_one_or_none()
+    repository = FormRepository(db)
+    submission = await repository.get_submission(form_id, str(submission_uuid))
 
     if not submission:
         raise HTTPException(
@@ -364,13 +324,8 @@ async def handle_get_form_submission_by_id(
         )
 
     # 3. Optional: Mark submission as opened automatically if it wasn't already
-    if not submission.opened:
-        submission.opened = True
-        await db.commit()
-
-    form_query = select(FormDB).where(FormDB.id == form_id)
-    form_result = await db.execute(form_query)
-    form = form_result.scalar_one_or_none()
+    submission = await repository.set_submission_opened(submission)
+    form = await repository.get_by_id_and_project(form_id, project_id)
 
     # 4. Render context
     context = {
@@ -413,30 +368,17 @@ async def handle_toggele_status_form_submission(
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid ID format.")
 
-    # 2. Fetch the submission
-    query = select(Submission).where(
-        Submission.id == submission_uuid, Submission.form_id == form_id
-    )
-    result = await db.execute(query)
-    submission = result.scalar_one_or_none()
+    repository = FormRepository(db)
+    submission = await repository.get_submission(form_id, str(submission_uuid))
 
     if not submission:
         raise HTTPException(status_code=404, detail="Submission not found.")
-    form_query = select(FormDB).where(FormDB.id == form_id)
-    form_result = await db.execute(form_query)
-    form = form_result.scalar_one_or_none()
-    # 3. Apply state mutation based on single action argument
-    if action == "spam":
-        submission.status = (
-            SubmissionStatus.REJECTED
-        )  # Make sure this matches your Enum value
-    elif action == "unspam":
-        submission.status = SubmissionStatus.ACCEPTED
-    else:
-        raise HTTPException(status_code=400, detail="Invalid action parameter.")
+    form = await repository.get_by_id_and_project(form_id, project_id)
 
-    await db.commit()
-    await db.refresh(submission)
+    try:
+        submission = await repository.update_submission_status(submission, action)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     # 4. Return just the specific table row fragment (`<tr>...</tr>`) to swap out
     # 'sub' context variable is passed so it maps cleanly to your existing template naming
@@ -469,12 +411,8 @@ async def handle_delete_form_submission(
             detail="Invalid submission ID format.",
         )
 
-    # 2. Fetch the target database record
-    query = select(Submission).where(
-        Submission.id == submission_uuid, Submission.form_id == form_id
-    )
-    result = await db.execute(query)
-    submission = result.scalar_one_or_none()
+    repository = FormRepository(db)
+    submission = await repository.get_submission(form_id, str(submission_uuid))
 
     if not submission:
         raise HTTPException(
@@ -483,8 +421,7 @@ async def handle_delete_form_submission(
         )
 
     # 3. Perform database deletion
-    await db.delete(submission)
-    await db.commit()
+    await repository.delete_submission(submission)
 
     # 4. Handle frontend DOM updates via HTMX
     # If the request comes from the "Details" screen, redirect them back to the full table list.
@@ -513,12 +450,9 @@ async def handle_get_project_form_setup(
     user: Annotated[User, Depends(current_user)],
 ):
     try:
-        result = await db.execute(
-            select(FormDB)
-            .where(FormDB.id == form_id, FormDB.project_id == project_id)
-            .options(selectinload(FormDB.submissions))
+        form = await FormRepository(db).get_by_id_and_project(
+            form_id, project_id, include_submissions=True
         )
-        form = result.scalar_one_or_none()
         if not form:
             raise HTTPException(status_code=404, detail="Form not found.")
 
@@ -552,12 +486,9 @@ async def handle_get_project_form_setttings(
     user: Annotated[User, Depends(current_user)],
 ):
     try:
-        result = await db.execute(
-            select(FormDB)
-            .where(FormDB.id == form_id, FormDB.project_id == project_id)
-            .options(selectinload(FormDB.submissions))
+        form = await FormRepository(db).get_by_id_and_project(
+            form_id, project_id, include_submissions=True
         )
-        form = result.scalar_one_or_none()
         if not form:
             raise HTTPException(status_code=404, detail="Form not found.")
 
@@ -593,12 +524,9 @@ async def handle_get_project_form_integrations(
     user: Annotated[User, Depends(current_user)],
 ):
     try:
-        result = await db.execute(
-            select(FormDB)
-            .where(FormDB.id == form_id, FormDB.project_id == project_id)
-            .options(selectinload(FormDB.submissions))
+        form = await FormRepository(db).get_by_id_and_project(
+            form_id, project_id, include_submissions=True
         )
-        form = result.scalar_one_or_none()
         if not form:
             raise HTTPException(status_code=404, detail="Form not found.")
 
@@ -676,12 +604,9 @@ async def handle_get_project_form_exports(
     user: Annotated[User, Depends(current_user)],
 ):
     try:
-        result = await db.execute(
-            select(FormDB)
-            .where(FormDB.id == form_id, FormDB.project_id == project_id)
-            .options(selectinload(FormDB.submissions))
+        form = await FormRepository(db).get_by_id_and_project(
+            form_id, project_id, include_submissions=True
         )
-        form = result.scalar_one_or_none()
         if not form:
             raise HTTPException(status_code=404, detail="Form not found.")
 
@@ -715,12 +640,9 @@ async def handle_get_project_form_template(
     user: Annotated[User, Depends(current_user)],
 ):
     try:
-        result = await db.execute(
-            select(FormDB)
-            .where(FormDB.id == form_id, FormDB.project_id == project_id)
-            .options(selectinload(FormDB.submissions))
+        form = await FormRepository(db).get_by_id_and_project(
+            form_id, project_id, include_submissions=True
         )
-        form = result.scalar_one_or_none()
         if not form:
             raise HTTPException(status_code=404, detail="Form not found.")
 
@@ -756,18 +678,13 @@ async def handle_update_form_template(
     user: Annotated[User, Depends(current_user)],
 ):
     try:
-        result = await db.execute(
-            select(FormDB).where(FormDB.id == form_id, FormDB.project_id == project_id)
-        )
-        form = result.scalar_one_or_none()
+        form = await FormRepository(db).get_by_id_and_project(form_id, project_id)
         if not form:
             raise HTTPException(status_code=404, detail="Form not found.")
 
-        # Persist user custom values
-        form.customer_subject = subject
-        form.customer_body = body
-
-        await db.commit()
+        form = await FormRepository(db).update_template(
+            form_id, project_id, subject, body
+        )
         if htmx_req:
             template = "form_template.html"
         else:
@@ -801,14 +718,7 @@ async def export_form_submission_excel(
         "", description="Filter records by status string matching your Enum values"
     ),
 ):
-    query = select(Submission).where(Submission.form_id == form_id)
-
-    # 2. Append optional status filter if provided
-    if status:
-        query = query.where(Submission.status == status)
-    # Execute and fetch all results from database
-    result = await db.execute(query)
-    submissions = result.scalars().all()
+    submissions = await FormRepository(db).list_submissions(form_id, status or None)
 
     wb = openpyxl.Workbook()
     ws = wb.active

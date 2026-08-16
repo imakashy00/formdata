@@ -1,18 +1,15 @@
 import asyncio
 import os
 import uuid
-from functools import lru_cache
 from typing import Annotated
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
-import pycountry
 from fastapi import (
     APIRouter,
     BackgroundTasks,
     Depends,
     HTTPException,
     Request,
-    Response,
     status,
 )
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
@@ -26,6 +23,13 @@ from app.core.db import get_db
 from app.core.settings import settings
 from app.models.user import Form as FormDB
 from app.models.user import Project, Submission, SubmissionStatus, User
+from app.services.client_form import (
+    _build_submission_payload,
+    _finish,
+    _safe_redirect_target,
+    _split_form_data,
+    get_form_owner,
+)
 from app.services.email_service import EmailService
 from app.services.file_upload import (
     DANGEROUS_EXTENSIONS,
@@ -39,171 +43,10 @@ from app.services.form import (
     verify_bot_check,
 )
 
-# `_error_url` was previously missing here, which meant it could leak into
-# the stored submission payload as if it were a real form field.
-_RESERVED_FIELD_NAMES = {"cf-turnstile-response", "_next", "_error_url"}
-
-
 MAX_UPLOAD_BYTES = settings.MAX_UPLOAD_BYTES  # 10 MB/file
 MAX_FILES_PER_SUBMISSION = settings.MAX_FILES_PER_SUBMISSION
 
 client_form_router = APIRouter(prefix="/f")
-
-
-def _client_ip(request: Request) -> str:
-    """Best-effort real visitor IP.
-
-    Behind Cloudflare, request.client.host is the edge/proxy IP, not the
-    visitor's — every submission would look like it comes from the same
-    address, which silently breaks per-IP rate limiting. Cloudflare sets
-    CF-Connecting-IP on every request it proxies; fall back to
-    X-Forwarded-For, then to the raw socket peer for local/dev use.
-    """
-    cf_ip = request.headers.get("cf-connecting-ip")
-    if cf_ip:
-        return cf_ip
-    xff = request.headers.get("x-forwarded-for")
-    if xff:
-        return xff.split(",")[0].strip()
-    return request.client.host if request.client else "unknown"
-
-
-def _split_form_data(
-    raw_form,
-) -> tuple[dict[str, str | list], dict[str, list[UploadFile]]]:
-    """Split Starlette's multi-dict FormData into plain text fields and
-    file uploads, without silently dropping repeated keys.
-
-    dict(await request.form()) keeps only the *last* value for any field
-    name submitted more than once — this fixes that for both text fields
-    (checkboxes, multi-selects) and file fields. Any key whose values are
-    UploadFile objects is treated as a file field, so this handles both
-    a single <input type="file" multiple> field AND several distinctly
-    named file inputs in the same submission — each field just becomes an
-    entry in `files` keyed by its own name.
-    """
-    fields: dict[str, str | list] = {}
-    files: dict[str, list[UploadFile]] = {}
-    for key in raw_form:
-        values = raw_form.getlist(key)
-        if any(isinstance(v, UploadFile) for v in values):
-            files[key] = [v for v in values if isinstance(v, UploadFile)]
-        else:
-            fields[key] = values[0] if len(values) == 1 else list(values)
-    return fields, files
-
-
-def _safe_redirect_target(
-    candidate: str | None, request: Request, form: FormDB
-) -> str | None:
-    """Relative paths are always fine. Absolute URLs are only allowed if
-    they match the form's configured domain or the page that submitted to
-    us — otherwise this is an open-redirect gadget.
-
-    Previously only `_next` went through this check; `_error_url` (used on
-    a failed Turnstile check) had no validation at all. Both now share
-    this one guard.
-    """
-    if not isinstance(candidate, str) or not candidate:
-        return None
-    parsed = urlparse(candidate)
-    if not parsed.netloc:
-        if candidate.startswith("/"):
-            return candidate
-        return None
-
-    referer = request.headers.get("referer")
-    referer_host = urlparse(referer).netloc if referer else None
-    allowed_host = form.allowed_domains[0] if form.allowed_domains else None
-    if parsed.netloc in {allowed_host, referer_host}:
-        return candidate
-
-    log.warning(f"Ignoring untrusted redirect target: {candidate!r}")
-    return None
-
-
-def _resolve_redirect_target(
-    form_data: dict, request: Request, form: FormDB
-) -> str | None:
-    """Where to send the visitor's browser after a plain (non-AJAX) form
-    POST. Mirrors Formspree's `_next` convention."""
-    target = _safe_redirect_target(form_data.get("_next"), request, form)
-    return target or request.headers.get("referer")
-
-
-def _finish(
-    request: Request,
-    form_data: dict,
-    form: FormDB,
-    *,
-    json_body: dict,
-    status_code: int,
-    redirect_ok: bool,
-) -> Response:
-    """Content-negotiated response.
-
-    JS/fetch integrations send `Accept: application/json` and get JSON back
-    (this is the documented Formspree convention). Plain <form> posts get a
-    303 redirect back to the customer's page so the visitor doesn't land on
-    a raw JSON blob — only used for the "looks successful" paths; real
-    validation errors always return JSON so they're visible while a
-    developer is wiring up their form.
-    """
-    wants_json = "application/json" in request.headers.get("accept", "")
-    if not wants_json and redirect_ok:
-        target = _resolve_redirect_target(form_data, request, form)
-        if target:
-            fragment = (
-                "formdata-success"
-                if json_body.get("status") != "error"
-                else "formdata-error"
-            )
-            return RedirectResponse(url=f"{target}#{fragment}", status_code=303)
-    return JSONResponse(json_body, status_code=status_code)
-
-
-@lru_cache(maxsize=256)
-def _country_name(alpha_2: str) -> str:
-    """pycountry.countries.get() walks a small in-memory table — cheap, but
-    not free, and it's the same ~250 possible lookups on every single
-    request. Caching removes the repeat work entirely."""
-    country = pycountry.countries.get(alpha_2=alpha_2)
-    return country.name if country else alpha_2
-
-
-def _resolved_country(request: Request) -> str | None:
-    raw = request.headers.get("cf-ipcountry")
-    return _country_name(raw.upper()) if raw else None
-
-
-def _build_submission_payload(
-    form_data: dict, form: FormDB, request: Request
-) -> tuple[dict, str | None]:
-    """Text-field payload with reserved/honeypot fields stripped and
-    country resolved. File fields are merged in by the caller after
-    upload. Used for both the accepted path and the rejected/spam path —
-    previously this logic (and the country lookup) was duplicated between
-    the two, which is how the accepted path ended up never setting
-    `country` on the Submission row while the rejected path did."""
-    payload = {
-        key: value
-        for key, value in form_data.items()
-        if key not in _RESERVED_FIELD_NAMES and key != form.honeypot
-    }
-    country_name = _resolved_country(request)
-    if country_name:
-        payload["country_name"] = country_name
-    return payload, country_name
-
-
-async def get_form_owner(form_id: str, db: Annotated[AsyncSession, Depends(get_db)]):
-    query = (
-        select(Project.user_id)
-        .join(FormDB, FormDB.project_id == Project.id)
-        .where(FormDB.project_id == form_id)
-    )
-    result = await db.execute(query)
-    return result.scalar_one_or_none()
 
 
 @client_form_router.post("/{form_id}")
@@ -214,6 +57,8 @@ async def handle_form_submit(
     background_task: BackgroundTasks,
     form_owner: Annotated[User, Depends(get_form_owner)],
 ):
+    if not form_owner:
+        raise HTTPException(404, "User not found...")
     if not form_owner.has_access:
         # Maybe redirect to a formdata page with message
         raise HTTPException(403, "Form Owner is not subscribed.")
@@ -226,26 +71,6 @@ async def handle_form_submit(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Form Not found"
         )
-
-    # --- edge-equivalent: rate limiting ---
-    # Independent checks against different keys -> run concurrently instead
-    # of two sequential awaits. Trade-off: an IP that's already over its
-    # limit now still costs one extra rate-limit-store round trip (the old
-    # code short-circuited before checking the form-level limit). Worth
-    # reverting to sequential if limited IPs are a large fraction of your
-    # traffic and store load matters more than latency here.
-    # ip = _client_ip(request)
-
-    # ip_ok, form_ok = await asyncio.gather(
-    #     check_rate_limit("ip", ip, *settings.RATE_LIMIT_IP),
-    #     check_rate_limit("form", form_id, *settings.RATE_LIMIT_FORM),
-    # )
-    # if not ip_ok:
-    #     return JSONResponse({"error": "rate limit exceeded"}, status_code=429)
-    # if not form_ok:
-    #     return JSONResponse(
-    #         {"error": "form is receiving too many submissions"}, status_code=429
-    #     )
 
     # --- fast structural checks ---
     if not check_user_agent(request):
@@ -279,7 +104,6 @@ async def handle_form_submit(
         form_data, files = _split_form_data(raw_form)
 
     honeypot_field = form.honeypot
-
     if not check_honeypot(form_data, honeypot_field):
         # Bots that fill every field trip this. Respond exactly like a
         # normal success — including the redirect — so there's nothing
@@ -370,11 +194,6 @@ async def handle_form_submit(
             parsed_url = urlparse(error_redirect_url)
             query_params = dict(parse_qsl(parsed_url.query))
             query_params["error"] = "turnstile_failed"
-            # NOTE: the previous version built `query_params` with the
-            # error flag injected but then passed "" as the query
-            # component into urlunparse, discarding it — the redirect
-            # never actually carried ?error=turnstile_failed. Fixed by
-            # re-encoding query_params instead of dropping it.
             final_redirect_url = urlunparse(
                 (
                     parsed_url.scheme,
@@ -422,6 +241,7 @@ async def handle_form_submit(
     # --- upload files: concurrently, sharing one R2 connection, only now
     # that we know this submission isn't spam or a duplicate ---
     uploaded: dict[str, list[dict]] = {}
+    log.info(f"Files{files}")
     if files:
         submission_ref = uuid.uuid4().hex
         flat_files = [
@@ -430,6 +250,7 @@ async def handle_form_submit(
             for upload in uploads
         ]
         try:
+            log.info("Going to upload files 🗂️...")
             uploaded = await upload_submission_files_batch(
                 form_id=form_id,
                 submission_ref=submission_ref,

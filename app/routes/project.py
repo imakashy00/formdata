@@ -6,14 +6,13 @@ from fastapi import APIRouter, Depends, Form, Request, Response, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from loguru import logger as log
 from pydantic import BaseModel, Field, ValidationError, field_validator
-from sqlalchemy import desc, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from app.core.db import get_db
 from app.core.templates import temp
-from app.models.user import Project, User
+from app.models.user import User
+from app.repositories.project_repository import ProjectRepository
 from app.services.dependencies import current_user
 
 project_router = APIRouter()
@@ -49,15 +48,7 @@ async def get_projects(
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
     try:
-        result = await db.execute(
-            select(Project)
-            .where(Project.user_id == user.id)
-            .options(selectinload(Project.forms))
-            .order_by(desc(Project.updated_at), desc(Project.created_at))
-        )
-
-        # 2. Extract unique scalar values safely for your list page
-        projects = result.scalars().unique().all()
+        projects = await ProjectRepository(db).list_for_user(user.id)
         return temp.TemplateResponse(
             request,
             "projects.html",
@@ -82,19 +73,9 @@ async def create_project(
 ):
     try:
         project = NewProject(name=name)
-        new_project = Project(name=project.name, user_id=user.id)
-        db.add(new_project)
-        await db.commit()
-
-        result = await db.execute(
-            select(Project)
-            .where(Project.user_id == user.id)
-            .options(selectinload(Project.forms))
-            .order_by(desc(Project.updated_at), desc(Project.created_at))
-        )
-
-        # 2. Extract unique scalar values safely for your list page
-        projects = result.scalars().unique().all()
+        repository = ProjectRepository(db)
+        new_project = await repository.create(project.name, user.id)
+        projects = await repository.list_for_user(user.id)
         trigger_payload = json.dumps(
             {"showToast": f"Project '{new_project.name}' created successfully!"}
         )
@@ -141,13 +122,7 @@ async def get_project(
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
     try:
-        result = await db.execute(
-            select(Project)
-            .options(selectinload(Project.forms))
-            .where(Project.user_id == user.id)
-            .where(Project.id == project_id)
-        )
-        project = result.scalar_one_or_none()
+        project = await ProjectRepository(db).get_for_user(project_id, user.id)
 
         # print(project)
         return temp.TemplateResponse(
@@ -174,14 +149,8 @@ async def update_project(
     project_name: str = Form(...),
 ):
     try:
-        # 1. Fetch project and verify ownership security
-        result = await db.execute(
-            select(Project)
-            .options(selectinload(Project.forms))
-            .where(Project.user_id == user.id)
-            .where(Project.id == project_id)
-        )
-        project = result.scalar_one_or_none()
+        repository = ProjectRepository(db)
+        project = await repository.get_for_user(project_id, user.id)
         if not project:
             log.warning(
                 f"Project {project_id} not found or unauthorized for user {user.id}"
@@ -229,22 +198,14 @@ async def delete_project(
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
     try:
-        # Find project ensuring ownership validation
-        result = await db.execute(
-            select(Project).where(Project.id == project_id, Project.user_id == user.id)
-        )
-        project = result.scalars().first()
-
-        if not project:
+        deleted = await ProjectRepository(db).delete_for_user(project_id, user.id)
+        if not deleted:
             log.warning(
                 f"Delete blocked: Project {project_id} does not exist or unauthorized."
             )
             return temp.TemplateResponse(
                 request, "404.html", status_code=status.HTTP_404_NOT_FOUND
             )
-
-        await db.delete(project)
-        await db.commit()
 
         return Response(status_code=200, headers={"HX-Redirect": "/projects"})
 

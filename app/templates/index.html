@@ -6,88 +6,11 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Formdata — Form Backend for Builders</title>
 
-    <script src="https://cdn.tailwindcss.com"></script>
-
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
-
-        * {
-            font-family: 'Inter', sans-serif;
-        }
-
-        .mono {
-            font-family: 'JetBrains Mono', monospace;
-        }
-
-        .container {
-            max-width: 1100px;
-            margin-left: auto;
-            margin-right: auto;
-        }
-
-        .code-block {
-            background: #0f172a;
-            border-radius: 10px;
-            padding: 1.5rem;
-            color: #e2e8f0;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.82rem;
-            line-height: 1.7;
-            overflow-x: auto;
-        }
-
-        .code-block .comment {
-            color: #64748b;
-        }
-
-        .code-block .keyword {
-            color: #f472b6;
-        }
-
-        .code-block .string {
-            color: #86efac;
-        }
-
-        .code-block .attr {
-            color: #93c5fd;
-        }
-
-        .gradient-hero {
-            background: linear-gradient(135deg, #fff 60%, #f0f9ff 100%);
-        }
-
-        .badge {
-            display: inline-block;
-            background: #e0f2fe;
-            color: #1d4ed8;
-            font-size: 0.72rem;
-            font-weight: 600;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-            padding: 0.25rem 0.75rem;
-            border-radius: 999px;
-        }
-
-        @keyframes blink {
-
-            0%,
-            100% {
-                opacity: 1
-            }
-
-            50% {
-                opacity: 0.3
-            }
-        }
-
-        .live-dot {
-            animation: blink 1.8s ease-in-out infinite;
-        }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/output.css') }}">
 </head>
 
-<body class="antialiased bg-gray-50 text-gray-800">
-    <div class="flex flex-col min-h-screen">
+<body class="antialiased bg-gray-50 text-gray-800 ">
+    <div class="flex flex-col min-h-screen ">
         {% include 'partials/navbar.html' %}
         {% include 'partials/hero.html' %}
         {% include 'partials/how_it_works.html' %}
