@@ -1,0 +1,21 @@
+name: Deploy to Linode
+
+on:
+  push:
+    branches: main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: SSH in and run the rolling deploy script
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.HOST }}
+          username: \${{ secrets.USER }}
+          key: ${{ secrets.SSHKEY }}
+          port: ${{ secrets.PORT }}
+          timeout: 120s
+          script: sudo /usr/local/bin/formdata-deploy.sh
