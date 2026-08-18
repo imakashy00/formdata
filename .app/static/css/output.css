@@ -23,7 +23,6 @@
     --color-amber-500: oklch(76.9% 0.188 70.08);
     --color-amber-600: oklch(66.6% 0.179 58.318);
     --color-amber-700: oklch(55.5% 0.163 48.998);
-    --color-yellow-300: oklch(90.5% 0.182 98.111);
     --color-yellow-400: oklch(85.2% 0.199 91.936);
     --color-green-50: oklch(98.2% 0.018 155.826);
     --color-green-100: oklch(96.2% 0.044 156.743);
@@ -1865,11 +1864,14 @@
       background-color: color-mix(in oklab, var(--color-gray-900) 40%, transparent);
     }
   }
-  .\[\&\:not\(\.htmx-request\)\]\:hidden:not(.htmx-request) {
-    display: none;
-  }
 }
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+.htmx-indicator {
+  display: none !important;
+}
+.htmx-request .htmx-indicator, .htmx-request.htmx-indicator {
+  display: block !important;
+}
 * {
   font-family: 'Inter', sans-serif;
 }

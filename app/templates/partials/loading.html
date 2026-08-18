@@ -1,13 +1,15 @@
 {# templates/partials/loading.html #}
-<div id="{{ id|default('global-loader') }}"
-    class="htmx-indicator [&:not(.htmx-request)]:hidden flex flex-col items-center justify-center gap-3 my-4">
-    <!-- Spinner Ring -->
-    <div class="h-10 w-10 animate-spin rounded-full border-4 border-blue-600/20 border-t-blue-600"></div>
+<div id="{{ id|default('global-loader') }}" class="htmx-indicator">
+    <!-- Inner wrapper handles the actual layout styling safely -->
+    <div class="flex flex-col items-center justify-center gap-3 my-4">
+        <!-- Spinner Ring -->
+        <div class="h-10 w-10 animate-spin rounded-full border-4 border-blue-600/20 border-t-blue-600"></div>
 
-    <!-- Pulsing Text -->
-    {% if text != false %}
-    <span class="animate-pulse text-sm font-medium tracking-wide text-blue-600">
-        {{ text|default('Loading...') }}
-    </span>
-    {% endif %}
+        <!-- Pulsing Text -->
+        {% if text != false %}
+        <span class="animate-pulse text-sm font-medium tracking-wide text-blue-600">
+            {{ text|default('Loading...') }}
+        </span>
+        {% endif %}
+    </div>
 </div>

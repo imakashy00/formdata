@@ -91,14 +91,13 @@
 
             <!-- Action Buttons & Indicator Layout -->
             <div class="flex items-center justify-between border-t border-gray-50 pt-4 mt-2">
-                <!-- Inline Spinner Target -->
-                <div>
-                    {% with id="modal-loader", text=false %}
-                    {% include 'partials/loading.html' %}
-                    {% endwith %}
-                </div>
 
-                <div class="flex items-center gap-2.5">
+                <!-- No extra wrapper div needed here anymore -->
+                {% with id="modal-loader", text=false %}
+                {% include 'partials/loading.html' %}
+                {% endwith %}
+
+                <div class="flex items-center gap-2.5 ml-auto">
                     <button type="button" @click="close()"
                         class="px-4 py-2 text-xs font-medium text-gray-600 hover:bg-gray-50 border border-gray-200 rounded-lg transition-colors">
                         Cancel
@@ -109,6 +108,7 @@
                     </button>
                 </div>
             </div>
+
         </form>
 
     </div>

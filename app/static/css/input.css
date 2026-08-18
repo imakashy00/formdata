@@ -16,6 +16,14 @@
   --font-sans: "Inter", sans-serif;
   --font-mono: "JetBrains Mono", monospace;
 }
+/* Tell HTMX to strictly hide indicators instead of just making them transparent */
+.htmx-indicator {
+    display: none !important;
+}
+.htmx-request .htmx-indicator,
+.htmx-request.htmx-indicator {
+    display: block !important;
+}
 
 /* 4. Global Typography & Fallbacks */
 * {
