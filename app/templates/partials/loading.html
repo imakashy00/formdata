@@ -1,7 +1,6 @@
 {# templates/partials/loading.html #}
 <div id="{{ id|default('global-loader') }}"
-    class="htmx-indicator hidden htmx-request:flex flex-col items-center justify-center gap-3 my-4">
-
+    class="htmx-indicator [&:not(.htmx-request)]:hidden flex flex-col items-center justify-center gap-3 my-4">
     <!-- Spinner Ring -->
     <div class="h-10 w-10 animate-spin rounded-full border-4 border-blue-600/20 border-t-blue-600"></div>
 
