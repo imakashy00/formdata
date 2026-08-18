@@ -1,4 +1,3 @@
-import asyncio
 import json
 import re
 from typing import Annotated
@@ -73,19 +72,17 @@ async def create_project(
     name: str = Form(...),
 ):
     try:
-        await asyncio.sleep(5)
         project = NewProject(name=name)
         repository = ProjectRepository(db)
         new_project = await repository.create(project.name, user.id)
-        projects = await repository.list_for_user(user.id)
         trigger_payload = json.dumps(
             {"showToast": f"Project '{new_project.name}' created successfully!"}
         )
         # return RedirectResponse(url="/projects", status_code=status.HTTP_303_SEE_OTHER)
         return temp.TemplateResponse(
             request,
-            "projects.html",
-            {"request": request, "projects": projects},
+            "project_card.html",
+            {"request": request, "project": new_project, "form_count": 0},
             headers={
                 "HX-Trigger": trigger_payload
             },  # 👈 HTMX automatically listens to this
@@ -94,25 +91,37 @@ async def create_project(
     except ValidationError as exc:
         log.warning(f"Failed to create new Project: {exc}")
         error_msg = exc.errors()[0]["msg"]
-        log.warning(f"Validation failed for new project: {error_msg}")
-        # Re-render the form page with the error message and the typed value
-        return temp.TemplateResponse(
-            request,
-            "create_project_form.html",
-            {
-                "request": request,
-                "error": error_msg,
-                "typed_name": name,
-            },
+
+        # Check if the Pydantic/database error implies a duplicate
+        if "already exists" in error_msg.lower() or "unique" in error_msg.lower():
+            display_error = "Duplicate error: This project name is already taken."
+        else:
+            display_error = f"Validation error: {error_msg}"
+
+        return Response(
+            content=display_error,
             status_code=status.HTTP_400_BAD_REQUEST,
+            headers={"HX-Trigger": json.dumps({"showErrorToast": display_error})},
+            media_type="text/plain",
         )
+
     except SQLAlchemyError as exc:
         log.error(f"Failed to create new Project due to system error: {exc}")
-        return temp.TemplateResponse(
-            request,
-            "projects.html",
-            {"request": request, "error": "Something went wrong on our end."},
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+
+        # Determine if the DB error itself is a duplicate violation (e.g., IntegrityError)
+        error_str = str(exc).lower()
+        if "duplicate" in error_str or "unique constraint" in error_str:
+            display_error = "Duplicate error: This project name already exists."
+            status_code = status.HTTP_400_BAD_REQUEST
+        else:
+            display_error = "Something went wrong on our end."
+            status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
+
+        return Response(
+            content=display_error,
+            status_code=status_code,
+            headers={"HX-Trigger": json.dumps({"showErrorToast": display_error})},
+            media_type="text/plain",
         )
 
 

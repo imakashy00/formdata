@@ -1,8 +1,10 @@
 <div id="{{ id }}"
     class="htmx-indicator {% if overlay %}absolute inset-0 z-10 items-center justify-center gap-2 bg-white/70 backdrop-blur-[1px]{% else %}inline-flex items-center gap-2{% endif %}"
     role="status" aria-hidden="true">
-    <span class="h-8 w-8 ">
-        <svg fill="hsl(240, 97%, 42%)" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+
+    <!-- Use the dynamic size parameter here, falling back to h-8 w-8 if not specified -->
+    <span class="{% if size %}{{ size }}{% else %}h-8 w-8{% endif %} block shrink-0">
+        <svg class="w-full h-full" fill="hsl(240, 97%, 42%)" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
             <defs>
                 <linearGradient id="RadialGradient8932">
                     <stop offset="0%" stop-color="#2563eb" stop-opacity="1" />

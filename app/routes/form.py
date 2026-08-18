@@ -1,3 +1,4 @@
+import asyncio
 import io
 import json
 import uuid
@@ -108,40 +109,6 @@ async def handle_create_form(
             {"request": request, "error": "Something went wrong on our end."},
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
-
-
-@form_router.get("/{project_id}/forms/{form_id}", response_class=HTMLResponse)
-async def handle_get_project_form(
-    request: Request,
-    form_id: str,
-    project_id: str,
-    db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(current_user)],
-):
-    try:
-        form = await FormRepository(db).get_by_id_and_project(
-            form_id, project_id, include_submissions=True
-        )
-        if not form:
-            raise HTTPException(status_code=404, detail="Form not found.")
-
-        return temp.TemplateResponse(
-            request,
-            "form.html",
-            {
-                "request": request,
-                "form": form,
-                "active_tab_template": TAB_TEMPLATES[FormTab.submissions],
-                "tab_labels": TAB_LABELS,
-                "active_tab": "submissions",
-                "email": user.email,
-                "name": user.name,
-                "user_id": user.id,
-                "page": "projects",
-            },
-        )
-    except SQLAlchemyError as e:
-        log.exception(f"Something went wrong while fetching form details: {e}")
 
 
 @form_router.get("/test-widget", response_class=HTMLResponse)

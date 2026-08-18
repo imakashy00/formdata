@@ -3,7 +3,8 @@
 {% block title %}Forms — Formdata{% endblock %}
 
 {% block content %}
-<div class="page animate-slide-up" id="page-project" x-data="{ activeTab: '{{ active_tab }}' }">
+<div class="page flex flex-col min-h-[calc(100vh-8rem)] animate-slide-up" id="page-project"
+    x-data="{ activeTab: '{{ active_tab }}' }">
     <div class="border-b border-gray-100 bg-white px-5 md:px-5 mb-4 ">
         <div class="flex gap-2 md:gap-4 p-2 align-center">
             <svg class="w-6 h-6 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -15,19 +16,29 @@
         <nav class="flex gap-6 -mb-px" aria-label="Project tabs">
             {% for tab_id in ['submissions', 'setup', 'templates', 'settings', 'integrations',]
             %}
-            <button type="button" hx-get="/projects/{{form.project_id}}/forms/{{ form.id }}/{{ tab_id }}"
-                hx-target="#tab-content" hx-push-url="true" @click="activeTab = '{{ tab_id }}'" x-cloak
-                :class="activeTab === '{{ tab_id }}' ? 'border-brand text-brand' : 'border-transparent text-gray-500 hover:text-gray-700'"
-                class="py-4 px-1 border-b-2 text-sm transition-all">
+            <button type="button" hx-indicator="#form-loader"
+                hx-get="/projects/{{form.project_id}}/forms/{{ form.id }}/{{ tab_id }}" hx-target="#tab-content"
+                hx-push-url="true" @click="activeTab = '{{ tab_id }}'" x-cloak :disabled="activeTab === '{{ tab_id }}'"
+                :class="activeTab === '{{ tab_id }}' ? 'border-brand text-brand' : 'border-transparent text-gray-500 hover:text-gray-700 cursor-pointer'"
+                class="py-4 px-1 border-b-2 text-sm transition-all poi">
                 {{ tab_labels[tab_id] }}
-                
+
             </button>
             {% endfor %}
         </nav>
     </div>
 
-    <div id="tab-content" class="space-y-4">
+    <div id="tab-content" class="space-y-4 ">
+
         {% include active_tab_template %}
     </div>
+    <!-- "grow" forces it to stretch to the remaining space. "w-full" ensures it spans the remaining width -->
+    <div class="flex flex-col flex-1 grow w-full items-center justify-center p-8">
+        {% with id="form-loader", size="h-16 w-16", text=false, overlay=false %}
+        {% include 'partials/loading.html' %}
+        {% endwith %}
+    </div>
+
+
 </div>
 {% endblock %}
