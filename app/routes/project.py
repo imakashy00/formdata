@@ -1,3 +1,4 @@
+import asyncio
 import json
 import re
 from typing import Annotated
@@ -72,6 +73,7 @@ async def create_project(
     name: str = Form(...),
 ):
     try:
+        await asyncio.sleep(5)
         project = NewProject(name=name)
         repository = ProjectRepository(db)
         new_project = await repository.create(project.name, user.id)
