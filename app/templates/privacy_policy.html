@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Privacy Policy U+2013 Formdata</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/output.css') }}">
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <style>
+        :root {
+            --color-brand: #2563eb;
+            --color-brand-light: #eff6ff;
+            --color-brand-mid: #dbeafe;
+            --color-brand-dark: #1d4ed8;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f8fafc;
+            color: #0f172a;
+            line-height: 1.7;
+        }
+
+        .prose h1 {
+            font-size: 2.25rem;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+            color: #0f172a;
+            margin-bottom: 0.5rem;
+        }
+
+        .prose h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #0f172a;
+            margin-top: 2.5rem;
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .prose h3 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #0f172a;
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .prose p {
+            margin-bottom: 1rem;
+            color: #1e293b;
+        }
+
+        .prose ul {
+            list-style-type: disc;
+            padding-left: 1.5rem;
+            margin-bottom: 1rem;
+            color: #1e293b;
+        }
+
+        .prose ul li {
+            margin-bottom: 0.25rem;
+        }
+
+        .prose strong {
+            font-weight: 600;
+            color: #0f172a;
+        }
+
+        .brand-border-left {
+            border-left: 4px solid var(--color-brand);
+        }
+
+        .brand-bg-light {
+            background: var(--color-brand-light);
+        }
+
+        .brand-bg-mid {
+            background: var(--color-brand-mid);
+        }
+
+        .brand-border {
+            border-color: var(--color-brand-mid);
+        }
+
+        .callout {
+            padding: 1.25rem 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 0.75rem;
+            border-left: 4px solid var(--color-brand);
+            background: var(--color-brand-light);
+        }
+
+        .callout-dark {
+            border-left-color: var(--color-brand-dark);
+            background: var(--color-brand-mid);
+        }
+
+        .callout-footer {
+            padding: 1.25rem 1.5rem;
+            margin-top: 2.5rem;
+            background: var(--color-brand-light);
+            border: 1px solid var(--color-brand-mid);
+            border-radius: 0.75rem;
+        }
+
+        .last-updated {
+            font-size: 0.875rem;
+            color: #64748b;
+            margin-top: -0.25rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .section-divider {
+            border: 0;
+            border-top: 1px solid #e2e8f0;
+            margin: 2.5rem 0;
+        }
+
+        .badge {
+            display: inline-block;
+            background: var(--color-brand);
+            color: #fff;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 0.2rem 0.7rem;
+            border-radius: 9999px;
+            margin-right: 0.5rem;
+        }
+
+        @media (max-width: 640px) {
+            .prose h1 {
+                font-size: 1.75rem;
+            }
+
+            .prose h2 {
+                font-size: 1.25rem;
+            }
+
+            .callout {
+                padding: 1rem 1.25rem;
+            }
+
+            .callout-footer {
+                padding: 1rem 1.25rem;
+            }
+        }
+
+        @media (min-width: 768px) and (max-width: 1024px) {
+            .container {
+                max-width: 720px;
+            }
+        }
+
+        /* Smooth scroll & focus */
+        html {
+            scroll-behavior: smooth;
+        }
+
+        a:focus-visible {
+            outline: 2px solid var(--color-brand);
+            outline-offset: 2px;
+        }
+
+        /* TOC hover */
+        .toc-link {
+            transition: color 0.15s ease;
+        }
+
+        .toc-link:hover {
+            color: var(--color-brand);
+        }
+
+        /* back to top */
+        .back-to-top {
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+
+        .back-to-top:hover {
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ====== NAV ====== -->
+    <header class="bg-white border-b border-slate-200/80 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-4xl mx-auto px-5 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
+            <a href="#" class="flex items-center gap-2 text-slate-800 font-bold text-lg tracking-tight">
+                <span
+                    class="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center text-white text-xs font-mono font-bold">F</span>
+                <span>Formdata</span>
+            </a>
+            <a href="#" class="text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors">
+                <i class="fa-regular fa-file-lines mr-1.5"></i>Privacy
+            </a>
+        </div>
+    </header>
+
+    <!-- ====== MAIN ====== -->
+    <main class="max-w-4xl mx-auto px-5 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
+
+        <!-- HEADER -->
+        <div class="mb-8">
+            <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900">Privacy Policy</h1>
+            <div class="flex flex-wrap items-center gap-2 mt-1.5 text-sm text-slate-500">
+                <span><i class="fa-regular fa-calendar mr-1.5"></i>Last updated: <strong class="text-slate-700">August
+                        19, 2026</strong></span>
+                <span class="hidden xs:inline text-slate-300">|</span>
+                <span class="flex items-center gap-1.5"><i class="fa-regular fa-building"></i>Formdata</span>
+            </div>
+        </div>
+
+        <!-- IN SHORT CALLOUT -->
+        <div class="callout flex items-start gap-3">
+            <span class="text-blue-600 text-xl mt-0.5"><i class="fa-regular fa-circle-check"></i></span>
+            <div>
+                <p class="font-semibold text-slate-800 mb-0.5">In short:</p>
+                <p class="text-slate-700 text-sm sm:text-base m-0">
+                    Formdata processes information on behalf of customers who use our service to collect form
+                    submissions.
+                    If you submit information through a form powered by Formdata, the website or organization operating
+                    that form
+                    is generally responsible for deciding why that information is collected.
+                </p>
+            </div>
+        </div>
+
+        <!-- ====== TABLE OF CONTENTS ====== -->
+        <nav class="mt-8 mb-10 bg-white rounded-xl border border-slate-200/70 shadow-sm p-5 sm:p-6">
+            <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-2">
+                <i class="fa-regular fa-list"></i>Contents
+            </h2>
+            <ul class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5 text-sm">
+                <li><a href="#section-1" class="toc-link text-slate-600 hover:text-blue-600">1. Who This Policy Applies
+                        To</a></li>
+                <li><a href="#section-2" class="toc-link text-slate-600 hover:text-blue-600">2. Information We
+                        Collect</a></li>
+                <li><a href="#section-3" class="toc-link text-slate-600 hover:text-blue-600">3. How We Use
+                        Information</a></li>
+                <li><a href="#section-4" class="toc-link text-slate-600 hover:text-blue-600">4. Form Submissions &amp;
+                        Customer Data</a></li>
+                <li><a href="#section-5" class="toc-link text-slate-600 hover:text-blue-600">5. Cookies &amp; Similar
+                        Tech</a></li>
+                <li><a href="#section-6" class="toc-link text-slate-600 hover:text-blue-600">6. Service Providers</a>
+                </li>
+                <li><a href="#section-7" class="toc-link text-slate-600 hover:text-blue-600">7. Integrations</a></li>
+                <li><a href="#section-8" class="toc-link text-slate-600 hover:text-blue-600">8. Data Security</a></li>
+                <li><a href="#section-9" class="toc-link text-slate-600 hover:text-blue-600">9. Data Retention</a></li>
+                <li><a href="#section-10" class="toc-link text-slate-600 hover:text-blue-600">10. Your Rights</a></li>
+                <li><a href="#section-11" class="toc-link text-slate-600 hover:text-blue-600">11. International
+                        Transfers</a></li>
+                <li><a href="#section-12" class="toc-link text-slate-600 hover:text-blue-600">12. Children's Privacy</a>
+                </li>
+                <li><a href="#section-13" class="toc-link text-slate-600 hover:text-blue-600">13. Changes to This
+                        Policy</a></li>
+                <li><a href="#section-14" class="toc-link text-slate-600 hover:text-blue-600">14. Contact Us</a></li>
+            </ul>
+        </nav>
+
+        <!-- ====== CONTENT ====== -->
+        <div class="prose prose-slate max-w-none">
+
+            <!-- 1 -->
+            <h2 id="section-1">1. Who This Policy Applies To</h2>
+            <p>This Privacy Policy applies to:</p>
+            <ul>
+                <li>Visitors to formdata.cloud.</li>
+                <li>People who create or use a Formdata account.</li>
+                <li>Customers who use Formdata to process form submissions.</li>
+                <li>People who submit information through a Formdata-powered form.</li>
+                <li>People who communicate with Formdata support.</li>
+            </ul>
+            <p>For information submitted through a customer's form, the customer may determine the purposes and means of
+                processing.
+                In those situations, Formdata generally acts as a service provider or processor on the customer's
+                behalf.</p>
+
+            <hr class="section-divider" />
+
+            <!-- 2 -->
+            <h2 id="section-2">2. Information We Collect</h2>
+
+            <h3>2.1 Account Information</h3>
+            <p>When you create a Formdata account, we may collect information such as:</p>
+            <ul>
+                <li>Name.</li>
+                <li>Email address.</li>
+                <li>Password or authentication credentials.</li>
+                <li>Account and workspace information.</li>
+                <li>Billing and subscription information.</li>
+                <li>Communication preferences.</li>
+            </ul>
+
+            <h3>2.2 Form and Submission Data</h3>
+            <p>When you use Formdata to receive submissions, our systems may process information submitted through your
+                forms, including:</p>
+            <ul>
+                <li>Names.</li>
+                <li>Email addresses.</li>
+                <li>Phone numbers.</li>
+                <li>Messages.</li>
+                <li>Form fields and responses.</li>
+                <li>Files and attachments.</li>
+                <li>Metadata associated with submissions.</li>
+                <li>IP addresses and other technical information associated with requests.</li>
+            </ul>
+            <p>The actual information contained in a submission depends on what the Formdata customer chooses to
+                collect.</p>
+
+            <div class="callout callout-dark flex items-start gap-3">
+                <span class="text-blue-700 text-xl mt-0.5"><i class="fa-regular fa-rectangle-ad"></i></span>
+                <div>
+                    <p class="font-semibold text-slate-800 mb-0.5">Customer responsibility:</p>
+                    <p class="text-slate-700 text-sm sm:text-base m-0">
+                        Customers should only collect information that they have a lawful basis and appropriate
+                        authorization to collect.
+                        Customers are responsible for providing their own notices to people submitting information
+                        through their forms where required by law.
+                    </p>
+                </div>
+            </div>
+
+            <h3>2.3 Usage and Technical Information</h3>
+            <p>We may automatically collect limited technical information when you interact with our website and
+                services, such as:</p>
+            <ul>
+                <li>IP address.</li>
+                <li>Browser type.</li>
+                <li>Operating system.</li>
+                <li>Device information.</li>
+                <li>Pages visited.</li>
+                <li>Referring website.</li>
+                <li>Request timestamps.</li>
+                <li>Error and diagnostic information.</li>
+                <li>Service performance information.</li>
+            </ul>
+            <p>We use this information to operate, secure, troubleshoot, and improve Formdata.</p>
+
+            <h3>2.4 Payment Information</h3>
+            <p>Paid subscriptions are processed through our payment provider. We generally do not store complete payment
+                card numbers on our own servers.
+                Payment information is handled by the applicable payment processor according to its own privacy policy
+                and security practices.
+                We may receive limited billing information such as:</p>
+            <ul>
+                <li>Subscription status.</li>
+                <li>Transaction identifiers.</li>
+                <li>Billing email.</li>
+                <li>Plan information.</li>
+                <li>Payment status.</li>
+            </ul>
+
+            <hr class="section-divider" />
+
+            <!-- 3 -->
+            <h2 id="section-3">3. How We Use Information</h2>
+            <p>We may use information to:</p>
+            <ul>
+                <li>Provide and operate Formdata.</li>
+                <li>Process form submissions.</li>
+                <li>Store submissions and uploaded files.</li>
+                <li>Send email notifications requested by customers.</li>
+                <li>Deliver integrations and webhooks configured by customers.</li>
+                <li>Provide customer support.</li>
+                <li>Process subscriptions and payments.</li>
+                <li>Monitor service reliability.</li>
+                <li>Detect spam, abuse, fraud, and security threats.</li>
+                <li>Prevent unauthorized access.</li>
+                <li>Diagnose technical problems.</li>
+                <li>Improve our products and services.</li>
+                <li>Communicate important service or account information.</li>
+                <li>Comply with legal obligations.</li>
+            </ul>
+            <p>We do <strong>not</strong> sell customer submission data as a product or use customer submission content
+                for unrelated advertising purposes.</p>
+
+            <hr class="section-divider" />
+
+            <!-- 4 -->
+            <h2 id="section-4">4. Form Submissions and Customer Data</h2>
+            <p>Formdata is designed to process data submitted through forms on behalf of our customers.
+                For example, if a business creates a contact form using Formdata and a visitor submits their name and
+                email address,
+                Formdata processes that submission so the business can access and use it.</p>
+            <p>The customer operating that form is generally responsible for:</p>
+            <ul>
+                <li>Determining what information to collect.</li>
+                <li>Establishing the appropriate legal basis for collection.</li>
+                <li>Providing appropriate privacy notices.</li>
+                <li>Responding to requests from people whose data they collect.</li>
+                <li>Configuring retention and deletion appropriately.</li>
+                <li>Ensuring their use of Formdata complies with applicable law.</li>
+            </ul>
+
+            <hr class="section-divider" />
+
+            <!-- 5 -->
+            <h2 id="section-5">5. Cookies and Similar Technologies</h2>
+            <p>We may use cookies and similar technologies for purposes such as:</p>
+            <ul>
+                <li>Keeping users authenticated.</li>
+                <li>Maintaining sessions.</li>
+                <li>Remembering preferences.</li>
+                <li>Security.</li>
+                <li>Analytics.</li>
+                <li>Understanding how our website and service are used.</li>
+            </ul>
+            <p>You can configure your browser to reject certain cookies. Some Formdata functionality may not work
+                correctly if essential cookies are disabled.</p>
+
+            <hr class="section-divider" />
+
+            <!-- 6 -->
+            <h2 id="section-6">6. Service Providers</h2>
+            <p>We may use trusted third-party service providers to help operate Formdata. These providers may assist
+                with:</p>
+            <ul>
+                <li>Cloud hosting.</li>
+                <li>Database infrastructure.</li>
+                <li>File storage.</li>
+                <li>Email delivery.</li>
+                <li>Payment processing.</li>
+                <li>Authentication.</li>
+                <li>Monitoring.</li>
+                <li>Security.</li>
+                <li>Analytics.</li>
+                <li>Customer support.</li>
+            </ul>
+            <p>These providers receive only the information reasonably necessary to perform their services and are
+                expected to protect that information appropriately.</p>
+
+            <hr class="section-divider" />
+
+            <!-- 7 -->
+            <h2 id="section-7">7. Integrations</h2>
+            <p>Formdata allows customers to connect services such as email, Slack, webhooks, spreadsheets, or other
+                third-party systems.
+                When a customer enables an integration, submission information may be transmitted to that third party
+                according to the customer's configuration.
+                Formdata is not responsible for how an external integration provider subsequently uses information after
+                it leaves Formdata's systems.</p>
+
+            <hr class="section-divider" />
+
+            <!-- 8 -->
+            <h2 id="section-8">8. Data Security</h2>
+            <p>We use reasonable technical and organizational measures designed to protect information against
+                unauthorized access, alteration, disclosure, or destruction. These measures may include:</p>
+            <ul>
+                <li>Encryption in transit.</li>
+                <li>Access controls.</li>
+                <li>Authentication mechanisms.</li>
+                <li>Logging and monitoring.</li>
+                <li>Infrastructure security controls.</li>
+                <li>Backup and recovery mechanisms.</li>
+                <li>Security reviews and operational safeguards.</li>
+            </ul>
+            <p>However, no internet service can guarantee absolute security. If we become aware of a security incident
+                affecting customer information,
+                we will take reasonable steps to investigate, contain, and respond to the incident and provide notices
+                where required by applicable law.</p>
+
+            <hr class="section-divider" />
+
+            <!-- 9 -->
+            <h2 id="section-9">9. Data Retention</h2>
+            <p>We retain information for as long as reasonably necessary to:</p>
+            <ul>
+                <li>Provide the service.</li>
+                <li>Maintain customer accounts.</li>
+                <li>Fulfill contractual obligations.</li>
+                <li>Meet legal requirements.</li>
+                <li>Resolve disputes.</li>
+                <li>Enforce agreements.</li>
+                <li>Maintain security and abuse-prevention records.</li>
+            </ul>
+            <p>Customers are responsible for managing the retention of submissions within their accounts where Formdata
+                provides deletion or management functionality.
+                After an account is terminated, we may retain certain information for a limited period for legitimate
+                business, legal, security, backup, or recovery purposes.</p>
+
+            <hr class="section-divider" />
+
+            <!-- 10 -->
+            <h2 id="section-10">10. Your Rights</h2>
+            <p>Depending on where you live and applicable law, you may have rights relating to your personal
+                information, including:</p>
+            <ul>
+                <li>Accessing personal information.</li>
+                <li>Requesting correction.</li>
+                <li>Requesting deletion.</li>
+                <li>Requesting restriction of processing.</li>
+                <li>Objecting to certain processing.</li>
+                <li>Requesting data portability.</li>
+                <li>Withdrawing consent where processing relies on consent.</li>
+            </ul>
+            <p>If you submitted information through a form operated by a Formdata customer, your request may need to be
+                directed to that customer because they determine why your information was collected.</p>
+
+            <hr class="section-divider" />
+
+            <!-- 11 -->
+            <h2 id="section-11">11. International Data Transfers</h2>
+            <p>Formdata may use service providers or infrastructure located in countries other than your own.
+                Where required, we will use appropriate safeguards for international transfers of personal information.
+            </p>
+
+            <hr class="section-divider" />
+
+            <!-- 12 -->
+            <h2 id="section-12">12. Children's Privacy</h2>
+            <p>Formdata is not intended for children under the age required by applicable law to independently consent
+                to online services.
+                We do not knowingly collect personal information from children for the purpose of creating Formdata
+                accounts.
+                If you believe a child has provided personal information to us improperly, please contact us.</p>
+
+            <hr class="section-divider" />
+
+            <!-- 13 -->
+            <h2 id="section-13">13. Changes to This Privacy Policy</h2>
+            <p>We may update this Privacy Policy from time to time. When we make material changes, we may provide notice
+                through our website,
+                account dashboard, email, or another reasonable method. The "Last updated" date at the top of this
+                policy indicates when it was most recently revised.</p>
+
+            <hr class="section-divider" />
+
+            <!-- 14 -->
+            <h2 id="section-14">14. Contact Us</h2>
+            <p>If you have questions about this Privacy Policy or our privacy practices, contact us through the contact
+                information provided on <strong>formdata.cloud</strong>.</p>
+
+        </div><!-- /prose -->
+
+        <!-- ====== FOOTER CALLOUT ====== -->
+        <div class="callout-footer mt-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+                <div class="flex items-center gap-2.5">
+                    <span
+                        class="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center text-white text-sm font-mono font-bold">F</span>
+                    <div>
+                        <p class="font-bold text-slate-800 text-lg leading-tight">Formdata</p>
+                        <p class="text-sm text-slate-500">Form backend for builders.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="text-sm text-slate-600">
+                <span class="font-medium">Website:</span>
+                <a href="#" class="text-blue-600 hover:text-blue-800 font-medium transition-colors">formdata.cloud</a>
+            </div>
+        </div>
+
+        <!-- ====== BACK TO TOP ====== -->
+        <div class="mt-8 text-center">
+            <a href="#"
+                class="back-to-top inline-flex items-center gap-2 text-sm text-slate-400 hover:text-blue-600 transition-colors">
+                <i class="fa-regular fa-arrow-up"></i>Back to top
+            </a>
+        </div>
+
+    </main>
+
+    <!-- ====== FOOTER ====== -->
+    <footer class="border-t border-slate-200/80 bg-white mt-6">
+        <div
+            class="max-w-4xl mx-auto px-5 sm:px-6 lg:px-8 py-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-slate-500">
+            <span>&copy; 2026 Formdata. All rights reserved.</span>
+            <span class="flex items-center gap-4">
+                <a href="#" class="hover:text-blue-600 transition-colors">Privacy</a>
+                <a href="#" class="hover:text-blue-600 transition-colors">Terms</a>
+                <a href="#" class="hover:text-blue-600 transition-colors">Contact</a>
+            </span>
+        </div>
+    </footer>
+
+</body>
+
+</html>

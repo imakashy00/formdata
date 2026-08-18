@@ -14,7 +14,6 @@ from app.services.dependencies import current_user
 page_router = APIRouter()
 
 
-
 @page_router.get("/billing", response_class=HTMLResponse)
 async def billing(request: Request, user: Annotated[User, Depends(current_user)]):
 
@@ -66,13 +65,13 @@ async def blog(req: Request, blog_id: str):
 @page_router.get("/privacy-policy", response_class=HTMLResponse)
 async def privacy_policy(request: Request):
     """Privacy Policy page"""
-    return temp.TemplateResponse(request, "privacy.html")
+    return temp.TemplateResponse(request, "privacy_policy.html")
 
 
-@page_router.get("/terms", response_class=HTMLResponse)
+@page_router.get("/terms-of-service", response_class=HTMLResponse)
 async def terms_and_conditions(request: Request):
     """Terms and Conditions page"""
-    return temp.TemplateResponse(request, "terms.html")
+    return temp.TemplateResponse(request, "terms_of_service.html")
 
 
 @page_router.get("/sitemap.xml", include_in_schema=False)
@@ -102,7 +101,7 @@ async def sitemap_xml(request: Request) -> Response:
         ("/help", "monthly", "0.4"),
         ("/blogs", "weekly", "0.5"),
         ("/privacy-policy", "yearly", "0.3"),
-        ("/terms", "yearly", "0.3"),
+        ("/terms-of-service", "yearly", "0.3"),
     ]
 
     for path, changefreq, priority in optional_paths:

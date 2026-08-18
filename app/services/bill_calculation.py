@@ -2,9 +2,10 @@ import math
 from dataclasses import dataclass
 
 import httpx
+from loguru import logger as log
+
 from app.core.settings import settings
 from app.models.user import Subscription
-from loguru import logger as log
 
 headers = {
     "Authorization": f"Bearer {settings.PADDLE_API_KEY!s}",

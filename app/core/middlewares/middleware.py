@@ -16,7 +16,7 @@ PUBLIC_PATHS = {
     "/webhook/paddle",
     "/webhook/resend",
     "/privacy-policy",
-    "/terms",
+    "/terms-of-service",
     "/robots.txt",
     "/sitemap.xml",
     "/favicon.ico",

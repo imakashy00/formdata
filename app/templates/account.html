@@ -435,8 +435,8 @@
 
     // Monthly-only price catalog. Order is used to tell an upgrade from a downgrade.
     const PLANS = {
-        solo: { label: "Solo", priceId: "pri_01kwhvxjre9b0hbjvnfwhe69bp", order: 1 },
-        studio: { label: "Studio", priceId: "pri_01kz9pnhgpaz1qkafrypwmm20b", order: 2 },
+        solo: { label: "Solo", priceId: "{{CONFIG._solo_price}}", order: 1 },
+        studio: { label: "Studio", priceId: "{{CONFIG.studio_price}}", order: 1 },
     };
 
     /**

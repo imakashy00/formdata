@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Terms of Service · Formdata</title>
+    <style>
+        /* ── Reset & base ── */
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --brand: #2563eb;
+            --brand-light: #eff6ff;
+            --brand-mid: #bfdbfe;
+            --brand-dark: #1d4ed8;
+            --text-primary: #0f172a;
+            --text-secondary: #334155;
+            --text-muted: #64748b;
+            --bg-page: #f8fafc;
+            --bg-card: #ffffff;
+            --border-light: #e2e8f0;
+            --radius: 12px;
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+            --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.06);
+            --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --max-width: 820px;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: var(--bg-page);
+            color: var(--text-primary);
+            line-height: 1.7;
+            padding: 2rem 1.5rem 4rem;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container {
+            max-width: var(--max-width);
+            margin: 0 auto;
+        }
+
+        /* ── Card ── */
+        .tos-card {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-md);
+            padding: 2.5rem 2.5rem 2rem;
+            border: 1px solid var(--border-light);
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 1rem 1rem 3rem;
+            }
+
+            .tos-card {
+                padding: 1.5rem 1.25rem 1.25rem;
+                border-radius: 10px;
+            }
+        }
+
+        /* ── Header ── */
+        .header {
+            margin-bottom: 2.5rem;
+            padding-bottom: 1.75rem;
+            border-bottom: 2px solid var(--border-light);
+        }
+
+        .header .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .header .brand svg {
+            flex-shrink: 0;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            color: var(--text-primary);
+            margin-top: 0.2rem;
+        }
+
+        .header .last-updated {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            margin-top: 0.25rem;
+        }
+
+        .header .intro {
+            margin-top: 1.25rem;
+            font-size: 1.05rem;
+            color: var(--text-secondary);
+        }
+
+        .header .intro strong {
+            color: var(--text-primary);
+        }
+
+        .header .agree-notice {
+            margin-top: 1rem;
+            padding: 0.75rem 1rem;
+            background: var(--brand-light);
+            border-left: 4px solid var(--brand);
+            border-radius: 6px;
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+        }
+
+        /* ── Table of Contents ── */
+        .toc {
+            background: var(--bg-page);
+            border-radius: 8px;
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 2.5rem;
+            border: 1px solid var(--border-light);
+        }
+
+        .toc summary {
+            font-weight: 600;
+            cursor: pointer;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .toc summary::-webkit-details-marker {
+            color: var(--brand);
+        }
+
+        .toc-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 0.35rem 1rem;
+            margin-top: 0.75rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid var(--border-light);
+        }
+
+        .toc-grid a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.15s;
+            display: inline-block;
+        }
+
+        .toc-grid a:hover {
+            color: var(--brand);
+            text-decoration: underline;
+        }
+
+        /* ── Sections ── */
+        .section {
+            margin-bottom: 2.5rem;
+            scroll-margin-top: 1rem;
+        }
+
+        .section:last-of-type {
+            margin-bottom: 0;
+        }
+
+        .section h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+            margin-bottom: 0.75rem;
+            color: var(--text-primary);
+            display: flex;
+            align-items: baseline;
+            gap: 0.5rem;
+        }
+
+        .section h2 .section-number {
+            color: var(--text-muted);
+            font-weight: 400;
+            font-size: 1.1rem;
+        }
+
+        .section h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-top: 1.25rem;
+            margin-bottom: 0.4rem;
+            color: var(--text-primary);
+        }
+
+        .section h4 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-top: 1rem;
+            margin-bottom: 0.25rem;
+            color: var(--text-secondary);
+        }
+
+        .section p {
+            margin-bottom: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .section ul,
+        .section ol {
+            margin: 0.5rem 0 1rem 1.5rem;
+            color: var(--text-secondary);
+        }
+
+        .section ul li,
+        .section ol li {
+            margin-bottom: 0.3rem;
+        }
+
+        .section ul ul {
+            margin-top: 0.2rem;
+            margin-bottom: 0.2rem;
+        }
+
+        .section .feature-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 0.25rem 0.75rem;
+            margin: 0.5rem 0 0.75rem 1.5rem;
+            list-style: none;
+            padding: 0;
+        }
+
+        .section .feature-list li {
+            position: relative;
+            padding-left: 1.25rem;
+            margin-bottom: 0.2rem;
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+        }
+
+        .section .feature-list li::before {
+            content: "•";
+            position: absolute;
+            left: 0;
+            color: var(--brand);
+            font-weight: 700;
+        }
+
+        /* ── Refund Policy box ── */
+        .refund-box {
+            padding: 1.25rem 1.5rem;
+            margin: 1.5rem 0 1.5rem;
+            border-left: 4px solid var(--brand);
+            background: var(--brand-light);
+            border-radius: 8px;
+        }
+
+        .refund-box h4 {
+            margin-top: 0;
+            color: var(--text-primary);
+        }
+
+        .refund-box p {
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .refund-box p:last-child {
+            margin-bottom: 0;
+        }
+
+        .refund-box strong {
+            color: var(--text-primary);
+        }
+
+        /* ── Footer / brand block ── */
+        .footer-brand {
+            margin-top: 2.5rem;
+            padding: 1.25rem 1.5rem;
+            background: var(--brand-light);
+            border: 1px solid var(--brand-mid);
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .footer-brand .name {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--text-primary);
+        }
+
+        .footer-brand .tagline {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            margin-top: 0.15rem;
+        }
+
+        .footer-brand .url {
+            color: var(--brand);
+            font-weight: 500;
+            text-decoration: none;
+        }
+
+        .footer-brand .url:hover {
+            text-decoration: underline;
+        }
+
+        /* ── Misc ── */
+        .inline-code {
+            background: #f1f5f9;
+            padding: 0.1rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.9em;
+            font-family: ui-monospace, "SF Mono", Menlo, monospace;
+            color: var(--text-primary);
+        }
+
+        .divider {
+            height: 1px;
+            background: var(--border-light);
+            margin: 2.5rem 0 1.5rem;
+        }
+
+        /* ── Responsive tweaks ── */
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 1.6rem;
+            }
+
+            .section h2 {
+                font-size: 1.25rem;
+            }
+
+            .toc-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .feature-list {
+                grid-template-columns: 1fr !important;
+            }
+
+            .refund-box {
+                padding: 1rem 1.25rem;
+            }
+        }
+
+        /* ── Print friendly ── */
+        @media print {
+            body {
+                background: #fff;
+                padding: 0.5in;
+            }
+
+            .tos-card {
+                box-shadow: none;
+                border: none;
+                padding: 0;
+            }
+
+            .toc {
+                background: #f8fafc;
+                border: 1px solid #ddd;
+                break-inside: avoid;
+            }
+
+            .refund-box {
+                border-left-color: #2563eb;
+                background: #f0f7ff;
+            }
+
+            .footer-brand {
+                border-color: #ccc;
+                background: #f8fafc;
+            }
+
+            .header {
+                border-bottom-color: #ccc;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+
+        <div class="tos-card">
+
+            <!-- ═══ HEADER ═══ -->
+            <header class="header">
+                <div class="brand">
+                    <!-- small inline logo -->
+                    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="2" y="2" width="24" height="24" rx="6" fill="#2563eb" />
+                        <path d="M8 8h12M8 14h12M8 20h8" stroke="#fff" stroke-width="2.5" stroke-linecap="round" />
+                    </svg>
+                    <span style="font-weight:600;font-size:1.2rem;color:var(--text-primary);">Formdata</span>
+                </div>
+                <h1>Terms of Service</h1>
+                <div class="last-updated"><strong>Last updated:</strong> August 19, 2026</div>
+
+                <div class="intro">
+                    Welcome to <strong>Formdata</strong>.
+                </div>
+
+                <p style="margin-top:0.5rem;color:var(--text-secondary);">
+                    These Terms of Service (“Terms”) govern your access to and use of Formdata's website, applications,
+                    APIs, form endpoints, storage, integrations, and related services (collectively, the “Service”).
+                </p>
+
+                <div class="agree-notice">
+                    <strong>✓</strong> By creating an account, purchasing a subscription, or using the Service, you
+                    agree to these Terms.
+                    <br />
+                    If you do not agree with these Terms, you must not use the Service.
+                </div>
+            </header>
+
+            <!-- ═══ TABLE OF CONTENTS ═══ -->
+            <details class="toc" open>
+                <summary>📑 Table of Contents</summary>
+                <div class="toc-grid">
+                    <a href="#s1">1. About Formdata</a>
+                    <a href="#s2">2. Eligibility</a>
+                    <a href="#s3">3. Your Account</a>
+                    <a href="#s4">4. Acceptable Use</a>
+                    <a href="#s5">5. Your Content</a>
+                    <a href="#s6">6. Responsibility for Form Data</a>
+                    <a href="#s7">7. File Uploads</a>
+                    <a href="#s8">8. Integrations &amp; Third‑Party</a>
+                    <a href="#s9">9. Plans, Usage &amp; Billing</a>
+                    <a href="#s10">10. Subscriptions</a>
+                    <a href="#s11">11. Refund Policy</a>
+                    <a href="#s12">12. Taxes</a>
+                    <a href="#s13">13. Service Availability</a>
+                    <a href="#s14">14. Changes to the Service</a>
+                    <a href="#s15">15. Suspension &amp; Termination</a>
+                    <a href="#s16">16. Intellectual Property</a>
+                    <a href="#s17">17. Feedback</a>
+                    <a href="#s18">18. Disclaimer of Warranties</a>
+                    <a href="#s19">19. Limitation of Liability</a>
+                    <a href="#s20">20. Indemnification</a>
+                    <a href="#s21">21. Governing Law</a>
+                    <a href="#s22">22. Changes to These Terms</a>
+                    <a href="#s23">23. Contact</a>
+                </div>
+            </details>
+
+            <!-- ═══ SECTION 1 ═══ -->
+            <section class="section" id="s1">
+                <h2><span class="section-number">1.</span> About Formdata</h2>
+                <p>
+                    Formdata provides a hosted form backend that allows customers to connect HTML forms and applications
+                    to Formdata endpoints and receive submissions through a dashboard, email notifications, exports,
+                    integrations, and related functionality.
+                </p>
+                <p><strong>Features may include:</strong></p>
+                <ul class="feature-list">
+                    <li>Form endpoints.</li>
+                    <li>Form submissions.</li>
+                    <li>Spam filtering.</li>
+                    <li>File uploads.</li>
+                    <li>Email notifications.</li>
+                    <li>Webhooks.</li>
+                    <li>Slack integrations.</li>
+                    <li>Data exports.</li>
+                    <li>APIs.</li>
+                    <li>Submission management.</li>
+                    <li>Usage and billing management.</li>
+                </ul>
+                <p>Features may vary depending on the subscription plan.</p>
+            </section>
+
+            <!-- ═══ SECTION 2 ═══ -->
+            <section class="section" id="s2">
+                <h2><span class="section-number">2.</span> Eligibility</h2>
+                <p>You must be legally capable of entering into a binding agreement to use Formdata.</p>
+                <p>If you use Formdata on behalf of a company, organization, or other entity, you represent that you
+                    have authority to bind that entity to these Terms.</p>
+            </section>
+
+            <!-- ═══ SECTION 3 ═══ -->
+            <section class="section" id="s3">
+                <h2><span class="section-number">3.</span> Your Account</h2>
+                <p>You are responsible for:</p>
+                <ul>
+                    <li>Providing accurate account information.</li>
+                    <li>Keeping your login credentials secure.</li>
+                    <li>Protecting API keys and other authentication credentials.</li>
+                    <li>All activity occurring through your account.</li>
+                    <li>Notifying us promptly if you believe your account has been compromised.</li>
+                </ul>
+                <p>You must not share account credentials in a manner that creates unauthorized access to your account.
+                </p>
+            </section>
+
+            <!-- ═══ SECTION 4 ═══ -->
+            <section class="section" id="s4">
+                <h2><span class="section-number">4.</span> Acceptable Use</h2>
+                <p>You may use Formdata only for lawful purposes.</p>
+                <p>You must not use the Service to:</p>
+                <ul>
+                    <li>Violate applicable laws or regulations.</li>
+                    <li>Infringe intellectual property rights.</li>
+                    <li>Collect information unlawfully.</li>
+                    <li>Distribute malware.</li>
+                    <li>Conduct phishing attacks.</li>
+                    <li>Send fraudulent submissions.</li>
+                    <li>Facilitate spam or abuse.</li>
+                    <li>Attempt to bypass security controls.</li>
+                    <li>Interfere with the Service.</li>
+                    <li>Attempt unauthorized access to systems or accounts.</li>
+                    <li>Conduct denial-of-service attacks.</li>
+                    <li>Store or transmit unlawful content.</li>
+                    <li>Use the Service to facilitate criminal activity.</li>
+                    <li>Circumvent usage limits or billing controls.</li>
+                    <li>Abuse Formdata's infrastructure or third-party providers.</li>
+                </ul>
+                <p>We may suspend or terminate accounts involved in abuse or activity that creates a security, legal,
+                    operational, or reputational risk.</p>
+            </section>
+
+            <!-- ═══ SECTION 5 ═══ -->
+            <section class="section" id="s5">
+                <h2><span class="section-number">5.</span> Your Content</h2>
+                <p>You retain ownership of content that you submit to Formdata or process through the Service (“Customer
+                    Content”).</p>
+                <p>You grant Formdata a limited license to host, process, transmit, store, and otherwise use Customer
+                    Content only as reasonably necessary to:</p>
+                <ul>
+                    <li>Provide the Service.</li>
+                    <li>Process submissions.</li>
+                    <li>Deliver requested integrations.</li>
+                    <li>Provide support.</li>
+                    <li>Maintain security.</li>
+                    <li>Prevent abuse and fraud.</li>
+                    <li>Troubleshoot technical problems.</li>
+                    <li>Comply with legal obligations.</li>
+                </ul>
+                <p>We do not acquire ownership of your Customer Content merely because you use Formdata.</p>
+            </section>
+
+            <!-- ═══ SECTION 6 ═══ -->
+            <section class="section" id="s6">
+                <h2><span class="section-number">6.</span> Responsibility for Form Data</h2>
+                <p>You are responsible for the information you collect through your forms.</p>
+                <p>You must ensure that your forms:</p>
+                <ul>
+                    <li>Have an appropriate lawful basis for collecting personal information.</li>
+                    <li>Provide required privacy notices.</li>
+                    <li>Do not unlawfully collect sensitive information.</li>
+                    <li>Do not violate the rights of people submitting information.</li>
+                    <li>Do not request information that you are prohibited from collecting.</li>
+                    <li>Comply with applicable data protection and privacy laws.</li>
+                </ul>
+                <p>You are also responsible for responding to data-subject requests concerning information collected
+                    through your forms when you are the organization responsible for that information.</p>
+            </section>
+
+            <!-- ═══ SECTION 7 ═══ -->
+            <section class="section" id="s7">
+                <h2><span class="section-number">7.</span> File Uploads</h2>
+                <p>Where your plan supports file uploads, you are responsible for all files uploaded through your
+                    Formdata endpoints.</p>
+                <p>You must not upload files containing:</p>
+                <ul>
+                    <li>Malware.</li>
+                    <li>Illegal content.</li>
+                    <li>Content that infringes another person's rights.</li>
+                    <li>Content that you do not have permission to process or store.</li>
+                </ul>
+                <p>You are responsible for ensuring that uploaded files comply with applicable laws and your own privacy
+                    obligations.</p>
+            </section>
+
+            <!-- ═══ SECTION 8 ═══ -->
+            <section class="section" id="s8">
+                <h2><span class="section-number">8.</span> Integrations and Third‑Party Services</h2>
+                <p>Formdata may allow you to connect third-party services such as Slack, Google Sheets, webhooks, email
+                    providers, and other integrations.</p>
+                <p>Your use of those services is governed by their respective terms and policies.</p>
+                <p>When you activate an integration, you authorize Formdata to transmit the relevant information
+                    necessary to perform the integration.</p>
+                <p>We are not responsible for third-party services, including outages, changes, data handling, or
+                    security incidents occurring within those services.</p>
+            </section>
+
+            <!-- ═══ SECTION 9 ═══ -->
+            <section class="section" id="s9">
+                <h2><span class="section-number">9.</span> Plans, Usage and Billing</h2>
+                <p>Some Formdata features require a paid subscription.</p>
+                <p>Current plans and usage limits are displayed on the Formdata website and may change from time to
+                    time.</p>
+                <p>Usage may include limits relating to:</p>
+                <ul>
+                    <li>Submissions.</li>
+                    <li>File storage.</li>
+                    <li>Integrations.</li>
+                    <li>API usage.</li>
+                    <li>Other resources.</li>
+                </ul>
+                <p>Additional usage may be charged according to the rates displayed at the time of use.</p>
+                <p>You authorize Formdata and its payment provider to charge applicable subscription and usage fees.</p>
+            </section>
+
+            <!-- ═══ SECTION 10 ═══ -->
+            <section class="section" id="s10">
+                <h2><span class="section-number">10.</span> Subscriptions</h2>
+                <p>Paid subscriptions generally renew automatically for the selected billing period unless canceled
+                    before the next renewal.</p>
+                <p>You can cancel your subscription through the available account or billing controls.</p>
+                <p>Cancellation normally prevents future renewal but does not automatically reverse charges that have
+                    already been incurred.</p>
+                <p>After cancellation, you may generally continue using paid functionality until the end of the
+                    applicable paid billing period unless your account is suspended or terminated for another reason.
+                </p>
+            </section>
+
+            <!-- ═══ SECTION 11 ═══ -->
+            <section class="section" id="s11">
+                <h2><span class="section-number">11.</span> Refund Policy</h2>
+
+                <div class="refund-box">
+                    <h4>11.1 General Policy</h4>
+                    <p>Formdata subscriptions are generally <strong>non-refundable once a billing period has
+                            started</strong>.</p>
+                    <p>If you cancel a subscription, cancellation normally stops future renewals. It does not
+                        automatically create a refund for the current billing period.</p>
+                </div>
+
+                <h4>11.2 Accidental or Duplicate Charges</h4>
+                <p>If you believe you were charged because of:</p>
+                <ul>
+                    <li>A duplicate transaction.</li>
+                    <li>A billing error.</li>
+                    <li>An unauthorized transaction.</li>
+                    <li>A technical error caused by Formdata.</li>
+                </ul>
+                <p>please contact us promptly with the relevant account and transaction information.</p>
+                <p>We will review the situation and may issue a refund where appropriate.</p>
+
+                <h4>11.3 Service Issues</h4>
+                <p>If Formdata experiences a significant service problem that prevents you from reasonably using a paid
+                    feature, you may contact support.</p>
+                <p>We may, at our discretion, provide:</p>
+                <ul>
+                    <li>A partial refund.</li>
+                    <li>Account credit.</li>
+                    <li>An extension of the subscription.</li>
+                    <li>Another reasonable remedy.</li>
+                </ul>
+                <p>A service interruption does not automatically create a right to a refund.</p>
+
+                <h4>11.4 Free Usage</h4>
+                <p>Any free submission allowance or free trial provided by Formdata has no monetary value and cannot be
+                    exchanged for cash or transferred to another account.</p>
+
+                <h4>11.5 Refund Requests</h4>
+                <p>Refund requests should be submitted through Formdata's support or contact channel.</p>
+                <p>Please include:</p>
+                <ul>
+                    <li>Your account email.</li>
+                    <li>Relevant invoice or transaction information.</li>
+                    <li>The reason for the request.</li>
+                </ul>
+                <p>Refund decisions will be made based on the circumstances, applicable law, and this Refund Policy.</p>
+
+                <h4>11.6 Statutory Rights</h4>
+                <p>Nothing in this Refund Policy is intended to limit any mandatory consumer rights or remedies that
+                    cannot legally be excluded under applicable law.</p>
+            </section>
+
+            <!-- ═══ SECTION 12 ═══ -->
+            <section class="section" id="s12">
+                <h2><span class="section-number">12.</span> Taxes</h2>
+                <p>You are responsible for applicable taxes associated with your use of Formdata, except taxes imposed
+                    on Formdata's income.</p>
+                <p>Where required, taxes may be added to your subscription or usage charges.</p>
+            </section>
+
+            <!-- ═══ SECTION 13 ═══ -->
+            <section class="section" id="s13">
+                <h2><span class="section-number">13.</span> Service Availability</h2>
+                <p>We aim to keep Formdata available and reliable, but we do not guarantee that the Service will be:</p>
+                <ul>
+                    <li>Available at all times.</li>
+                    <li>Completely error-free.</li>
+                    <li>Free from interruptions.</li>
+                    <li>Free from security vulnerabilities.</li>
+                </ul>
+                <p>The Service may occasionally be unavailable because of maintenance, upgrades, infrastructure
+                    failures, third-party failures, security events, or circumstances beyond our reasonable control.</p>
+            </section>
+
+            <!-- ═══ SECTION 14 ═══ -->
+            <section class="section" id="s14">
+                <h2><span class="section-number">14.</span> Changes to the Service</h2>
+                <p>We may modify, improve, add, or remove features from Formdata.</p>
+                <p>We may also introduce new plans, pricing, usage limits, or functionality.</p>
+                <p>Where a material change affects an existing paid subscription, we will provide reasonable notice
+                    where appropriate.</p>
+            </section>
+
+            <!-- ═══ SECTION 15 ═══ -->
+            <section class="section" id="s15">
+                <h2><span class="section-number">15.</span> Suspension and Termination</h2>
+                <p>We may suspend or terminate your account if:</p>
+                <ul>
+                    <li>You materially violate these Terms.</li>
+                    <li>Your use creates a security risk.</li>
+                    <li>Your account is used for illegal activity.</li>
+                    <li>You fail to pay amounts owed.</li>
+                    <li>Your use threatens the stability of the Service.</li>
+                    <li>We are legally required to do so.</li>
+                </ul>
+                <p>You may stop using Formdata at any time.</p>
+                <p>Upon termination, your right to use the Service ends, subject to any limited retention obligations
+                    described in our Privacy Policy or required by law.</p>
+            </section>
+
+            <!-- ═══ SECTION 16 ═══ -->
+            <section class="section" id="s16">
+                <h2><span class="section-number">16.</span> Intellectual Property</h2>
+                <p>Formdata and its underlying software, design, branding, documentation, and technology are owned by
+                    Formdata or its licensors.</p>
+                <p>Except for the limited right to use the Service under these Terms, no intellectual property rights
+                    are transferred to you.</p>
+                <p>You may not copy, modify, reverse engineer, decompile, distribute, or create derivative works of
+                    Formdata except where applicable law expressly permits such activity.</p>
+            </section>
+
+            <!-- ═══ SECTION 17 ═══ -->
+            <section class="section" id="s17">
+                <h2><span class="section-number">17.</span> Feedback</h2>
+                <p>If you provide suggestions, ideas, or feedback about Formdata, you grant us permission to use that
+                    feedback without restriction or compensation to you.</p>
+                <p>You do not transfer ownership of your Customer Content by providing feedback.</p>
+            </section>
+
+            <!-- ═══ SECTION 18 ═══ -->
+            <section class="section" id="s18">
+                <h2><span class="section-number">18.</span> Disclaimer of Warranties</h2>
+                <p>To the maximum extent permitted by law, Formdata is provided on an “as available” and “as is” basis.
+                </p>
+                <p>We disclaim warranties not expressly stated in these Terms, including implied warranties of
+                    merchantability, fitness for a particular purpose, and non-infringement, to the extent permitted by
+                    applicable law.</p>
+            </section>
+
+            <!-- ═══ SECTION 19 ═══ -->
+            <section class="section" id="s19">
+                <h2><span class="section-number">19.</span> Limitation of Liability</h2>
+                <p>To the maximum extent permitted by applicable law, Formdata and its owners, employees, contractors,
+                    and service providers will not be liable for indirect, incidental, special, consequential,
+                    exemplary, or punitive damages arising from your use of the Service.</p>
+                <p>To the extent permitted by law, our aggregate liability relating to the Service will not exceed the
+                    amount you paid to Formdata for the Service during the twelve months preceding the event giving rise
+                    to the claim.</p>
+                <p>Nothing in these Terms excludes liability that cannot legally be excluded or limited.</p>
+            </section>
+
+            <!-- ═══ SECTION 20 ═══ -->
+            <section class="section" id="s20">
+                <h2><span class="section-number">20.</span> Indemnification</h2>
+                <p>To the extent permitted by law, you agree to defend and indemnify Formdata against claims, damages,
+                    liabilities, costs, and expenses arising from:</p>
+                <ul>
+                    <li>Your unlawful use of the Service.</li>
+                    <li>Your violation of these Terms.</li>
+                    <li>Your Customer Content.</li>
+                    <li>Your violation of another person's rights.</li>
+                    <li>Your violation of applicable law.</li>
+                </ul>
+            </section>
+
+            <!-- ═══ SECTION 21 ═══ -->
+            <section class="section" id="s21">
+                <h2><span class="section-number">21.</span> Governing Law</h2>
+                <p>These Terms will be governed by the laws applicable to Formdata's operating entity, without regard to
+                    conflict-of-law principles, unless mandatory law requires otherwise.</p>
+                <p>Any dispute will be handled by the courts or dispute-resolution mechanisms having appropriate
+                    jurisdiction over the matter.</p>
+            </section>
+
+            <!-- ═══ SECTION 22 ═══ -->
+            <section class="section" id="s22">
+                <h2><span class="section-number">22.</span> Changes to These Terms</h2>
+                <p>We may update these Terms from time to time.</p>
+                <p>If we make material changes, we may provide notice through the website, dashboard, email, or another
+                    reasonable method.</p>
+                <p>Your continued use of Formdata after updated Terms become effective constitutes acceptance of the
+                    revised Terms to the extent permitted by law.</p>
+            </section>
+
+            <!-- ═══ SECTION 23 ═══ -->
+            <section class="section" id="s23">
+                <h2><span class="section-number">23.</span> Contact</h2>
+                <p>If you have questions about these Terms, billing, or refunds, contact Formdata through the contact
+                    information available on <strong>formdata.cloud</strong>.</p>
+            </section>
+
+            <!-- ═══ FOOTER BRAND ═══ -->
+            <div class="footer-brand">
+                <div class="name">Formdata</div>
+                <div class="tagline">Form backend for builders.</div>
+                <div style="margin-top:0.3rem;">
+                    <a href="#" class="url">formdata.cloud</a>
+                </div>
+            </div>
+
+        </div>
+        <!-- /tos-card -->
+
+    </div>
+    <!-- /container -->
+
+</body>
+
+</html>
