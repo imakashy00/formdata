@@ -37,15 +37,39 @@
         </div>
     </div>
     <!-- Toast Component -->
-    <div id="toast" x-data="{ openToast: false, message: '' }" x-cloak @show-toast.window="
-            message = $event.detail.value; 
-            openToast = true; 
-            setTimeout(() => openToast = false, 3500);
-         " :class="openToast ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 pointer-events-none'"
-        class="fixed bottom-6 right-6 z-50 bg-gray-900 text-white text-sm font-medium px-5 py-3 rounded-xl shadow-xl transition-all duration-200">
+    <div id="toast" x-data="toastComponent()"
+        @show-toast.window="show($event.detail.value, $event.detail.type || 'success')" x-cloak :class="[
+            openToast ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 pointer-events-none',
+            type === 'error' ? 'bg-red-600' : 'bg-brand'
+         ]"
+        class="fixed bottom-6 right-6 z-50 text-white text-sm font-medium px-5 py-3 rounded-xl shadow-xl transition-all duration-200">
         <span x-text="message"></span>
     </div>
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('toastComponent', () => ({
+                openToast: false,
+                message: '',
+                type: 'success', // Can be 'success' or 'error'
+                timeoutId: null,
 
+                show(text, type = 'success') {
+                    if (this.timeoutId) {
+                        clearTimeout(this.timeoutId);
+                    }
+
+                    this.message = text;
+                    this.type = type;
+                    this.openToast = true;
+
+                    this.timeoutId = setTimeout(() => {
+                        this.openToast = false;
+                        this.timeoutId = null;
+                    }, 3500);
+                }
+            }));
+        });
+    </script>
 
     <!-- Placeholder if specific pages need script elements right before </body> closure -->
     {% block script %}{% endblock %}
