@@ -45,8 +45,8 @@ async def auth_callback(request: Request, db: Annotated[AsyncSession, Depends(ge
     try:
         # Map validated data to the registration schema
         user_info_schema = RegisterUser(**user_data)
-        if user_info_schema.email != "yakashadav26@gmail.com":
-            return RedirectResponse(url="/", status_code=303)
+        # if user_info_schema.email != "yakashadav26@gmail.com":
+        #     return RedirectResponse(url="/", status_code=303)
         # and registration (if user is new) and return the internal user_id.
         user_id = await register_user(userinfo=user_info_schema, db=db)
         log.info(f"👤 User registration/lookup successful. Internal ID: {user_id}")
