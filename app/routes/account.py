@@ -35,6 +35,7 @@ async def handle_get_account_details(
             # Billing / subscription
             "paddle_solo_price": settings.PADDLE_PRICE_ID_SOLO,
             "paddle_studio_price": settings.PADDLE_PRICE_ID_STUDIO,
+            "paddle_client_token": settings.PADDLE_CLIENT_TOKEN,
             **billing,
         },
     )
