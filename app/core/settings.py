@@ -27,7 +27,6 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_ID: str
     GOOGLE_CLIENT_SECRET: str
 
-
     # Paddle
     PADDLE_API_KEY: str
     PADDLE_WEBHOOK_SECRET: str
@@ -37,9 +36,6 @@ class Settings(BaseSettings):
     PADDLE_CLIENT_TOKEN: str
     PADDLE_ENVIRONMENT: str
 
-    PADDLE_PRICE_ID_EXTRA_SUBMISSIONS: str  # pri_xxx — $1 per 200-submission block
-    PADDLE_PRICE_ID_EXTRA_STORAGE: str  # pri_xxx — $1 per GB
-
     RESEND_API_KEY: str
     FROM_EMAIL: str
     FROM_NAME: str
@@ -47,7 +43,6 @@ class Settings(BaseSettings):
     # Rate Limiting
     RATE_LIMIT_ENABLED: bool = True
     RATE_LIMIT_PER_MINUTE: int = 100
-
 
     MIN_SUBMIT_SECONDS: float = 1.5  # reject submissions faster than a human could type
     SESSION_TOKEN_MAX_AGE: int = (

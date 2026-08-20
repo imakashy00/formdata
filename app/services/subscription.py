@@ -304,7 +304,7 @@ async def handle_subscription_sync(payload: dict, db: AsyncSession):
 
         if ctx.subscription is not None and _period_rolled_over(ctx.subscription, data):
             overage = calculate_overage(ctx.subscription)
-            billed_ok = await bill_overage(ctx.subscription.subscription_id, overage)
+            billed_ok = await bill_overage(ctx.subscription, overage)
 
             if billed_ok:
                 ctx.subscription.submissions_used = 0

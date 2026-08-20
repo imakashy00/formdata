@@ -5,9 +5,6 @@
 
 {% block content %}
 
-{% set plan_display = {'solo': ('Solo', 5), 'studio': ('Studio', 10)} %}
-{% set current_plan = current_plan | default('none') %}
-{% set subscription_status = subscription_status | default('none') %}
 
 <div class="page animate-slide-up" id="page-account">
     <div class="p-5 md:p-7 max-w-4xl mx-auto space-y-8">
@@ -53,8 +50,8 @@
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-                {% set submissions_bar_tone = 'bg-red-500' if quota_percentage >= 100 else ('bg-amber-500' if
-                quota_percentage >= 80 else 'bg-brand') %}
+                {% set submissions_bar_tone = 'bg-red-500' if submission_quota.percentage >= 100 else ('bg-amber-500' if
+                submission_quota.percentage >= 80 else 'bg-brand') %}
                 <!-- Form Submissions -->
                 <div class="bg-white rounded-xl border border-gray-100 shadow-sm">
                     <div class="px-5 py-4 border-b border-gray-50 flex justify-between items-center">
@@ -65,22 +62,27 @@
                         <div class="flex items-end justify-between mb-3">
                             <div>
                                 <p class="text-xs font-medium text-gray-400">Used this month</p>
-                                <p class="text-xl font-bold text-gray-900">{{ '{:,}'.format(quota_usage) }} <span
-                                        class="text-sm font-medium text-gray-400">/ {{ '{:,}'.format(quota_limit)
-                                        }}</span></p>
+                                <p class="text-xl font-bold text-gray-900">{{ '{:,}'.format(submission_quota.usage) }}
+                                    <span class="text-sm font-medium text-gray-400">/ {{
+                                        '{:,}'.format(submission_quota.limit)
+                                        }}</span>
+                                </p>
                             </div>
                             <span
-                                class="text-xs font-semibold {{ 'text-red-600' if quota_percentage >= 100 else ('text-amber-600' if quota_percentage >= 80 else 'text-gray-500') }}">{{
-                                quota_percentage }}%</span>
+                                class="text-xs font-semibold {{ 'text-red-600' if submission_quota.percentage >= 100 else ('text-amber-600' if submission_quota.percentage >= 80 else 'text-gray-500') }}">{{
+                                submission_quota.percentage }}%</span>
                         </div>
                         <div class="w-full bg-gray-100 h-2.5 rounded-full overflow-hidden">
                             <div class="{{ submissions_bar_tone }} h-full rounded-full transition-all"
-                                style="width: {{ quota_percentage }}%"></div>
+                                style="width: {{ submission_quota.percentage }}%">
+                            </div>
                         </div>
-                        {% if quota_percentage >= 100 %}
-                        <p class="text-xs text-red-600 mt-2">You've hit this month's limit — new submissions won't be
-                            accepted until it resets or you upgrade.</p>
+                        {% if submission_quota.percentage >= 100 %}
+                        <p class="text-xs text-red-600 mt-2">
+                            You've hit this month's limit — you have {{ submission_quota.extra }} extra submissions.
+                        </p>
                         {% endif %}
+
                     </div>
                 </div>
 
@@ -89,22 +91,28 @@
                     <div class="px-5 py-4 border-b border-gray-50">
                         <p class="text-sm font-semibold text-gray-900">Account Storage</p>
                     </div>
-                    <div class="p-5 space-y-4">
-                        {% if storage_limit_bytes and storage_limit_bytes > 0 %}
-                        {% set storage_bar_tone = 'bg-red-500' if storage_percentage >= 100 else ('bg-amber-500' if
-                        storage_percentage >= 80 else 'bg-brand') %}
+                    <div class="p-5 space-y-3">
+                        {% if storage_quota.limit_gb and storage_quota.limit_gb > 0 %}
+                        {% set storage_bar_tone = 'bg-red-500' if storage_quota.percentage >= 100 else ('bg-amber-500'
+                        if
+                        storage_quota.percentage >= 80 else 'bg-brand') %}
                         <div class="flex justify-between items-end">
-                            <div>
-                                <p class="text-2xl font-bold text-gray-900">{{ storage_used_display }}</p>
-                                <p class="text-xs text-gray-500 mt-0.5">Used of {{ storage_limit_display }} limit</p>
+                            <div class="flex flex-col">
+                                <p class="text-xs font-medium text-gray-400">Storage Used</p>
+                                <p class="text-xl font-bold text-gray-900">
+                                    {{ storage_quota.used_gb }}
+                                    <span class="text-sm font-medium text-gray-400">/ {{ storage_quota.limit_gb }}
+                                        GB</span>
+                                </p>
                             </div>
+
                             <span
-                                class="text-xs font-semibold {{ 'text-red-600 bg-red-50' if storage_percentage >= 100 else ('text-amber-600 bg-amber-50' if storage_percentage >= 80 else 'text-brand bg-brand-light') }} px-2 py-1 rounded-md">{{
-                                storage_percentage }}% used</span>
+                                class="text-xs font-semibold {{ 'text-red-600' if storage_quota.percentage >= 100 else ('text-amber-600' if storage_quota.percentage >= 80 else 'text-gray-500') }}">{{
+                                storage_quota.percentage }}%</span>
                         </div>
                         <div class="w-full bg-gray-100 h-2.5 rounded-full overflow-hidden">
                             <div class="{{ storage_bar_tone }} h-full rounded-full transition-all"
-                                style="width: {{ storage_percentage }}%"></div>
+                                style="width: {{ storage_quota.percentage }}%"></div>
                         </div>
                         {% else %}
                         <p class="text-sm text-gray-500">File uploads aren't included on your plan.</p>
@@ -135,7 +143,7 @@
             <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
                 <div class="flex items-center gap-2.5">
                     <span class="text-2xl font-extrabold text-gray-900">
-                        {% if current_plan != 'none' %}{{ plan_display[current_plan][0] }}{% else %}Free{% endif %}
+                        {% if current_plan != 'none' %}{{ current_plan }}{% else %}Free{% endif %}
                         trial
                     </span>
                     <span
@@ -156,7 +164,7 @@
                 <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
                     <div class="space-y-1">
                         <div class="flex items-center gap-2.5">
-                            <span class="text-2xl font-extrabold text-gray-900">{{ plan_display[current_plan][0] }}
+                            <span class="text-2xl font-extrabold text-gray-900">{{ current_plan }}
                                 Plan</span>
                             {% if subscription_status == 'active' %}
                             <span
@@ -182,7 +190,10 @@
                         {% if cancel_at %}
                         <p class="text-sm text-red-500">⚠️ Cancels on {{ cancel_at }}</p>
                         {% else %}
-                        <p class="text-sm text-gray-500">Renews at {{ plan_display[current_plan][1] }}/month{% if
+                        <p class="text-sm text-gray-500">
+                            Renews at
+                            {%if current_plan == 'studio' %} 20 {% else %} 10 {%
+                            endif %}/month{% if
                             renews_at %} on {{ renews_at}}{% endif %}
                         </p>
                         {% endif %}
@@ -222,7 +233,7 @@
                 <!-- Action row: only relevant while there's a live subscription to manage -->
                 {% if subscription_status in ['active', 'paused', 'past_due'] %}
                 <div class="mt-6 pt-5 border-t border-gray-100 flex flex-wrap items-center gap-3">
-                    <a href="{{ paddle_links.update_payment_url }}" target="_blank"
+                    <a href="{{ portal_links.update_payment_url }}" target="_blank"
                         class="px-4 py-2 rounded-lg border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition">
                         Update payment method
                     </a>
@@ -251,7 +262,7 @@
                         </form>
                     </div>
                     {% else %}
-                    <a href="{{ paddle_links.cancel_url }}" target="_blank"
+                    <a href="{{ portal_links.cancel_url }}" target="_blank"
                         class="px-4 py-2 rounded-lg bg-red-50 text-red-600 border border-red-200 text-sm font-semibold hover:bg-red-100 transition ml-auto">
                         Cancel subscription
                     </a>
@@ -319,8 +330,8 @@
                         </button>
                         {% else %}
                         <button onclick="changePlan('solo', this)" id="btn-solo"
-                            {{ 'disabled title="Resume your subscription to change plans"' | safe if
-                            subscription_status=='paused' }}
+                            {{ 'disabled title="Update your payment method to change plans"' | safe if
+                            subscription_status in ['paused', 'past_due' ] }}
                             class="w-full py-3 rounded-xl border-2 border-gray-300 text-gray-600 font-semibold hover:bg-gray-50 transition text-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent">
                             Downgrade to Solo
                         </button>
@@ -514,18 +525,35 @@
     // Paddle recommends doing this as a server-side PATCH to the subscription
     // (with proration), not a new checkout — so this calls our own backend.
     // ---------------------------------------------------------------------
-    function changePlan(newPlan, triggerButton) {
-        const isDowngrade = PLANS[newPlan].order < PLANS[CONFIG.currentPlan].order;
-        if (isDowngrade) {
+    async function changePlan(newPlan, triggerButton) {
+        setButtonLoading(triggerButton, "Checking price…");
+        try {
+            const res = await fetch("/billing/change-plan/preview", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ plan: newPlan }),
+            });
+            if (!res.ok) throw new Error("Preview request failed");
+            const preview = await res.json();
+            resetButton(triggerButton);
+
+            const isDowngrade = PLANS[newPlan].order < PLANS[CONFIG.currentPlan].order;
+            const actionVerb = isDowngrade ? "Downgrade" : "Upgrade";
+            const amountLine = preview.action === "credit"
+                ? `You'll be credited ${preview.amount_display} toward your next invoice.`
+                : `You'll be charged ${preview.amount_display} now for the rest of this billing period.`;
+
             openConfirmDialog({
-                title: `Downgrade to ${PLANS[newPlan].label}?`,
-                description: "Your plan changes immediately and any unused time on your current plan is credited toward your next invoice.",
-                confirmLabel: "Downgrade",
+                title: `${actionVerb} to ${PLANS[newPlan].label}?`,
+                description: amountLine,
+                confirmLabel: actionVerb,
                 confirmTone: "neutral",
                 onConfirm: () => submitPlanChange(newPlan, triggerButton),
             });
-        } else {
-            submitPlanChange(newPlan, triggerButton);
+        } catch (err) {
+            console.error("Plan change preview error:", err);
+            showToast("Couldn't calculate the price change. Please try again.", "error");
+            resetButton(triggerButton);
         }
     }
 
@@ -542,11 +570,10 @@
             setTimeout(() => window.location.reload(), 1200);
         } catch (err) {
             console.error("Plan change error:", err);
-            showToast("Couldn't update your plan. Please try again.");
+            showToast("Couldn't update your plan. Please try again.", "error");
             resetButton(triggerButton);
         }
     }
-
     // ---------------------------------------------------------------------
     // Pause — not available through Paddle's client SDK or customer portal,
     // so this always goes through our own backend.

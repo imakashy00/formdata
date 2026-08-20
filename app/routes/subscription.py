@@ -34,6 +34,16 @@ PLAN_PRICE_IDS: dict[str, str] = {
 PLAN_ORDER: dict[str, int] = {"trial": 0, "solo": 1, "studio": 2}
 
 
+class ChangePlanPreviewResponse(BaseModel):
+    plan: str
+    action: Literal["charge", "credit"]
+    amount_display: str
+    currency_code: str
+
+
+CURRENCY_SYMBOLS = {"USD": "$", "GBP": "£", "EUR": "€"}
+
+
 class ChangePlanRequest(BaseModel):
     plan: Literal["solo", "studio"]
 
@@ -257,6 +267,7 @@ async def handle_undo_cancellation(
     headers = {
         "Authorization": f"Bearer {settings.PADDLE_API_KEY}",
         "Content-Type": "application/json",
+        "Accept": "application/json",
     }
     payload = {
         "scheduled_change": None  # removes the scheduled cancellation
@@ -308,31 +319,29 @@ def _plan_from_price_id(price_id: str | None) -> str:
     )
 
 
-@user_router.post("/billing/change-plan")
-async def handle_billing_change_plan(
-    payload: ChangePlanRequest,
-    request: Request,
-    user: Annotated[User, Depends(current_user)],
-    db: Annotated[AsyncSession, Depends(get_db)],
-):
+def _format_money(amount_str: str, currency_code: str) -> str:
+    """Paddle amounts are integer strings in the lowest denomination (cents)."""
+    try:
+        value = int(amount_str) / 100
+    except (TypeError, ValueError):
+        return f"{amount_str} {currency_code}"
+    symbol = CURRENCY_SYMBOLS.get(currency_code, "")
+    return f"{symbol}{value:,.2f}" if symbol else f"{value:,.2f} {currency_code}"
+
+
+async def _get_subscription_or_404(user: User, db: AsyncSession) -> Subscription:
     sub_query = select(Subscription).where(Subscription.user_id == user.id)
     query_result = await db.execute(sub_query)
     subscription = query_result.scalar_one_or_none()
     if not subscription:
         raise HTTPException(404, "Subscription not found")
+    return subscription
 
-    # Mirrors the pause/resume guards: a paused subscription can't change plans
-    # (matches the disabled button + title in the template), and a subscription
-    # with a cancellation already scheduled shouldn't be re-priced until that's
-    # undone. Adjust if you want past_due to be blocked too — right now the
-    # frontend leaves that button enabled, so this allows it.
-    if subscription.status not in (
-        SubscriptionStatus.ACTIVE.value,
-        SubscriptionStatus.PAST_DUE.value,
-    ):
-        raise HTTPException(
-            400, "Only an active or past-due subscription can change plans"
-        )
+
+def _validate_plan_change(subscription: Subscription, new_plan: str) -> tuple[str, str]:
+    """Shared guard for preview + apply. Returns (current_plan, new_price_id)."""
+    if subscription.status != SubscriptionStatus.ACTIVE.value:
+        raise HTTPException(400, "Only an active subscription can change plans")
 
     now = datetime.now(UTC)
     if subscription.cancel_at and subscription.cancel_at > now:
@@ -342,25 +351,74 @@ async def handle_billing_change_plan(
             "cancellation before changing plans",
         )
 
-    new_plan = payload.plan
     current_plan = _plan_from_price_id(subscription.price_id)
-
     if new_plan == current_plan:
         raise HTTPException(400, f"Subscription is already on the {new_plan} plan")
 
-    new_price_id = PLAN_PRICE_IDS[new_plan]
+    return current_plan, PLAN_PRICE_IDS[new_plan]
+
+
+def _build_paddle_request(
+    subscription: Subscription, new_price_id: str
+) -> tuple[str, dict, dict]:
     url = f"{settings.PADDLE_BASE_URL}/subscriptions/{subscription.subscription_id}"
     headers = {
         "Authorization": f"Bearer {settings.PADDLE_API_KEY}",
         "Content-Type": "application/json",
     }
-    # Send the complete item list (just this one price) — anything omitted
-    # from `items` is removed from the subscription, which is exactly how
-    # a single-price plan swap works here.
     body = {
         "items": [{"price_id": new_price_id, "quantity": 1}],
         "proration_billing_mode": "prorated_immediately",
     }
+    return url, headers, body
+
+
+@user_router.post("/billing/change-plan/preview")
+async def handle_billing_change_plan_preview(
+    payload: ChangePlanRequest,
+    user: Annotated[User, Depends(current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ChangePlanPreviewResponse:
+    subscription = await _get_subscription_or_404(user, db)
+    _current_plan, new_price_id = _validate_plan_change(subscription, payload.plan)
+    url, headers, body = _build_paddle_request(subscription, new_price_id)
+
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.patch(f"{url}/preview", headers=headers, json=body)
+            response.raise_for_status()
+    except httpx.HTTPStatusError as e:
+        log.error(
+            f"Paddle returned an error previewing plan change for user {user.id}: {e.response.text}"
+        )
+        raise HTTPException(502, "Failed to preview plan change with Paddle")
+    except Exception as e:
+        log.error(f"Unexpected error previewing plan change for user {user.id}: {e}")
+        raise HTTPException(500, "Unexpected error")
+
+    data = response.json().get("data", {})
+    result = (data.get("update_summary") or {}).get("result") or {}
+    action = result.get("action", "charge")
+    amount = result.get("amount", "0")
+    currency_code = result.get("currency_code", "USD")
+
+    return ChangePlanPreviewResponse(
+        plan=payload.plan,
+        action=action,
+        amount_display=_format_money(amount, currency_code),
+        currency_code=currency_code,
+    )
+
+
+@user_router.post("/billing/change-plan")
+async def handle_billing_change_plan(
+    payload: ChangePlanRequest,
+    user: Annotated[User, Depends(current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    subscription = await _get_subscription_or_404(user, db)
+    current_plan, new_price_id = _validate_plan_change(subscription, payload.plan)
+    url, headers, body = _build_paddle_request(subscription, new_price_id)
 
     try:
         async with httpx.AsyncClient() as client:
@@ -375,16 +433,12 @@ async def handle_billing_change_plan(
         log.error(f"Unexpected error changing plan for user {user.id}: {e}")
         raise HTTPException(500, "Unexpected error")
 
-    # Optimistic local update — the subscription.updated webhook will reconcile
-    # price_id/current_period_* shortly after, but this means the page the
-    # user is about to reload already reflects the change instead of racing it.
     subscription.price_id = new_price_id
     await db.commit()
 
     direction = (
         "upgraded"
-        if PLAN_ORDER[new_plan] > PLAN_ORDER.get(current_plan, 0)
+        if PLAN_ORDER[payload.plan] > PLAN_ORDER.get(current_plan, 0)
         else "downgraded"
     )
-
-    return {"message": f"Subscription {direction} to {new_plan}"}
+    return {"message": f"Subscription {direction} to {payload.plan}"}
