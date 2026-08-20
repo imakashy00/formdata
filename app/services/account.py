@@ -140,7 +140,7 @@ def get_plan_limits(subscription: Subscription | None) -> dict:
     return PLAN_LIMITS.get(
         subscription.price_id or "",
         {
-            "submissions": 0,
+            "submissions": 1000,
             "storage_gb": 0,
         },
     )

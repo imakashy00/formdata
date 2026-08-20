@@ -314,8 +314,8 @@ async def handle_undo_cancellation(
 
 def _plan_from_price_id(price_id: str | None) -> str:
     return next(
-        (p for p, pid in PLAN_PRICE_IDS.items() if pid == price_id),
-        str(SubscriptionStatus.TRIAL),
+        (p.capitalize() for p, pid in PLAN_PRICE_IDS.items() if pid == price_id),
+        str(SubscriptionStatus.TRIAL.value).capitalize(),
     )
 
 
