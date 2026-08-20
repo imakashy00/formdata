@@ -1,4 +1,5 @@
 import httpx
+from fastapi import HTTPException
 from loguru import logger as log
 
 from app.core.settings import settings
@@ -34,7 +35,7 @@ async def get_customer_portal_links(customer_id: str, subscription_id: str) -> d
                     "update_subscription_payment_method"
                 ],
             }
-    except Exception as e:
+    except HTTPException as e:
         log.error(f"Error fetching customer payment management links{e}")
         return {
             "overview_url": "#",

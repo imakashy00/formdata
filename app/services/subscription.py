@@ -6,6 +6,7 @@ from fastapi import HTTPException
 from fastapi import status as FastApiStatus
 from loguru import logger as log
 from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.settings import settings
@@ -243,9 +244,10 @@ def update_subscription(
     subscription.current_period_end = (
         data.current_period_end or subscription.current_period_end
     )
-
+    # Only update cancel_at if explicitly present in the payload
     subscription.cancel_at = data.cancel_at
-    subscription.canceled_at = data.canceled_at
+    # In subscription.updated it will always be None, so preserve existing value
+    subscription.canceled_at = data.canceled_at or subscription.canceled_at
     subscription.updated_at = ctx.now
 
     return subscription
@@ -257,8 +259,10 @@ def cancel_subscription(
     data: SubscriptionWebhook,
 ) -> Subscription:
     subscription.status = SubscriptionStatus.CANCELED.value
-    subscription.cancel_at = data.cancel_at
-    subscription.canceled_at = data.cancel_at
+    subscription.cancel_at = None  # ✅ no longer pending, clear it
+    subscription.canceled_at = (
+        data.canceled_at
+    )  # ✅ actual cancellation datetime from payload
     subscription.updated_at = ctx.now
 
     return subscription
@@ -431,9 +435,6 @@ async def handle_paddle_webhook(
     except Exception as e:
         try:
             await db.rollback()
-        except Exception:
-            pass
-
-        log.exception(f"Paddle webhook failed for event={event_type}: {e}")
-
+        except SQLAlchemyError:
+            log.exception(f"Paddle webhook failed for event={event_type}: {e}")
         raise

@@ -195,9 +195,7 @@ async def home(
         request,
         "dashboard.html",
         {
-            "email": user.email,
-            "name": user.name,
-            "user_id": user.id,
+            "user": user,
             "page": "dashboard",
             **summary,
         },

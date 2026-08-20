@@ -20,12 +20,12 @@
             <div class="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="flex flex-col gap-1.5">
                     <label class="text-xs font-semibold text-gray-500">Full name</label>
-                    <input id="accountName" type="text" value="{{ name }}" disabled
+                    <input id="accountName" type="text" value="{{ user.name }}" disabled
                         class="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-brand transition-colors" />
                 </div>
                 <div class="flex flex-col gap-1.5">
                     <label class="text-xs font-semibold text-gray-500">Email address</label>
-                    <input id="accountEmail" type="email" value="{{ email }}" disabled
+                    <input id="accountEmail" type="email" value="{{ user.email }}" disabled
                         class="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:border-brand transition-colors" />
                 </div>
             </div>
@@ -179,8 +179,13 @@
                         </div>
 
                         {% if subscription_status == 'active' %}
-                        <p class="text-sm text-gray-500">Renews at ${{ plan_display[current_plan][1] }}/month{% if
-                            renews_at %} on {{ renews_at }}{% endif %}</p>
+                        {% if cancel_at %}
+                        <p class="text-sm text-red-500">⚠️ Cancels on {{ cancel_at }}</p>
+                        {% else %}
+                        <p class="text-sm text-gray-500">Renews at {{ plan_display[current_plan][1] }}/month{% if
+                            renews_at %} on {{ renews_at}}{% endif %}
+                        </p>
+                        {% endif %}
                         {% elif subscription_status == 'paused' %}
                         <p class="text-sm text-gray-500">{% if resumes_at %}Paused — resumes {{ resumes_at }}{% else
                             %}Paused indefinitely{% endif %}</p>
@@ -217,11 +222,12 @@
                 <!-- Action row: only relevant while there's a live subscription to manage -->
                 {% if subscription_status in ['active', 'paused', 'past_due'] %}
                 <div class="mt-6 pt-5 border-t border-gray-100 flex flex-wrap items-center gap-3">
-                    <a href="{{ paddle_link.update_payment_url }}" target="_blank"
+                    <a href="{{ paddle_links.update_payment_url }}" target="_blank"
                         class="px-4 py-2 rounded-lg border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition">
                         Update payment method
                     </a>
 
+                    {% if not cancel_at %}
                     {% if subscription_status == 'paused' %}
                     <button onclick="resumeSubscription(this)"
                         class="px-4 py-2 rounded-lg bg-brand text-white text-sm font-semibold hover:bg-brand-dark transition">
@@ -233,11 +239,23 @@
                         Pause subscription
                     </button>
                     {% endif %}
+                    {% endif %}
 
-                    <a href="{{ paddle_link.cancel_url }}" target="_blank"
+                    {% if can_undo_cancel %}
+                    <div class="ml-auto flex flex-col items-end gap-1">
+                        <form hx-post="/billing/cancel/undo" hx-push-url="false" hx-swap="none">
+                            <button type="submit"
+                                class="px-4 py-2 rounded-lg bg-yellow-50 text-yellow-700 border border-yellow-200 text-sm font-semibold hover:bg-yellow-100 transition">
+                                Undo Cancellation
+                            </button>
+                        </form>
+                    </div>
+                    {% else %}
+                    <a href="{{ paddle_links.cancel_url }}" target="_blank"
                         class="px-4 py-2 rounded-lg bg-red-50 text-red-600 border border-red-200 text-sm font-semibold hover:bg-red-100 transition ml-auto">
                         Cancel subscription
                     </a>
+                    {% endif %}
                 </div>
                 {% endif %}
             </div>
@@ -260,7 +278,7 @@
                         <div class="p-8">
                             <p class="uppercase tracking-widest text-sm font-semibold text-brand">Solo</p>
                             <div class="mt-3 flex items-end gap-2">
-                                <span class="text-6xl font-extrabold text-gray-900">$5</span>
+                                <span class="text-6xl font-extrabold text-gray-900">$10</span>
                                 <span class="text-gray-500 mb-2">/month</span>
                             </div>
                             <p class="mt-5 text-sm text-gray-500">Perfect for personal websites, portfolios and
@@ -272,7 +290,7 @@
                                 <span class="text-emerald-500 font-bold">✓</span>
                                 <div>
                                     <p class="font-medium">1,000 submissions / month</p>
-                                    <p class="text-xs text-gray-500">$1 per extra 200 submissions</p>
+                                    <p class="text-xs text-gray-500">$1 per extra 100 submissions</p>
                                 </div>
                             </li>
                             <li class="flex gap-3"><span class="text-emerald-500 font-bold">✓</span>Email notifications
@@ -328,7 +346,7 @@
                         <div class="p-8">
                             <p class="uppercase tracking-widest text-sm font-semibold text-brand">Studio</p>
                             <div class="mt-3 flex items-end gap-2">
-                                <span class="text-6xl font-extrabold text-gray-900">$10</span>
+                                <span class="text-6xl font-extrabold text-gray-900">$20</span>
                                 <span class="text-gray-500 mb-2">/month</span>
                             </div>
                             <p class="mt-5 text-sm text-gray-500">Everything in Solo plus attachments and integrations.
@@ -410,13 +428,15 @@
           Jinja-in-a-<script> XSS footgun.
         -->
         {% set billing_config = {
-        'userId': user_id | default(''),
-        'userEmail':email,
+        'userId': user.id | default(''),
+        'userEmail':user.email,
         'subId': sub_id | default(''),
         'currentPlan': current_plan,
         'subscriptionStatus': subscription_status,
         'paddleClientToken': paddle_client_token | default(''),
         'paddleEnvironment': paddle_environment | default('sandbox'),
+        'solo_price':paddle_solo_price,
+        'studio_price':paddle_studio_price,
         } %}
         <script type="application/json" id="billing-config">{{ billing_config | tojson }}</script>
 
@@ -435,19 +455,9 @@
 
     // Monthly-only price catalog. Order is used to tell an upgrade from a downgrade.
     const PLANS = {
-        solo: { label: "Solo", priceId: "{{CONFIG._solo_price}}", order: 1 },
-        studio: { label: "Studio", priceId: "{{CONFIG.studio_price}}", order: 1 },
+        solo: { label: "Solo", priceId: CONFIG.solo_price, order: 1 },
+        studio: { label: "Studio", priceId: CONFIG.studio_price, order: 2 },
     };
-
-    /**
-     * Backend contract this page relies on (implement server-side — never call
-     * Paddle's secret API key from the browser):
-     *   POST /billing/checkout-transaction   -> { transactionId }              used for updating a card on file
-     *   POST /billing/change-plan            { plan }                          PATCHes the Paddle subscription's items
-     *   POST /billing/pause                                                    POST /subscriptions/{id}/pause
-     *   POST /billing/resume                                                   POST /subscriptions/{id}/resume
-     *   POST /billing/cancel                                                   fallback only, see cancelSubscription()
-     */
 
     // ---------------------------------------------------------------------
     // Paddle setup — initialized once on load, reused by every action below.
@@ -457,7 +467,7 @@
             showToast("Billing is temporarily unavailable. Please refresh the page.");
             return;
         }
-        Paddle.Environment.set(CONFIG.paddleEnvironment);
+        // Paddle.Environment.set(CONFIG.paddleEnvironment); // Disable krna krna h ai when pushing to main
         Paddle.Initialize({
             token: CONFIG.paddleClientToken,
             checkout: {
@@ -629,8 +639,8 @@
     // base.html's toast is an Alpine component (#toast) that listens for a
     // `show-toast` event on window and reads $event.detail.value — it isn't
     // a plain div we can toggle classes on, so we dispatch instead.
-    function showToast(msg) {
-        window.dispatchEvent(new CustomEvent("show-toast", { detail: { value: msg } }));
+    function showToast(msg, type = "success") {
+        window.dispatchEvent(new CustomEvent("show-toast", { detail: { value: msg, type } }));
     }
 
     document.addEventListener("DOMContentLoaded", () => {

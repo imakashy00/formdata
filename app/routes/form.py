@@ -1,4 +1,3 @@
-import asyncio
 import io
 import json
 import uuid
@@ -133,9 +132,7 @@ async def handle_get_forms(
             {
                 "forms": forms,
                 "project_id": project_id,
-                "email": user.email,
-                "name": user.name,
-                "user_id": user.id,
+                "user": user,
                 "page": "forms",
             },
         )
@@ -300,6 +297,7 @@ async def handle_get_form_submission_by_id(
         "project_id": project_id,
         "form_id": form_id,
         "form": form,
+        "user": user,
         "active_tab": "submissions",
         "active_tab_template": TAB_TEMPLATES[FormTab.submissions],
         "tab_labels": TAB_LABELS,
@@ -433,9 +431,7 @@ async def handle_get_project_form_setup(
             "active_tab": "setup",
             "active_tab_template": "form_setup.html",  # Pass the snippet filename here
             "tab_labels": TAB_LABELS,
-            "email": user.email,
-            "name": user.name,
-            "user_id": user.id,
+            "user": user,
             "page": "projects",
         }
         return temp.TemplateResponse(request, template, context)
@@ -469,9 +465,7 @@ async def handle_get_project_form_setttings(
             "active_tab": "settings",
             "active_tab_template": TAB_TEMPLATES[FormTab.settings],
             "tab_labels": TAB_LABELS,
-            "email": user.email,
-            "name": user.name,
-            "user_id": user.id,
+            "user": user,
             "page": "projects",
         }
         return temp.TemplateResponse(request, template, context)
@@ -508,9 +502,7 @@ async def handle_get_project_form_integrations(
             "active_tab": "integrations",
             "active_tab_template": TAB_TEMPLATES[FormTab.integrations],
             "tab_labels": TAB_LABELS,
-            "email": user.email,
-            "name": user.name,
-            "user_id": user.id,
+            "user": user,
             "page": "projects",
         }
         return temp.TemplateResponse(
@@ -547,9 +539,7 @@ async def handle_form_analytics(
             "active_tab": "analytics",
             "active_tab_template": TAB_TEMPLATES[FormTab.analytics],
             "tab_labels": TAB_LABELS,
-            "email": user.email,
-            "name": user.name,
-            "user_id": user.id,
+            "user": user,
             "page": "projects",
         }
         return temp.TemplateResponse(
@@ -587,9 +577,7 @@ async def handle_get_project_form_exports(
             "active_tab": "exports",
             "active_tab_template": TAB_TEMPLATES[FormTab.exports],
             "tab_labels": TAB_LABELS,
-            "email": user.email,
-            "name": user.name,
-            "user_id": user.id,
+            "user": user,
             "page": "projects",
         }
         return temp.TemplateResponse(request, template, context)
@@ -623,9 +611,7 @@ async def handle_get_project_form_template(
             "active_tab": "templates",
             "active_tab_template": TAB_TEMPLATES[FormTab.templates],
             "tab_labels": TAB_LABELS,
-            "email": user.email,
-            "name": user.name,
-            "user_id": user.id,
+            "user": user,
             "page": "projects",
         }
         return temp.TemplateResponse(request, template, context)
@@ -663,9 +649,7 @@ async def handle_update_form_template(
             "active_tab": "templates",
             "active_tab_template": TAB_TEMPLATES[FormTab.templates],
             "tab_labels": TAB_LABELS,
-            "email": user.email,
-            "name": user.name,
-            "user_id": user.id,
+            "user": user,
             "page": "projects",
         }
         return temp.TemplateResponse(request, template, context)

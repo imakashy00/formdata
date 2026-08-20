@@ -54,9 +54,7 @@ async def get_projects(
             "projects.html",
             {
                 "projects": projects,
-                "email": user.email,
-                "name": user.name,
-                "user_id": user.id,
+                "user": user,
                 "page": "projects",
             },
         )
@@ -141,9 +139,7 @@ async def get_project(
             "project.html",
             {
                 "project": project,
-                "email": user.email,
-                "name": user.name,
-                "user_id": user.id,
+                "user": user,
                 "page": "projects",
             },
         )

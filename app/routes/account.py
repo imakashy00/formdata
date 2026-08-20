@@ -11,6 +11,7 @@ from app.core.settings import settings
 from app.core.templates import temp
 from app.models.user import Form as FormDB
 from app.models.user import Project, Submission, User
+from app.schemas.user import SubscriptionStatus
 from app.services.account import get_customer_portal_links
 from app.services.dependencies import current_user
 
@@ -75,6 +76,8 @@ async def handle_get_account_details(
     trial_days_left = None
     portal_links = {}
     storage_used_bytes = 0
+    cancel_at = None
+    can_undo_cancel = False
 
     # No subscription row at all. This shouldn't normally happen if a trial
     # row is created at signup, but the account page should still render in
@@ -97,6 +100,14 @@ async def handle_get_account_details(
         # when status is paused. Either store it on a webhook-driven column,
         # or fetch it live from Paddle here if you need it on this page.
         resumes_at = None
+        cancel_at = (
+            _format_date(subscription.cancel_at) if subscription.cancel_at else None
+        )
+        can_undo_cancel = (
+            subscription.status == SubscriptionStatus.ACTIVE.value
+            and subscription.cancel_at is not None
+            and subscription.cancel_at > now
+        )
 
         trial_days_left = None
         if subscription_status == "trial" and subscription.trial_end:
@@ -141,9 +152,7 @@ async def handle_get_account_details(
         request,
         "account.html",
         {
-            "email": user.email,
-            "name": user.name,
-            "user_id": user.id,
+            "user": user,
             "page": "account",
             # Billing / subscription
             "sub_id": sub_id,
@@ -154,7 +163,11 @@ async def handle_get_account_details(
             "trial_days_left": trial_days_left,
             "paddle_client_token": settings.PADDLE_CLIENT_TOKEN,
             "paddle_environment": settings.PADDLE_ENVIRONMENT,
-            "paddle_link": portal_links,
+            "paddle_solo_price": settings.PADDLE_PRICE_ID_SOLO,
+            "paddle_studio_price": settings.PADDLE_PRICE_ID_STUDIO,
+            "paddle_links": portal_links,
+            "cancel_at": cancel_at,  # date cancellation takes effect
+            "can_undo_cancel": can_undo_cancel,  # show/hide undo button in template
             # Usage
             "quota_usage": quota_usage,
             "quota_limit": quota_limit,

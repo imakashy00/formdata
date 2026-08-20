@@ -341,9 +341,7 @@ async def get_form_analytics(
         "active_tab": "submissions",
         "active_tab_template": TAB_TEMPLATES[FormTab.submissions],
         "tab_labels": TAB_LABELS,
-        "email": user.email,
-        "name": user.name,
-        "user_id": user.id,
+        "user": user,
         "page": "projects",
     }
     return context

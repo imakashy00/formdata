@@ -1,9 +1,10 @@
 import hashlib
 import hmac
-from typing import Annotated
+from datetime import UTC, datetime
+from typing import Annotated, Literal
 
 import httpx
-from fastapi import APIRouter, Depends, Header, HTTPException, Request
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response
 from fastapi.responses import JSONResponse
 from loguru import logger as log
 from pydantic import BaseModel
@@ -11,8 +12,10 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_db
+from app.core.htmx_header import hx_toast_headers
 from app.core.settings import settings
 from app.models.user import ProcessedWebhook, Subscription, User
+from app.schemas.user import SubscriptionStatus
 from app.services.dependencies import current_user
 from app.services.subscription import handle_paddle_webhook
 
@@ -23,6 +26,16 @@ headers = {
     "Content-Type": "application/json",
     "Accept": "application/json",
 }
+
+PLAN_PRICE_IDS: dict[str, str] = {
+    "solo": settings.PADDLE_PRICE_ID_SOLO,
+    "studio": settings.PADDLE_PRICE_ID_STUDIO,
+}
+PLAN_ORDER: dict[str, int] = {"trial": 0, "solo": 1, "studio": 2}
+
+
+class ChangePlanRequest(BaseModel):
+    plan: Literal["solo", "studio"]
 
 
 class Webhook(BaseModel):
@@ -107,6 +120,15 @@ async def handle_billing_pause(
     subscription = query_result.scalar_one_or_none()
     if not subscription:
         raise HTTPException(404, "Subscription not found")
+    if subscription.status != SubscriptionStatus.ACTIVE.value:
+        raise HTTPException(400, "Only an active subscription can be paused")
+    now = datetime.now(UTC)
+    if subscription.cancel_at and subscription.cancel_at > now:
+        raise HTTPException(
+            400,
+            "This subscription has a cancellation scheduled — undo the "
+            "cancellation before pausing",
+        )
     SUBSCRIPTION_ID = subscription.subscription_id
     url = f"{settings.PADDLE_BASE_URL}/subscriptions/{SUBSCRIPTION_ID}/pause"
 
@@ -115,7 +137,7 @@ async def handle_billing_pause(
         "Content-Type": "application/json",
     }
     payload = {
-        "effective_from": "next_billing_period"  # or "immediately"
+        "effective_from": "immediately"  # "next_billing_period"
     }
     try:
         async with httpx.AsyncClient() as client:
@@ -133,6 +155,9 @@ async def handle_billing_pause(
     except Exception as e:
         log.error(f"Unexpected error pausing subscription for user {user.id}: {e}")
         raise HTTPException(status_code=500, detail="Unexpected error")
+
+    subscription.status = SubscriptionStatus.PAUSED.value
+    await db.commit()
 
     return {"message": "Subscription paused successfully"}
 
@@ -148,31 +173,218 @@ async def handle_billing_resume(
     subscription = query_result.scalar_one_or_none()
     if not subscription:
         raise HTTPException(404, "Subscription not found")
+    if subscription.status != SubscriptionStatus.PAUSED.value:
+        raise HTTPException(400, "Only a paused subscription can be resumed")
 
     SUBSCRIPTION_ID = subscription.subscription_id
-    url = f"{settings.BASE_URL}/subscriptions/{SUBSCRIPTION_ID}/resume"
+    url = f"{settings.PADDLE_BASE_URL}/subscriptions/{SUBSCRIPTION_ID}/resume"
     headers = {
         "Authorization": f"Bearer {settings.PADDLE_API_KEY}",
         "Content-Type": "application/json",
     }
     payload = {
-        "effective_from": "next_billing_period"  # or "immediately"
+        "effective_from": "immediately",
+        "on_resume": "continue_existing_billing_period",
     }
+
+    async def _post(body: dict) -> httpx.Response:
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(url, headers=headers, json=body)
+            resp.raise_for_status()
+            return resp
+
+    try:
+        await _post(payload)
+    except httpx.HTTPStatusError as e:
+        error_code = ""
+        try:
+            error_code = e.response.json().get("error", {}).get("code", "")
+        except ValueError:
+            pass
+
+        if error_code == "subscription_continuing_existing_billing_period_not_allowed":
+            payload["on_resume"] = "start_new_billing_period"
+            try:
+                await _post(payload)  # success here means resume worked — no re-raise
+            except httpx.HTTPStatusError as retry_err:
+                log.error(
+                    f"Paddle returned an error resuming subscription for user {user.id}: {retry_err.response.text}"
+                )
+                raise HTTPException(502, "Failed to resume subscription with Paddle")
+            except Exception as retry_err:
+                log.error(
+                    f"Unexpected error resuming subscription for user {user.id}: {retry_err}"
+                )
+                raise HTTPException(500, "Unexpected error")
+        else:
+            log.error(
+                f"Paddle returned an error resuming subscription for user {user.id}: {e.response.text}"
+            )
+            raise HTTPException(502, "Failed to resume subscription with Paddle")
+
+    except Exception as e:
+        log.error(f"Unexpected error resuming subscription for user {user.id}: {e}")
+        raise HTTPException(status_code=500, detail="Unexpected error")
+
+    subscription.status = SubscriptionStatus.ACTIVE.value
+    await db.commit()
+
+    return {"message": "Subscription resumed successfully"}
+
+
+@user_router.post("/billing/cancel/undo")
+async def handle_undo_cancellation(
+    request: Request,
+    user: Annotated[User, Depends(current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    sub_query = select(Subscription).where(Subscription.user_id == user.id)
+    query_result = await db.execute(sub_query)
+    subscription = query_result.scalar_one_or_none()
+
+    if not subscription:
+        raise HTTPException(404, "Subscription not found")
+
+    # Only allow undo if subscription is still active with a future cancel_at
+    now = datetime.now(UTC)
+    if subscription.status != SubscriptionStatus.ACTIVE.value:
+        raise HTTPException(400, "Subscription is already canceled, cannot undo")
+
+    if not subscription.cancel_at or subscription.cancel_at <= now:
+        raise HTTPException(400, "No pending cancellation to undo")
+
+    url = f"{settings.PADDLE_BASE_URL}/subscriptions/{subscription.subscription_id}"
+    headers = {
+        "Authorization": f"Bearer {settings.PADDLE_API_KEY}",
+        "Content-Type": "application/json",
+    }
+    payload = {
+        "scheduled_change": None  # removes the scheduled cancellation
+    }
+
     try:
         async with httpx.AsyncClient() as client:
-            response = await client.post(url, headers=headers, json=payload)
+            response = await client.patch(url, headers=headers, json=payload)
+            response.raise_for_status()
 
-            # Raise an exception for HTTP errors (4xx or 5xx)
+        # Clear cancel_at locally after successful undo
+        subscription.cancel_at = None
+        await db.commit()
+
+    except httpx.HTTPStatusError as e:
+        log.error(
+            f"Paddle returned an error undoing cancellation for user {user.id}: {e.response.text}"
+        )
+        raise HTTPException(
+            502,
+            "Failed to undo cancellation with Paddle",
+            headers=hx_toast_headers(
+                "Couldn't undo the cancellation. Please try again.", "error"
+            ),
+        )
+    except Exception as e:
+        log.error(f"Unexpected error undoing cancellation for user {user.id}: {e}")
+        raise HTTPException(
+            500,
+            "Unexpected error",
+            headers=hx_toast_headers(
+                "Something went wrong. Please try again.", "error"
+            ),
+        )
+    return Response(
+        status_code=200,
+        headers=hx_toast_headers(
+            "Cancellation removed — your plan will continue as normal.",
+            "success",
+            reload=True,
+        ),
+    )
+
+
+def _plan_from_price_id(price_id: str | None) -> str:
+    return next(
+        (p for p, pid in PLAN_PRICE_IDS.items() if pid == price_id),
+        str(SubscriptionStatus.TRIAL),
+    )
+
+
+@user_router.post("/billing/change-plan")
+async def handle_billing_change_plan(
+    payload: ChangePlanRequest,
+    request: Request,
+    user: Annotated[User, Depends(current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    sub_query = select(Subscription).where(Subscription.user_id == user.id)
+    query_result = await db.execute(sub_query)
+    subscription = query_result.scalar_one_or_none()
+    if not subscription:
+        raise HTTPException(404, "Subscription not found")
+
+    # Mirrors the pause/resume guards: a paused subscription can't change plans
+    # (matches the disabled button + title in the template), and a subscription
+    # with a cancellation already scheduled shouldn't be re-priced until that's
+    # undone. Adjust if you want past_due to be blocked too — right now the
+    # frontend leaves that button enabled, so this allows it.
+    if subscription.status not in (
+        SubscriptionStatus.ACTIVE.value,
+        SubscriptionStatus.PAST_DUE.value,
+    ):
+        raise HTTPException(
+            400, "Only an active or past-due subscription can change plans"
+        )
+
+    now = datetime.now(UTC)
+    if subscription.cancel_at and subscription.cancel_at > now:
+        raise HTTPException(
+            400,
+            "This subscription has a cancellation scheduled — undo the "
+            "cancellation before changing plans",
+        )
+
+    new_plan = payload.plan
+    current_plan = _plan_from_price_id(subscription.price_id)
+
+    if new_plan == current_plan:
+        raise HTTPException(400, f"Subscription is already on the {new_plan} plan")
+
+    new_price_id = PLAN_PRICE_IDS[new_plan]
+    url = f"{settings.PADDLE_BASE_URL}/subscriptions/{subscription.subscription_id}"
+    headers = {
+        "Authorization": f"Bearer {settings.PADDLE_API_KEY}",
+        "Content-Type": "application/json",
+    }
+    # Send the complete item list (just this one price) — anything omitted
+    # from `items` is removed from the subscription, which is exactly how
+    # a single-price plan swap works here.
+    body = {
+        "items": [{"price_id": new_price_id, "quantity": 1}],
+        "proration_billing_mode": "prorated_immediately",
+    }
+
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.patch(url, headers=headers, json=body)
             response.raise_for_status()
     except httpx.HTTPStatusError as e:
         log.error(
-            f"Paddle returned an error pausing subscription for user {user.id}: {e.response.text}"
+            f"Paddle returned an error changing plan for user {user.id}: {e.response.text}"
         )
-        raise HTTPException(
-            status_code=502, detail="Failed to pause subscription with Paddle"
-        )
+        raise HTTPException(502, "Failed to update plan with Paddle")
     except Exception as e:
-        log.error(f"Unexpected error pausing subscription for user {user.id}: {e}")
-        raise HTTPException(status_code=500, detail="Unexpected error")
+        log.error(f"Unexpected error changing plan for user {user.id}: {e}")
+        raise HTTPException(500, "Unexpected error")
 
-    return {"message": "Subscription paused successfully"}
+    # Optimistic local update — the subscription.updated webhook will reconcile
+    # price_id/current_period_* shortly after, but this means the page the
+    # user is about to reload already reflects the change instead of racing it.
+    subscription.price_id = new_price_id
+    await db.commit()
+
+    direction = (
+        "upgraded"
+        if PLAN_ORDER[new_plan] > PLAN_ORDER.get(current_plan, 0)
+        else "downgraded"
+    )
+
+    return {"message": f"Subscription {direction} to {new_plan}"}
