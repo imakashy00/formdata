@@ -1,16 +1,35 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="scroll-smooth">
 
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Formdata — Form Backend for Builders</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 
+    <title>Form Backend for HTML & Static Websites | Formdata</title>
+
+    <meta name="description"
+        content="Formdata is a simple form backend for HTML, Webflow, Framer, static sites,React and JavaScript apps. Receive submissions, block spam, send notifications, export data, and integrate google sheet, notion and slack without building a backend.">
+
+    <link rel="canonical" href="https://formdata.cloud/">
+
+    <meta name="robots" content="index, follow">
+
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Form Backend for HTML & Static Websites | Formdata">
+    <meta property="og:description" content="Add a backend to your HTML forms without writing server-side code.">
+    <meta property="og:url" content="https://formdata.cloud/">
+    <meta property="og:image" content="https://formdata.cloud/favicon.io">
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Form Backend for HTML & Static Websites | Formdata">
+    <meta name="twitter:description" content="A simple form backend for HTML, Webflow, Framer, and static websites.">
+    <meta name="twitter:image" content="https://formdata.cloud/favicon.io">
     <link rel="stylesheet" href="{{ url_for('static', path='/css/output.css') }}">
 </head>
 
+
 <body class="antialiased bg-gray-50 text-gray-800 ">
-    <div class="flex flex-col min-h-screen ">
+    <main class="flex flex-col min-h-screen ">
         {% include 'partials/navbar.html' %}
         {% include 'partials/hero.html' %}
         {% include 'partials/how_it_works.html' %}
@@ -18,7 +37,7 @@
         {% include 'partials/pricing.html' %}
         {% include 'partials/faqs.html' %}
         {% include 'partials/footer.html' %}
-    </div>
+    </main>
 
     <script>
         document.getElementById("yr").textContent = new Date().getFullYear();

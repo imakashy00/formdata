@@ -13,15 +13,14 @@
             <div class="flex flex-col sm:flex-row gap-3">
                 <form action="/auth" method="post">
                     <button type="submit"
-                        class="text-white bg-[#1d4ed8] font-semibold bg- px-6 py-3 rounded-lg shadow-sm text-sm bg-brand hover:bg-brand-dark transition-colors">
-                        Start for free — no credit card
+                        class="text-white bg-brand font-semibold bg- px-6 py-3 rounded-lg shadow-sm text-sm hover:bg-brand-dark transition-colors cursor-pointer">
+                        Start for free — no credit card required
                     </button>
                 </form>
-                <button
-                    class="border border-gray-300 text-gray-700 hover:border-red-300 font-medium px-6 py-3 rounded-lg text-sm"
-                    onclick="document.getElementById('how-it-works').scrollIntoView({behavior:'smooth'})">
+                <a href="#how-it-works"
+                    class="border border-gray-300 text-gray-700 hover:border-brand font-medium px-6 py-3 rounded-lg text-sm">
                     See how it works
-                </button>
+                </a>
             </div>
         </div>
 

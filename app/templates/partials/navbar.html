@@ -1,6 +1,6 @@
-<header class="w-full sticky top-0 bg-white z-50 border-b border-gray-100 shadow-sm">
+<header class="w-full sticky top-0 bg-white z-50 border-b border-gray-100 shadow-sm ">
     <div class="container px-4 md:px-6 flex justify-between items-center py-3">
-        <div class="flex items-center gap-2">
+        <a href="#" class="flex items-center gap-2">
             <div class="w-8 h-8 rounded-md flex items-center justify-center ">
                 <svg xmlns="http://www.w3.org/2000/svg" version="1.0" width="200.000000pt" height="200.000000pt"
                     viewBox="0 0 200.000000 200.000000" preserveAspectRatio="xMidYMid meet"
@@ -18,22 +18,18 @@
                 </svg>
             </div>
             <span class="text-xl font-bold text-gray-900">Formdata</span>
-        </div>
+        </a>
 
         <nav class="hidden md:flex items-center gap-8">
-            <button class="text-sm text-gray-600 hover:text-brand transition-colors"
-                onclick="document.getElementById('how-it-works').scrollIntoView({behavior:'smooth'})">How it
-                works</button>
-            <button class="text-sm text-gray-600 hover:text-brand transition-colors"
-                onclick="document.getElementById('features').scrollIntoView({behavior:'smooth'})">Features</button>
-            <button class="text-sm text-gray-600 hover:text-brand transition-colors"
-                onclick="document.getElementById('pricing').scrollIntoView({behavior:'smooth'})">Pricing</button>
+            <a href="#how-it-works" class="text-sm text-gray-600 hover:text-brand transition-colors">How it works</a>
+            <a href="#features" class="text-sm text-gray-600 hover:text-brand transition-colors">Features</a>
+            <a href="#pricing" class="text-sm text-gray-600 hover:text-brand transition-colors">Pricing</a>
         </nav>
 
         <div class="flex items-center gap-3">
             <form action="/auth" method="post">
                 <button
-                    class="hidden md:flex items-center gap-2 text-sm text-gray-700 border border-gray-200 hover:border-brand px-4 py-2 rounded-lg transition-colors">
+                    class="hidden md:flex items-center gap-2 text-sm text-gray-700 border border-gray-200 hover:border-brand px-4 py-2 rounded-lg transition-colors cursor-pointer">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 48 48">
                         <path fill="#fbc02d"
                             d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12s5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24s8.955,20,20,20s20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z" />
@@ -58,13 +54,10 @@
                 </button>
                 <div id="mobile-menu"
                     class="hidden absolute right-0 mt-2 w-44 bg-white shadow-lg rounded-lg py-2 border border-gray-100">
-                    <button class="w-full text-left text-sm px-4 py-2 hover:bg-gray-50"
-                        onclick="document.getElementById('how-it-works').scrollIntoView({behavior:'smooth'})">How it
-                        works</button>
-                    <button class="w-full text-left text-sm px-4 py-2 hover:bg-gray-50"
-                        onclick="document.getElementById('features').scrollIntoView({behavior:'smooth'})">Features</button>
-                    <button class="w-full text-left text-sm px-4 py-2 hover:bg-gray-50"
-                        onclick="document.getElementById('pricing').scrollIntoView({behavior:'smooth'})">Pricing</button>
+                    <a href="#how-it-works" class="w-full text-left text-sm px-4 py-2 hover:bg-gray-50">How it
+                        works</a>
+                    <a href="#features" class="w-full text-left text-sm px-4 py-2 hover:bg-gray-50">Features</a>
+                    <a href="#pricing" class="w-full text-left text-sm px-4 py-2 hover:bg-gray-50">Pricing</a>
                     <div class="border-t border-gray-100 mt-1 pt-1">
                         <form action="/auth" method="post"><button
                                 class="w-full text-left text-sm px-4 py-2 hover:bg-gray-50">Sign in</button></form>
