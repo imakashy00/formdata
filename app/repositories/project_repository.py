@@ -34,6 +34,12 @@ class ProjectRepository:
         )
         return result.scalar_one_or_none()
 
+    async def get_for_user_project_name(self, project_name: str, user_id: str) -> bool:
+        result = await self.db.execute(
+            select(Project).filter_by(name=project_name, user_id=user_id)
+        )
+        return result.scalar_one_or_none() is not None
+
     async def delete_for_user(self, project_id: str, user_id: str) -> bool:
         project = await self.get_for_user(project_id, user_id)
         if not project:

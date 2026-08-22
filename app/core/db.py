@@ -20,9 +20,9 @@ if db_url.host and "neon.tech" in db_url.host:
 
 engine = create_async_engine(
     db_url,
-    echo=(
-        settings.ENV == "development"
-    ),  # Prints generated SQL queries to the console/logs. in dev mode
+    # echo=(
+    #     settings.ENV == "development"
+    # ),  # Prints generated SQL queries to the console/logs. in dev mode
     pool_pre_ping=True,  # Before using a DB connection from the pool, SQLAlchemy checks if it’s still alive.
     pool_size=settings.DB_POOL_SIZE,  # Number of persistent DB connections kept open.
     max_overflow=settings.DB_MAX_OVERFLOW,  # Allows temporary extra connections beyond pool_size.
@@ -40,4 +40,10 @@ class Base(DeclarativeBase):
 
 async def get_db():
     async with AsyncSessionLocal() as db:
-        yield db
+        try:
+            yield db
+        except Exception:
+            await db.rollback()
+            raise
+        finally:
+            await db.close()

@@ -2,27 +2,32 @@ import re
 from enum import Enum
 from typing import Self
 
-from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
+from pydantic import BaseModel, EmailStr, field_validator, model_validator
 
 
 class NewForm(BaseModel):
-    name: str = Field(..., min_length=3, max_length=50)
+    name: str
 
     @field_validator("name")
     @classmethod
-    def validate_project_name(cls, value: str) -> str:
+    def validate_form_name(cls, value: str) -> str:
         # 2. Strip leading/trailing whitespace
         value = value.strip()
+        if len(value) < 3:
+            raise ValueError("Form name must be at least 3 characters long.")
+        if len(value) > 50:
+            raise ValueError("Form name must be atmost 50 characters long.")
 
         # 3. Reject names that are just special characters or numbers (Optional)
         if value.isdigit():
-            raise ValueError("Project name cannot contain only numbers.")
-
+            raise ValueError("Form name cannot contain only numbers.")
+        if value[0].isdigit():
+            raise ValueError("Form name cannot be started with numbers.")
         # 4. Enforce character safety (Alphanumeric, spaces, hyphens, underscores)
         # Prevents XSS, SQL injection risks, and URL breaking
         if not re.match(r"^[a-zA-Z0-9_\-\s]+$", value):
             raise ValueError(
-                "Project name can only contain letters, numbers, spaces, hyphens, and underscores."
+                "Form name can only contain letters, numbers, spaces, hyphens, and underscores."
             )
 
         return value

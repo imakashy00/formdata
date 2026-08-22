@@ -24,7 +24,7 @@
 <body class="bg-gray-50 text-gray-800 font-sans antialiased">
 
     <div class="flex min-h-screen">
-        <!-- Automatically includes your sidebar and topbar across all templates inheriting base.html -->
+        <!-- sidebar templates -->
         {% include 'sidebar.html' %}
 
         <!-- Right Column Section (Topbar + Main Interactive Body Content) -->
@@ -38,85 +38,18 @@
     </div>
     <!-- Toast Component -->
     <div id="toast" x-data="toastComponent()"
-        @show-toast.window="show($event.detail.value, $event.detail.type || 'success')" x-cloak :class="[
-            openToast ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 pointer-events-none',
-            type === 'error' ? 'bg-red-600' : 'bg-brand'
-         ]"
+        @show-toast.window="show($event.detail.value, $event.detail.type || 'success')" x-cloak :class="[ 
+        openToast ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 pointer-events-none', 
+        type === 'success' ? 'bg-emerald-500' : '',
+        type === 'warning' ? 'bg-amber-500': '',
+        type === 'error' ? 'bg-red-500' : '',
+        type === 'info' ? 'bg-blue-500' : ''
+     ]"
         class="fixed bottom-6 right-6 z-50 text-white text-sm font-medium px-5 py-3 rounded-xl shadow-xl transition-all duration-200">
         <span x-text="message"></span>
     </div>
-    <!-- Logout Confirmation -->
-    <dialog id="logoutDialog"
-        class="fixed inset-0 m-auto w-[calc(100%-2rem)] max-w-sm rounded-2xl p-0 border-0 shadow-2xl backdrop:bg-black/40">
-
-        <div class="p-6">
-
-            <div class="flex items-start gap-4">
-
-                <div class="w-10 h-10 shrink-0 rounded-full
-                           bg-red-50 text-red-600
-                           flex items-center justify-center">
-
-                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7" />
-                    </svg>
-
-                </div>
-
-                <div>
-                    <h2 class="text-base font-semibold text-gray-900">
-                        Sign out?
-                    </h2>
-
-                    <p class="mt-1 text-sm text-gray-500">
-                        Are you sure you want to sign out of your account?
-                    </p>
-                </div>
-
-            </div>
 
 
-            <div class="mt-6 flex gap-3">
-
-                <button type="button" onclick="closeLogoutDialog()" class="flex-1 px-4 py-2.5 rounded-lg
-                           text-sm font-medium text-gray-700
-                           bg-gray-100 hover:bg-gray-200
-                           transition-colors">
-
-                    Cancel
-                </button>
-
-                <form action="/logout" method="POST" class="flex-1">
-                    <button type="submit" class="w-full px-4 py-2.5 rounded-lg
-                               text-sm font-medium text-white
-                               bg-red-600 hover:bg-red-700
-                               transition-colors">
-
-                        Sign out
-                    </button>
-                </form>
-
-            </div>
-
-        </div>
-    </dialog>
-    <script>
-        const logoutDialog = document.getElementById("logoutDialog");
-
-        function openLogoutDialog() {
-            logoutDialog.showModal();
-        }
-
-        function closeLogoutDialog() {
-            logoutDialog.close();
-        }
-
-        logoutDialog.addEventListener("click", (event) => {
-            if (event.target === logoutDialog) {
-                logoutDialog.close();
-            }
-        });
-    </script>
     <script>
         document.addEventListener('alpine:init', () => {
             Alpine.data('toastComponent', () => ({
@@ -141,8 +74,35 @@
                 }
             }));
         });
+        window.showToast = function (message, type = 'success') {
+            window.dispatchEvent(new CustomEvent('show-toast', { detail: { value: message, type } }));
+        };
     </script>
+    <script>
+        document.body.addEventListener('htmx:responseError', function (event) {
+            const xhr = event.detail.xhr;
 
+            // Server already sent its own HX-Trigger toast — don't stack a second one on top.
+            if ((xhr.getResponseHeader('HX-Trigger') || '').includes('show-toast')) return;
+
+            let message = `An error occurred (Status ${xhr.status})`;
+            if (xhr.responseText) {
+                try {
+                    const parsed = JSON.parse(xhr.responseText);
+                    message = parsed.detail || parsed.message || message;
+                } catch {
+                    if (!xhr.responseText.trim().startsWith('<')) message = xhr.responseText;
+                }
+            }
+            window.showToast(message, 'error');
+        });
+
+        // responseError only fires when the server responds at all. A dropped
+        // connection / timeout fires sendError instead, with no status to read.
+        document.body.addEventListener('htmx:sendError', function () {
+            window.showToast("Couldn't reach the server. Check your connection.", 'error');
+        });
+    </script>
     <!-- Placeholder if specific pages need script elements right before </body> closure -->
     {% block script %}{% endblock %}
 </body>

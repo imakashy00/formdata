@@ -1,6 +1,7 @@
 {% set base = "nav-item flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium w-full text-left
 transition-colors" %}
 {% set inactive = "text-gray-500 hover:bg-gray-100 hover:text-gray-900" %}
+
 <!-- Desktop Sidebar -->
 <aside id="sidebar" class="hidden md:flex fixed inset-y-0 left-0 z-40 w-56 bg-white border-r border-gray-100 flex-col">
 
@@ -8,6 +9,19 @@ transition-colors" %}
     <div class="flex items-center gap-2.5 px-5 py-4 border-b border-gray-100">
         <div class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0">
             <!-- Your SVG -->
+            <svg xmlns="http://www.w3.org/2000/svg" version="1.0" width="200.000000pt" height="200.000000pt"
+                viewBox="0 0 200.000000 200.000000" preserveAspectRatio="xMidYMid meet"
+                transform="matrix(1, 0, 0, 1, 0, 0)">
+
+                <g transform="translate(0.000000,200.000000) scale(0.100000,-0.100000)" fill="#2563eb" stroke="none">
+                    <path
+                        d="M514 1616 c-94 -30 -177 -116 -203 -211 -7 -26 -11 -196 -11 -482 l0 -443 115 0 115 0 0 239 0 239 173 4 c224 4 229 7 288 165 16 43 29 79 29 81 0 1 -110 2 -245 2 l-245 0 0 66 c0 59 3 68 29 95 l29 29 220 0 219 0 10 33 c6 17 25 69 42 115 l30 82 -277 -1 c-196 0 -289 -4 -318 -13z"
+                        fill="#2563eb" />
+                    <path
+                        d="M1124 1517 l-42 -112 127 -6 c144 -6 177 -17 244 -78 166 -154 129 -479 -67 -584 -39 -21 -57 -22 -336 -27 l-295 -5 -3 -112 -3 -113 300 0 c271 0 305 2 364 20 127 39 233 130 301 259 47 91 66 174 66 301 0 216 -82 389 -230 488 -87 59 -170 82 -289 82 l-96 0 -41 -113z"
+                        fill="#2563eb" />
+                </g>
+            </svg>
         </div>
 
         <span class="font-bold text-gray-900 text-base">Formdata</span>
@@ -138,3 +152,56 @@ transition-colors" %}
 
     </div>
 </nav>
+
+<dialog id="logoutDialog"
+    class="fixed inset-0 m-auto w-[calc(100%-2rem)] max-w-sm rounded-2xl p-0 border-0 shadow-2xl backdrop:bg-black/40">
+    <div class="p-6">
+        <div class="flex items-start gap-4">
+            <div>
+                <h2 class="text-base font-semibold text-gray-900">
+                    Sign out?
+                </h2>
+                <p class="mt-1 text-sm text-gray-500">
+                    Are you sure you want to log out?
+                </p>
+            </div>
+        </div>
+        <div class="mt-6 flex gap-3">
+            <button type="button" onclick="logoutDialog()" class="flex-1 px-4 py-2.5 rounded-lg
+                           text-sm font-medium text-gray-700
+                           bg-gray-100 hover:bg-gray-200
+                           transition-colors">
+                Cancel
+            </button>
+            <form action="/logout" method="post" class="flex-1">
+                <button class="w-full px-4 py-2.5 rounded-lg
+                               text-sm font-medium text-white
+                               bg-red-600 hover:bg-red-700
+                               transition-colors">
+                    Sign out
+                </button>
+            </form>
+        </div>
+    </div>
+</dialog>
+
+
+{% block script %}
+<script>
+    const logoutDialog = document.getElementById("logoutDialog");
+
+    function openLogoutDialog() {
+        logoutDialog.showModal();
+    }
+
+    function closeLogoutDialog() {
+        logoutDialog.close();
+    }
+
+    logoutDialog.addEventListener("click", (event) => {
+        if (event.target === logoutDialog) {
+            logoutDialog.close();
+        }
+    });
+</script>
+{% endblock %}

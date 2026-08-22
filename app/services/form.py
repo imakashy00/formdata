@@ -1,8 +1,9 @@
+import io
 import re
 from datetime import UTC, datetime, timedelta
 
 import httpx
-from fastapi import Header, HTTPException, Request
+from fastapi import HTTPException, Request
 from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -258,10 +259,6 @@ async def _get_owned_form(db: AsyncSession, user: User, form_id: str) -> FormDB:
     return form
 
 
-async def is_htmx(hx_request: str | None = Header(None, alias="HX-Request")) -> bool:
-    return hx_request == "true"
-
-
 async def get_form_analytics(
     request: Request,
     form: FormDB,
@@ -345,3 +342,38 @@ async def get_form_analytics(
         "page": "projects",
     }
     return context
+
+
+async def generate_workbook_sheet(submissions: list[Submission], ws, wb):
+    # We look at the first record's payload dictionary keys to create dynamic columns
+    sample_payload = submissions[0].payload or {}
+    dynamic_keys = list(sample_payload.keys())
+
+    # Combine standard fixed model columns + your custom dynamic JSON keys
+    base_headers = ["ID", "Status", "Opened", "Country", "Note", "Created At"]
+    ws.append(base_headers + dynamic_keys)
+
+    # 5. Populate Rows
+    for sub in submissions:
+        # Flatten fixed model row data values
+        row_data = [
+            str(sub.id),
+            sub.status.value if hasattr(sub.status, "value") else str(sub.status),
+            "Yes" if sub.opened else "No",
+            sub.country or "Unknown",
+            sub.note or "",
+            sub.created_at.strftime("%Y-%m-%d %H:%M:%S %Z") if sub.created_at else "",
+        ]
+
+        # Safely extract matching JSONB payload fields for this row
+        payload_data = sub.payload or {}
+        for key in dynamic_keys:
+            row_data.append(payload_data.get(key, ""))
+
+        ws.append(row_data)
+
+    # 6. Stream file binary payload directly to Alpine's fetch method without reloading page
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+    return output

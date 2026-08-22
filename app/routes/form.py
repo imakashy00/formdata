@@ -1,5 +1,4 @@
 import io
-import json
 import uuid
 from typing import Annotated
 
@@ -8,7 +7,6 @@ from fastapi import (
     APIRouter,
     Depends,
     Form,
-    HTTPException,
     Path,
     Query,
     Request,
@@ -17,11 +15,17 @@ from fastapi import (
 )
 from fastapi.responses import HTMLResponse, StreamingResponse
 from loguru import logger as log
-from pydantic import ValidationError
-from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_db
+from app.core.errors import (
+    DuplicateError,
+    NotFoundError,
+    ToastType,
+    TypeCoversionError,
+    WorkbookFailed,
+)
+from app.core.htmx import hx_toast_headers, is_htmx_dep
 from app.core.templates import temp
 from app.models.user import User
 from app.repositories.form_repository import FormRepository
@@ -36,12 +40,17 @@ from app.services.dependencies import current_user
 from app.services.form import (
     _get_form_analytics,
     _get_owned_form,
+    generate_workbook_sheet,
     get_form_analytics,
-    is_htmx,
     update_form_settings,
 )
 
 form_router = APIRouter(prefix="/projects")
+
+
+@form_router.get("/test-widget", response_class=HTMLResponse)
+async def test_widget(request: Request):
+    return temp.TemplateResponse(request, "test.html", {"request": request})
 
 
 @form_router.post("/{project_id}/forms", response_class=HTMLResponse)
@@ -52,67 +61,28 @@ async def handle_create_form(
     user: Annotated[User, Depends(current_user)],
     name: str = Form(...),
 ):
-    try:
-        form = NewForm(name=name)
-        repository = FormRepository(db)
-        existing_form = await repository.get_by_name_and_project(form.name, project_id)
 
-        if existing_form:
-            # Option A: Trigger a failure Toast for HTMX without crashing the app
-            trigger_payload = json.dumps(
-                {"show-toast": f"Error: A form named '{form.name}' already exists!"}
-            )
-            return temp.TemplateResponse(
-                request,
-                "partials/duplicate_error.html",  # Keep this file completely blank
-                {"request": request},
-                headers={"HX-Trigger": trigger_payload},
-                status_code=status.HTTP_200_OK,  # 200 tells HTMX to process the empty swap safely
-            )
+    form = NewForm(name=name)
+    repository = FormRepository(db)
+    existing_form = await repository.get_by_name_and_project(form.name, project_id)
 
-        new_form = await repository.create(form.name, project_id, user.email)
+    if existing_form:
+        raise DuplicateError(f"A form '{form.name}' already exists!")
 
-        trigger_payload = json.dumps(
-            {"show-toast": f"Form '{new_form.name}' created successfully!"}
-        )
-        # return RedirectResponse(url="/projects", status_code=status.HTTP_303_SEE_OTHER)
-        return temp.TemplateResponse(
-            request,
-            "form_card.html",
-            {"request": request, "form": new_form, "project": {"id": project_id}},
-            headers={
-                "HX-Trigger": trigger_payload
-            },  # 👈 HTMX automatically listens to this
-        )
+    new_form = await repository.create(form.name, project_id, user.email)
 
-    except ValidationError as exc:
-        log.warning(f"Failed to create new Form: {exc}")
-        error_msg = exc.errors()[0]["msg"]
-        log.warning(f"Validation failed for new form: {error_msg}")
-        # Re-render the form page with the error message and the typed value
-        return temp.TemplateResponse(
-            request,
-            "create_project_form.html",
-            {
-                "request": request,
-                "error": error_msg,
-                "typed_name": name,
-            },
-            status_code=status.HTTP_400_BAD_REQUEST,
-        )
-    except SQLAlchemyError as exc:
-        log.error(f"Failed to create new form due to system error: {exc}")
-        return temp.TemplateResponse(
-            request,
-            "projects.html",
-            {"request": request, "error": "Something went wrong on our end."},
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )
-
-
-@form_router.get("/test-widget", response_class=HTMLResponse)
-async def test_widget(request: Request):
-    return temp.TemplateResponse(request, "test.html", {"request": request})
+    return temp.TemplateResponse(
+        request,
+        "form_card.html",
+        {
+            "form": new_form,
+            "project": {"id": project_id},  # let it be nested, required in Frontend
+        },
+        status_code=status.HTTP_201_CREATED,
+        headers=hx_toast_headers(
+            f"Form '{new_form.name}' created successfully!", type_=ToastType.SUCCESS
+        ),
+    )
 
 
 @form_router.get("/{project_id}/forms", response_class=HTMLResponse)
@@ -120,25 +90,23 @@ async def handle_get_forms(
     request: Request,
     db: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(current_user)],
-    project_id: uuid.UUID | None = None,
+    project_id: uuid.UUID,
 ):
-    try:
-        # Fetch forms belonging to this user. Filter by project if provided.
-        forms = await FormRepository(db).list_for_project(user.id)
 
-        return temp.TemplateResponse(
-            request,
-            "forms.html",
-            {
-                "forms": forms,
-                "project_id": project_id,
-                "user": user,
-                "page": "forms",
-            },
-        )
-    except SQLAlchemyError as e:
-        log.warning(f"Error fetching Forms: {e}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+    # Fetch forms belonging to this user. Filter by project if provided.
+    forms = await FormRepository(db).list_for_project(user.id)
+    if not forms:
+        raise NotFoundError("No form found")
+    return temp.TemplateResponse(
+        request,
+        "forms.html",
+        {
+            "forms": forms,
+            "project_id": project_id,
+            "user": user,
+            "page": "forms",
+        },
+    )
 
 
 # Formspree handles this beautifully by allowing an empty array [] or {"*"}
@@ -155,42 +123,23 @@ async def handle_update_form_setting(
     user: Annotated[User, Depends(current_user)],
     payload: Annotated[FormSettingsPayload, Form()],
 ):
-    try:
-        db_form = await FormRepository(db).get_by_id_and_project(form_id, project_id)
-        if not db_form:
-            trigger_payload = json.dumps({"show-toast": "Error: Form not found!"})
-            return temp.TemplateResponse(
-                request,
-                "partials/duplicate_error.html",  # Your blank file
-                {"request": request},
-                headers={"HX-Trigger": trigger_payload},
-                status_code=status.HTTP_200_OK,
-            )
-        # 3. Parse comma-separated accepted domains into a list
-        await update_form_settings(payload, db_form, db)
 
-        # 6. Return success template response or swap element
-        success_trigger = json.dumps({"show-toast": "Settings updated successfully!"})
-        return temp.TemplateResponse(
-            request,
-            "form_settings.html",  # Change to your success partial
-            {"request": request, "form": db_form},
-            headers={"HX-Trigger": success_trigger},
-            status_code=status.HTTP_200_OK,
-        )
+    db_form = await FormRepository(db).get_by_id_and_project(form_id, project_id)
+    if not db_form:
+        raise NotFoundError("Form not found")
+    # 3. Parse comma-separated accepted domains into a list
+    await update_form_settings(payload, db_form, db)
 
-    except SQLAlchemyError as e:
-        await db.rollback()
-        # Handle or log server exception safely
-        log.exception(f"Failed to update the form settings: Error {e}")
-        error_trigger = json.dumps({"show-toast": "An unexpected error occurred."})
-        return temp.TemplateResponse(
-            request,
-            "partials/duplicate_error.html",
-            {"request": request},
-            headers={"HX-Trigger": error_trigger},
-            status_code=status.HTTP_200_OK,
-        )
+    # 6. Return success template response or swap element
+    return temp.TemplateResponse(
+        request,
+        "form_settings.html",  # Change to your success partial
+        {"request": request, "form": db_form},
+        headers=hx_toast_headers(
+            "Settings updated successfully!", type_=ToastType.SUCCESS
+        ),
+        status_code=status.HTTP_200_OK,
+    )
 
 
 # --- 5. DELETE A FORM ---
@@ -201,23 +150,20 @@ async def handle_delete_form(
     db: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(current_user)],
 ):
-    try:
-        deleted = await FormRepository(db).delete_by_id_and_project(form_id, project_id)
-        if not deleted:
-            raise HTTPException(
-                status_code=404, detail="Form asset not found or unauthorized."
-            )
 
-        # Ideal for HTMX delete operations (returns empty layout chunk, removing it from UI array)
-        return Response(
-            status_code=200, headers={"HX-Redirect": f"/projects/{project_id}"}
-        )
-    except HTTPException:
-        raise
-    except SQLAlchemyError as e:
-        await db.rollback()
-        log.error(f"Error executing form deletion payload: {e}")
-        raise HTTPException(status_code=400, detail="Deletion runtime failure.")
+    deleted = await FormRepository(db).delete_by_id_and_project(form_id, project_id)
+    if not deleted:
+        raise NotFoundError("Form not found")
+
+    # Ideal for HTMX delete operations (returns empty layout chunk, removing it from UI array)
+    return Response(
+        status_code=status.HTTP_200_OK,
+        headers=hx_toast_headers(
+            "Form Deleted Sucessfully!",
+            type_=ToastType.SUCCESS,
+            redirect=f"/projects/{project_id}",
+        ),
+    )
 
 
 @form_router.get(
@@ -227,34 +173,28 @@ async def handle_get_project_form_submissions(
     request: Request,
     form_id: str,
     project_id: str,
-    htmx_req: Annotated[bool, Depends(is_htmx)],
+    htmx_req: Annotated[bool, Depends(is_htmx_dep)],
     db: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(current_user)],
     search: str | None = Query(None),
     status: str | None = Query(None),
 ):
-    try:
-        form = await FormRepository(db).get_by_id_and_project(form_id, project_id)
-        if not form:
-            raise HTTPException(status_code=404, detail="Form not found.")
 
-        context = await get_form_analytics(
-            request, form, db, user, search, status, form_id
-        )
-        # Target partial block template for HTMX filter requests, full template for tabs
-        if htmx_req:
-            # If HTMX request came directly from filters, swap just the table body element
-            if request.headers.get("HX-Target") == "submissions-table-container":
-                template = "partials/submissions_table.html"
-            else:
-                template = "form_submissions.html"
+    form = await FormRepository(db).get_by_id_and_project(form_id, project_id)
+    if not form:
+        raise NotFoundError("Form not found")
+
+    context = await get_form_analytics(request, form, db, user, search, status, form_id)
+    # Target partial block template for HTMX filter requests, full template for tabs
+    if htmx_req:
+        # If HTMX request came directly from filters, swap just the table body element
+        if request.headers.get("HX-Target") == "submissions-table-container":
+            template = "partials/submissions_table.html"
         else:
-            template = "form.html"
-        return temp.TemplateResponse(request, template, context)
-
-    except SQLAlchemyError as e:
-        log.exception(f"Something went wrong while fetching form details: {e}")
-        raise HTTPException(status_code=500, detail="Database retrieval error.")
+            template = "form_submissions.html"
+    else:
+        template = "form.html"
+    return temp.TemplateResponse(request, template, context)
 
 
 @form_router.get(
@@ -266,7 +206,7 @@ async def handle_get_form_submission_by_id(
     form_id: str,
     project_id: str,
     submission_id: str,
-    htmx_req: Annotated[bool, Depends(is_htmx)],
+    htmx_req: Annotated[bool, Depends(is_htmx_dep)],
     db: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(current_user)],
 ):
@@ -274,18 +214,13 @@ async def handle_get_form_submission_by_id(
     try:
         submission_uuid = uuid.UUID(submission_id)
     except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid submission ID format.",
-        )
+        raise TypeCoversionError("Invalid submission ID")
 
     repository = FormRepository(db)
     submission = await repository.get_submission(form_id, str(submission_uuid))
 
     if not submission:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Submission not found."
-        )
+        raise NotFoundError("Submission not found.")
 
     # 3. Optional: Mark submission as opened automatically if it wasn't already
     submission = await repository.set_submission_opened(submission)
@@ -323,7 +258,7 @@ async def handle_toggele_status_form_submission(
     project_id: str,
     action: str,
     submission_id: str,
-    htmx_req: Annotated[bool, Depends(is_htmx)],
+    htmx_req: Annotated[bool, Depends(is_htmx_dep)],
     db: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(current_user)],
 ):
@@ -331,19 +266,16 @@ async def handle_toggele_status_form_submission(
     try:
         submission_uuid = uuid.UUID(submission_id)
     except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid ID format.")
+        raise TypeCoversionError("Invalid Submission id")
 
     repository = FormRepository(db)
     submission = await repository.get_submission(form_id, str(submission_uuid))
 
     if not submission:
-        raise HTTPException(status_code=404, detail="Submission not found.")
+        raise NotFoundError("Submission not found.")
     form = await repository.get_by_id_and_project(form_id, project_id)
 
-    try:
-        submission = await repository.update_submission_status(submission, action)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    submission = await repository.update_submission_status(submission, action)
 
     # 4. Return just the specific table row fragment (`<tr>...</tr>`) to swap out
     # 'sub' context variable is passed so it maps cleanly to your existing template naming
@@ -351,6 +283,9 @@ async def handle_toggele_status_form_submission(
         request,
         "partials/submission_row.html",
         context={"sub": submission, "form": form},
+        headers=hx_toast_headers(
+            "Submission status changed successfully!", type_=ToastType.SUCCESS
+        ),
     )
 
 
@@ -363,7 +298,7 @@ async def handle_delete_form_submission(
     form_id: str,
     project_id: str,
     submission_id: str,
-    htmx_req: Annotated[bool, Depends(is_htmx)],
+    htmx_req: Annotated[bool, Depends(is_htmx_dep)],
     db: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(current_user)],
 ):
@@ -371,19 +306,13 @@ async def handle_delete_form_submission(
     try:
         submission_uuid = uuid.UUID(submission_id)
     except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid submission ID format.",
-        )
+        raise TypeCoversionError("Invalid submission ID ")
 
     repository = FormRepository(db)
     submission = await repository.get_submission(form_id, str(submission_uuid))
 
     if not submission:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Submission already deleted or not found.",
-        )
+        raise NotFoundError("Submission not found.")
 
     # 3. Perform database deletion
     await repository.delete_submission(submission)
@@ -410,33 +339,31 @@ async def handle_get_project_form_setup(
     request: Request,
     form_id: str,
     project_id: str,
-    htmx_req: Annotated[bool, Depends(is_htmx)],
+    htmx_req: Annotated[bool, Depends(is_htmx_dep)],
     db: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(current_user)],
 ):
-    try:
-        form = await FormRepository(db).get_by_id_and_project(
-            form_id, project_id, include_submissions=True
-        )
-        if not form:
-            raise HTTPException(status_code=404, detail="Form not found.")
 
-        if htmx_req:
-            template = "form_setup.html"
-        else:
-            template = "form.html"
-        context = {
-            "request": request,
-            "form": form,
-            "active_tab": "setup",
-            "active_tab_template": "form_setup.html",  # Pass the snippet filename here
-            "tab_labels": TAB_LABELS,
-            "user": user,
-            "page": "projects",
-        }
-        return temp.TemplateResponse(request, template, context)
-    except SQLAlchemyError as e:
-        log.exception(f"Something went wrong while fetching form details: {e}")
+    form = await FormRepository(db).get_by_id_and_project(
+        form_id, project_id, include_submissions=True
+    )
+    if not form:
+        raise NotFoundError("Form not found")
+
+    if htmx_req:
+        template = "form_setup.html"
+    else:
+        template = "form.html"
+    context = {
+        "request": request,
+        "form": form,
+        "active_tab": "setup",
+        "active_tab_template": "form_setup.html",  # Pass the snippet filename here
+        "tab_labels": TAB_LABELS,
+        "user": user,
+        "page": "projects",
+    }
+    return temp.TemplateResponse(request, template, context)
 
 
 @form_router.get("/{project_id}/forms/{form_id}/settings", response_class=HTMLResponse)
@@ -444,33 +371,31 @@ async def handle_get_project_form_setttings(
     request: Request,
     form_id: str,
     project_id: str,
-    htmx_req: Annotated[bool, Depends(is_htmx)],
+    htmx_req: Annotated[bool, Depends(is_htmx_dep)],
     db: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(current_user)],
 ):
-    try:
-        form = await FormRepository(db).get_by_id_and_project(
-            form_id, project_id, include_submissions=True
-        )
-        if not form:
-            raise HTTPException(status_code=404, detail="Form not found.")
 
-        if htmx_req:
-            template = "form_settings.html"
-        else:
-            template = "form.html"
-        context = {
-            "request": request,
-            "form": form,
-            "active_tab": "settings",
-            "active_tab_template": TAB_TEMPLATES[FormTab.settings],
-            "tab_labels": TAB_LABELS,
-            "user": user,
-            "page": "projects",
-        }
-        return temp.TemplateResponse(request, template, context)
-    except SQLAlchemyError as e:
-        log.exception(f"Something went wrong while fetching form details: {e}")
+    form = await FormRepository(db).get_by_id_and_project(
+        form_id, project_id, include_submissions=True
+    )
+    if not form:
+        raise NotFoundError("Form not found")
+
+    if htmx_req:
+        template = "form_settings.html"
+    else:
+        template = "form.html"
+    context = {
+        "request": request,
+        "form": form,
+        "active_tab": "settings",
+        "active_tab_template": TAB_TEMPLATES[FormTab.settings],
+        "tab_labels": TAB_LABELS,
+        "user": user,
+        "page": "projects",
+    }
+    return temp.TemplateResponse(request, template, context)
 
 
 @form_router.get(
@@ -480,75 +405,70 @@ async def handle_get_project_form_integrations(
     request: Request,
     form_id: str,
     project_id: str,
-    htmx_req: Annotated[bool, Depends(is_htmx)],
+    htmx_req: Annotated[bool, Depends(is_htmx_dep)],
     db: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(current_user)],
 ):
-    try:
-        form = await FormRepository(db).get_by_id_and_project(
-            form_id, project_id, include_submissions=True
-        )
-        if not form:
-            raise HTTPException(status_code=404, detail="Form not found.")
 
-        if htmx_req:
-            template = "form_integrations.html"
-        else:
-            template = "form.html"
+    form = await FormRepository(db).get_by_id_and_project(
+        form_id, project_id, include_submissions=True
+    )
+    if not form:
+        raise NotFoundError("Form not found.")
 
-        context = {
-            "request": request,
-            "form": form,
-            "active_tab": "integrations",
-            "active_tab_template": TAB_TEMPLATES[FormTab.integrations],
-            "tab_labels": TAB_LABELS,
-            "user": user,
-            "page": "projects",
-        }
-        return temp.TemplateResponse(
-            request,
-            template,
-            context,
-        )
-    except SQLAlchemyError as e:
-        log.exception(f"Something went wrong while fetching form details: {e}")
+    if htmx_req:
+        template = "form_integrations.html"
+    else:
+        template = "form.html"
+
+    context = {
+        "request": request,
+        "form": form,
+        "active_tab": "integrations",
+        "active_tab_template": TAB_TEMPLATES[FormTab.integrations],
+        "tab_labels": TAB_LABELS,
+        "user": user,
+        "page": "projects",
+    }
+    return temp.TemplateResponse(
+        request,
+        template,
+        context,
+    )
 
 
 @form_router.get("/{project_id}/forms/{form_id}/analytics")
 async def handle_form_analytics(
     form_id: str,
     request: Request,
-    htmx_req: Annotated[bool, Depends(is_htmx)],
+    htmx_req: Annotated[bool, Depends(is_htmx_dep)],
     db: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(current_user)],
     range: int = Query(7, ge=1, le=90, alias="range"),
 ):
-    try:
-        form = await _get_owned_form(db, user, form_id)
+    form = await _get_owned_form(db, user, form_id)
 
-        analytics = await _get_form_analytics(db, form, range_days=range)
+    analytics = await _get_form_analytics(db, form, range_days=range)
 
-        if htmx_req:
-            template = "form_analytics.html"
-        else:
-            template = "form.html"
-        context = {
-            "request": request,
-            "form": form,
-            "analytics": analytics,
-            "active_tab": "analytics",
-            "active_tab_template": TAB_TEMPLATES[FormTab.analytics],
-            "tab_labels": TAB_LABELS,
-            "user": user,
-            "page": "projects",
-        }
-        return temp.TemplateResponse(
-            request,
-            template,
-            context,
-        )
-    except SQLAlchemyError as e:
-        log.exception(f"Something went wrong while fetching form details: {e}")
+    if htmx_req:
+        template = "form_analytics.html"
+    else:
+        template = "form.html"
+    context = {
+        "request": request,
+        "form": form,
+        "analytics": analytics,
+        "active_tab": "analytics",
+        "active_tab_template": TAB_TEMPLATES[FormTab.analytics],
+        "tab_labels": TAB_LABELS,
+        "user": user,
+        "page": "projects",
+    }
+    return temp.TemplateResponse(
+        request,
+        template,
+        context,
+    )
 
 
 @form_router.get("/{project_id}/forms/{form_id}/exports", response_class=HTMLResponse)
@@ -556,33 +476,31 @@ async def handle_get_project_form_exports(
     request: Request,
     form_id: str,
     project_id: str,
-    htmx_req: Annotated[bool, Depends(is_htmx)],
+    htmx_req: Annotated[bool, Depends(is_htmx_dep)],
     db: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(current_user)],
 ):
-    try:
-        form = await FormRepository(db).get_by_id_and_project(
-            form_id, project_id, include_submissions=True
-        )
-        if not form:
-            raise HTTPException(status_code=404, detail="Form not found.")
 
-        if htmx_req:
-            template = "form_exports.html"
-        else:
-            template = "form.html"
-        context = {
-            "request": request,
-            "form": form,
-            "active_tab": "exports",
-            "active_tab_template": TAB_TEMPLATES[FormTab.exports],
-            "tab_labels": TAB_LABELS,
-            "user": user,
-            "page": "projects",
-        }
-        return temp.TemplateResponse(request, template, context)
-    except SQLAlchemyError as e:
-        log.exception(f"Something went wrong while fetching form details: {e}")
+    form = await FormRepository(db).get_by_id_and_project(
+        form_id, project_id, include_submissions=True
+    )
+    if not form:
+        raise NotFoundError("Form not found.")
+
+    if htmx_req:
+        template = "form_exports.html"
+    else:
+        template = "form.html"
+    context = {
+        "request": request,
+        "form": form,
+        "active_tab": "exports",
+        "active_tab_template": TAB_TEMPLATES[FormTab.exports],
+        "tab_labels": TAB_LABELS,
+        "user": user,
+        "page": "projects",
+    }
+    return temp.TemplateResponse(request, template, context)
 
 
 @form_router.get("/{project_id}/forms/{form_id}/templates", response_class=HTMLResponse)
@@ -590,33 +508,31 @@ async def handle_get_project_form_template(
     request: Request,
     form_id: str,
     project_id: str,
-    htmx_req: Annotated[bool, Depends(is_htmx)],
+    htmx_req: Annotated[bool, Depends(is_htmx_dep)],
     db: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(current_user)],
 ):
-    try:
-        form = await FormRepository(db).get_by_id_and_project(
-            form_id, project_id, include_submissions=True
-        )
-        if not form:
-            raise HTTPException(status_code=404, detail="Form not found.")
 
-        if htmx_req:
-            template = "form_template.html"
-        else:
-            template = "form.html"
-        context = {
-            "request": request,
-            "form": form,
-            "active_tab": "templates",
-            "active_tab_template": TAB_TEMPLATES[FormTab.templates],
-            "tab_labels": TAB_LABELS,
-            "user": user,
-            "page": "projects",
-        }
-        return temp.TemplateResponse(request, template, context)
-    except SQLAlchemyError as e:
-        log.exception(f"Something went wrong while fetching form details: {e}")
+    form = await FormRepository(db).get_by_id_and_project(
+        form_id, project_id, include_submissions=True
+    )
+    if not form:
+        raise NotFoundError("Form not found")
+
+    if htmx_req:
+        template = "form_template.html"
+    else:
+        template = "form.html"
+    context = {
+        "request": request,
+        "form": form,
+        "active_tab": "templates",
+        "active_tab_template": TAB_TEMPLATES[FormTab.templates],
+        "tab_labels": TAB_LABELS,
+        "user": user,
+        "page": "projects",
+    }
+    return temp.TemplateResponse(request, template, context)
 
 
 @form_router.post("/{project_id}/forms/{form_id}/template", response_class=HTMLResponse)
@@ -624,40 +540,33 @@ async def handle_update_form_template(
     request: Request,
     form_id: str,
     project_id: str,
-    htmx_req: Annotated[bool, Depends(is_htmx)],
+    htmx_req: Annotated[bool, Depends(is_htmx_dep)],
     subject: Annotated[str, Form()],
     body: Annotated[str, Form()],
     db: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(current_user)],
 ):
-    try:
-        form = await FormRepository(db).get_by_id_and_project(form_id, project_id)
-        if not form:
-            raise HTTPException(status_code=404, detail="Form not found.")
 
-        form = await FormRepository(db).update_template(
-            form_id, project_id, subject, body
-        )
-        if htmx_req:
-            template = "form_template.html"
-        else:
-            template = "form.html"
+    form = await FormRepository(db).get_by_id_and_project(form_id, project_id)
+    if not form:
+        raise NotFoundError("Form not found")
 
-        context = {
-            "request": request,
-            "form": form,
-            "active_tab": "templates",
-            "active_tab_template": TAB_TEMPLATES[FormTab.templates],
-            "tab_labels": TAB_LABELS,
-            "user": user,
-            "page": "projects",
-        }
-        return temp.TemplateResponse(request, template, context)
+    form = await FormRepository(db).update_template(form_id, project_id, subject, body)
+    if htmx_req:
+        template = "form_template.html"
+    else:
+        template = "form.html"
 
-    except SQLAlchemyError as e:
-        await db.rollback()
-        log.exception(f"Failed to update form template: {e}")
-        raise HTTPException(status_code=500, detail="Could not save template.")
+    context = {
+        "request": request,
+        "form": form,
+        "active_tab": "templates",
+        "active_tab_template": TAB_TEMPLATES[FormTab.templates],
+        "tab_labels": TAB_LABELS,
+        "user": user,
+        "page": "projects",
+    }
+    return temp.TemplateResponse(request, template, context)
 
 
 @form_router.get("/{project_id}/forms/{form_id}/export")
@@ -675,47 +584,14 @@ async def export_form_submission_excel(
     ws = wb.active
 
     if ws is None:
-        raise ValueError("Failed to initialize an active worksheet.")
+        log.critical("Failed to Initialize Workbook.")
+        raise WorkbookFailed("Failed to initialize an active worksheet.")
 
     ws.title = "Submissions Export"
     if not submissions:
         # Prevent crash if there are no items in the database table
-        ws.append(["No records found for this form criteria"])
-    else:
-        # 4. Handle Dynamic JSONB Payload Column Headers
-        # We look at the first record's payload dictionary keys to create dynamic columns
-        sample_payload = submissions[0].payload or {}
-        dynamic_keys = list(sample_payload.keys())
-
-        # Combine standard fixed model columns + your custom dynamic JSON keys
-        base_headers = ["ID", "Status", "Opened", "Country", "Note", "Created At"]
-        ws.append(base_headers + dynamic_keys)
-
-        # 5. Populate Rows
-        for sub in submissions:
-            # Flatten fixed model row data values
-            row_data = [
-                str(sub.id),
-                sub.status.value if hasattr(sub.status, "value") else str(sub.status),
-                "Yes" if sub.opened else "No",
-                sub.country or "Unknown",
-                sub.note or "",
-                sub.created_at.strftime("%Y-%m-%d %H:%M:%S %Z")
-                if sub.created_at
-                else "",
-            ]
-
-            # Safely extract matching JSONB payload fields for this row
-            payload_data = sub.payload or {}
-            for key in dynamic_keys:
-                row_data.append(payload_data.get(key, ""))
-
-            ws.append(row_data)
-
-    # 6. Stream file binary payload directly to Alpine's fetch method without reloading page
-    output = io.BytesIO()
-    wb.save(output)
-    output.seek(0)
+        raise NotFoundError("No submission found")
+    output = await generate_workbook_sheet(submissions, ws, wb)
 
     filename = f"form_{form_id}_{status if status else 'all'}.xlsx"
 

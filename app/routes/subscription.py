@@ -12,7 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_db
-from app.core.htmx_header import hx_toast_headers
+from app.core.htmx import hx_toast_headers
 from app.core.settings import settings
 from app.models.user import ProcessedWebhook, Subscription, User
 from app.schemas.user import SubscriptionStatus
