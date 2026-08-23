@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
+from uuid import UUID
 
 from fastapi import HTTPException
 from fastapi import status as FastApiStatus
@@ -146,7 +147,7 @@ async def get_user_by_id(user_id: str, db: AsyncSession):
 
 
 async def get_subscription_by_user_id(
-    user_id: str, db: AsyncSession
+    user_id: UUID, db: AsyncSession
 ) -> Subscription | None:
 
     try:

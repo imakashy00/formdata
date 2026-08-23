@@ -1,4 +1,6 @@
 # repositories/form_repository.py
+from uuid import UUID
+
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -11,7 +13,7 @@ class FormRepository:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def list_for_project(self, project_id: str) -> list[FormDB]:
+    async def list_for_project(self, project_id: UUID) -> list[FormDB]:
         result = await self.db.execute(
             select(FormDB)
             .where(FormDB.project_id == project_id)

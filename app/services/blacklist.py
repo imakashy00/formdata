@@ -1,6 +1,6 @@
-
 from datetime import UTC, datetime
 from typing import cast
+from uuid import UUID
 
 from sqlalchemy import CursorResult, delete, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
@@ -22,7 +22,7 @@ async def revoke(
     db: AsyncSession,
     jti: str,
     exp_unix: int,
-    user_id: str,
+    user_id: UUID,
     email: str | None = None,
     delete_refresh_whitelist: bool = False,
 ) -> None:
@@ -55,7 +55,7 @@ async def revoke(
 
 
 async def whitelist_refresh(
-    db: AsyncSession, jti: str, user_id: str, email: str, exp_unix: int
+    db: AsyncSession, jti: str, user_id: UUID, email: str, exp_unix: int
 ) -> None:
     expires_at = datetime.fromtimestamp(exp_unix, tz=UTC)
     stmt = (

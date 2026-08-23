@@ -1,4 +1,5 @@
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import Depends, HTTPException, Request
 from loguru import logger as log
@@ -52,16 +53,16 @@ def _validate_userinfo(token: dict) -> dict:
 
 
 async def _issue_and_store_tokens(
-    db: AsyncSession, user_id: str, email: str
+    db: AsyncSession, user_id: UUID, email: str
 ) -> tuple[str, str]:
     """Generates and whitelists access and refresh tokens."""
     try:
         # 1. Issue JWTs
         access, _, _ = create_token(
-            sub=user_id, email=email, type="access", ttl=settings.ACCESS_TTL
+            sub=str(user_id), email=email, type="access", ttl=settings.ACCESS_TTL
         )
         refresh, refresh_jti, refresh_exp = create_token(
-            sub=user_id, email=email, type="refresh", ttl=settings.REFRESH_TTL
+            sub=str(user_id), email=email, type="refresh", ttl=settings.REFRESH_TTL
         )
 
         log.info(f"🔑 Tokens issued for user_id: {user_id}. Refresh JTI: {refresh_jti}")

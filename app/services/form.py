@@ -1,6 +1,7 @@
 import io
 import re
 from datetime import UTC, datetime, timedelta
+from uuid import UUID
 
 import httpx
 from fastapi import HTTPException, Request, status
@@ -104,7 +105,7 @@ def check_honeypot(form_data: dict, field_name: str | None = None) -> bool:
 
 async def _count_submissions(
     db: AsyncSession,
-    form_id: str,
+    form_id: UUID,
     start: datetime | None = None,
     end: datetime | None = None,
     status: str | None = None,

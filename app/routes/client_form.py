@@ -6,6 +6,7 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Annotated
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
+from uuid import UUID
 
 from asyncpg import InternalServerError
 from fastapi import (
@@ -94,7 +95,7 @@ client_form_router = APIRouter(prefix="/f")
 # 6. Read a guide on building a Formspree Registration Form with autoresponses.
 
 
-def create_token(submission_id: str):
+def create_token(submission_id: UUID):
     token = secrets.token_urlsafe(32)
     return hashlib.sha256(token.encode()).hexdigest()
 

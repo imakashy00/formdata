@@ -1,4 +1,5 @@
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, Form, Request, Response, status
 from fastapi.responses import HTMLResponse
@@ -64,7 +65,7 @@ async def create_project(
 @project_router.get("/projects/{project_id}", response_class=HTMLResponse)
 async def get_project(
     request: Request,
-    project_id: str,
+    project_id: UUID,
     user: Annotated[User, Depends(current_user)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
@@ -89,7 +90,7 @@ async def get_project(
 @project_router.put("/projects/{project_id}/settings", response_class=HTMLResponse)
 async def update_project(
     request: Request,
-    project_id: str,
+    project_id: UUID,
     user: Annotated[User, Depends(current_user)],
     db: Annotated[AsyncSession, Depends(get_db)],
     project_name: str = Form(...),
@@ -126,7 +127,7 @@ async def update_project(
 @project_router.delete("/projects/{project_id}", response_class=HTMLResponse)
 async def delete_project(
     request: Request,
-    project_id: str,
+    project_id: UUID,
     user: Annotated[User, Depends(current_user)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
