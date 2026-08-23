@@ -6,9 +6,14 @@ from fastapi.templating import Jinja2Templates
 from starlette.templating import _TemplateResponse
 
 temp = Jinja2Templates(directory="app/templates")
+temp.env.filters["tojson"] = json.dumps
 
+# Plain json.dumps works for the settings template we built (booleans, plain strings, lists of strings). If you ever pass something Jinja2/Starlette-specific through tojson (e.g. a datetime, UUID, or SQLAlchemy model instance) it'll throw a TypeError since json.dumps doesn't know how to serialize those. If that comes up later, swap in a small wrapper with a default= fallback:
+# python
+# def _tojson(value: Any) -> str:
+#     return json.dumps(value, default=str)
 
-templates = Jinja2Templates(directory="templates")
+# temp.env.filters["tojson"] = _tojson
 
 
 def render_template(
@@ -17,7 +22,7 @@ def render_template(
     context: dict[str, Any] | None = None,
     status_code: int = 200,
     toast_message: str | None = None,
-)  -> _TemplateResponse:
+) -> _TemplateResponse:
     """Standardizes template responses and injects HTMX triggers cleanly."""
 
     # Ensure context exists and contains the required request object

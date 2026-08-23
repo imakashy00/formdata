@@ -5,6 +5,7 @@ from enum import Enum as PyEnum
 
 from sqlalchemy import TIMESTAMP, CheckConstraint, Index, Integer, String, text
 from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.db import Base
@@ -32,6 +33,9 @@ class SubmissionStatus(str, PyEnum):
     REJECTED = "rejected"
 
 
+UUID_PRIMARY_KEY = {"primary_key": True, "server_default": text("gen_random_uuid()")}
+
+
 def generate_short_id() -> str:
     # Generates a highly secure URL-safe 8-character text token
     return secrets.token_urlsafe(6)[:8]
@@ -40,9 +44,7 @@ def generate_short_id() -> str:
 class User(Base):
     __tablename__ = "users"
 
-    id: Mapped[str] = mapped_column(
-        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
-    )
+    id: Mapped[uuid.UUID] = mapped_column(PG_UUID(as_uuid=True), **UUID_PRIMARY_KEY)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     google_sub: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
@@ -80,9 +82,8 @@ class Subscription(Base):
         Index("ix_sub_price_id", "price_id"),
     )
 
-    id: Mapped[str] = mapped_column(
-        String, primary_key=True, default=lambda: str(uuid.uuid4())
-    )
+    id: Mapped[uuid.UUID] = mapped_column(PG_UUID(as_uuid=True), **UUID_PRIMARY_KEY)
+
     user_id: Mapped[str] = mapped_column(
         String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
@@ -182,8 +183,13 @@ class ProcessedWebhook(Base):
 class OverageCharge(Base):
     __tablename__ = "overage_charges"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
-    subscription_id: Mapped[str] = mapped_column(String)
+    id: Mapped[uuid.UUID] = mapped_column(PG_UUID(as_uuid=True), **UUID_PRIMARY_KEY)
+    subscription_id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("subscriptions.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     submission_blocks: Mapped[int] = mapped_column(Integer)
     storage_gb: Mapped[int] = mapped_column(Integer)
     amount_cents: Mapped[int] = mapped_column(Integer)
@@ -193,12 +199,14 @@ class OverageCharge(Base):
 class Project(Base):
     __tablename__ = "projects"
 
-    id: Mapped[str] = mapped_column(
-        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
-    )
+    id: Mapped[uuid.UUID] = mapped_column(PG_UUID(as_uuid=True), **UUID_PRIMARY_KEY)
+
     # Connect project directly to the parent User
-    user_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
 
     name: Mapped[str] = mapped_column(String(100), nullable=False)
@@ -225,20 +233,24 @@ class Project(Base):
 class Form(Base):
     __tablename__ = "forms"
 
-    id: Mapped[str] = mapped_column(
-        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
-    )
+    id: Mapped[uuid.UUID] = mapped_column(PG_UUID(as_uuid=True), **UUID_PRIMARY_KEY)
+
     name: Mapped[str] = mapped_column(String(150), nullable=False)
     public_id: Mapped[str] = mapped_column(
         String(8), unique=True, index=True, nullable=False, default=generate_short_id
     )
     # Forms belong to a Project, which implicitly links them to a User
-    project_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("projects.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     honeypot: Mapped[str] = mapped_column(String(36), nullable=False, default="_gotcha")
+
+    # TODO: Add constraints on the String and arary size of the allowed domains
     allowed_domains: Mapped[list[str]] = mapped_column(
-        ARRAY(String), server_default="{}"
+        ARRAY(String), server_default="'{}'::varchar[]"
     )
     redirect_url: Mapped[str | None] = mapped_column(String(2083), nullable=True)
     notification_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
@@ -254,7 +266,7 @@ class Form(Base):
 
     # Template configurations sent to your users' customers
     customer_subject: Mapped[str] = mapped_column(
-        String(255), nullable=False, server_default="Submission Recieved."
+        String(255), nullable=False, server_default="Submission Received."
     )
     customer_body: Mapped[str] = mapped_column(
         Text,
@@ -306,12 +318,13 @@ class Form(Base):
 class Submission(Base):
     __tablename__ = "submissions"
 
-    id: Mapped[str] = mapped_column(
-        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
-    )
+    id: Mapped[uuid.UUID] = mapped_column(PG_UUID(as_uuid=True), **UUID_PRIMARY_KEY)
 
     form_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("forms.id", ondelete="CASCADE"), nullable=False
+        PG_UUID(as_uuid=True),
+        ForeignKey("forms.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
 
     # 4. Dynamic Payload Storage (PostgreSQL JSONB)
@@ -347,12 +360,10 @@ class IntegrationProvider(str, PyEnum):
 class Integration(Base):
     __tablename__ = "integrations"
 
-    id: Mapped[str] = mapped_column(
-        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
-    )
+    id: Mapped[uuid.UUID] = mapped_column(PG_UUID(as_uuid=True), **UUID_PRIMARY_KEY)
 
     user_id: Mapped[uuid.UUID] = mapped_column(
-        String(36),
+        PG_UUID(as_uuid=True),
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
@@ -388,21 +399,26 @@ class Integration(Base):
 
 class FormIntegration(Base):
     __tablename__ = "form_integrations"
-
-    id: Mapped[str] = mapped_column(
-        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    __table_args__ = (
+        UniqueConstraint(
+            "form_id", "integration_id", name="uq_form_integrations_form_integration"
+        ),
     )
 
+    id: Mapped[uuid.UUID] = mapped_column(PG_UUID(as_uuid=True), **UUID_PRIMARY_KEY)
+
     form_id: Mapped[uuid.UUID] = mapped_column(
-        String(36),
+        PG_UUID(as_uuid=True),
         ForeignKey("forms.id", ondelete="CASCADE"),
         nullable=False,
+        index=True,
     )
 
     integration_id: Mapped[uuid.UUID] = mapped_column(
-        String(36),
+        PG_UUID(as_uuid=True),
         ForeignKey("integrations.id", ondelete="CASCADE"),
         nullable=False,
+        index=True,
     )
 
     config: Mapped[dict] = mapped_column(
@@ -438,7 +454,7 @@ class AuthToken(Base):
     )
 
     jti: Mapped[str] = mapped_column(String, primary_key=True)
-    user_id: Mapped[str] = mapped_column(String, nullable=False)
+    user_id: Mapped[uuid.UUID] = mapped_column(PG_UUID(as_uuid=True), nullable=False)
     token_type: Mapped[str] = mapped_column(String, nullable=False)
     email: Mapped[str | None] = mapped_column(String, nullable=True)
     expires_at: Mapped[datetime] = mapped_column(
@@ -471,4 +487,36 @@ class RateLimitBucket(Base):
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC)
+    )
+
+
+class ThankYouToken(Base):
+    __tablename__ = "thankyoutokens"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True),
+        **UUID_PRIMARY_KEY,
+    )
+
+    token_hash: Mapped[str] = mapped_column(
+        String(64),
+        nullable=False,
+        unique=True,
+    )
+
+    submission_id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("submissions.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    expires_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True),
+        nullable=False,
+    )
+
+    used_at: Mapped[datetime | None] = mapped_column(
+        TIMESTAMP(timezone=True),
+        nullable=True,
     )

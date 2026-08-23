@@ -46,3 +46,9 @@ class WorkbookFailed(AppError):
     status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
     toast_type = ToastType.ERROR
     default_message = "Failed To initialize XLS WorkBook"
+
+
+class IncorrectCloudflareTournstileKey(AppError):
+    status_code = status.HTTP_400_BAD_REQUEST
+    toast_type = ToastType.ERROR
+    default_message = "Tournstile secret key length must be 40"

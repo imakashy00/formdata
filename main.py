@@ -17,6 +17,7 @@ from app.routes.auth import auth_router
 from app.routes.client_form import client_form_router
 from app.routes.dashboard import dash_router
 from app.routes.form import form_router
+from app.routes.form_setting import form_settings_router
 from app.routes.page import page_router
 from app.routes.project import project_router
 from app.routes.resend_email import email_router
@@ -103,6 +104,7 @@ app.include_router(router=page_router)
 app.include_router(router=user_router)
 app.include_router(router=account_router)
 app.include_router(router=form_router)
+app.include_router(router=form_settings_router)
 app.include_router(router=project_router)
 app.include_router(router=dash_router)
 app.include_router(router=email_router)

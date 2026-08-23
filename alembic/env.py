@@ -6,11 +6,17 @@ from alembic import context
 from app.core.db import Base
 from app.core.settings import settings
 from app.models.user import (
+    AuthToken,  # noqa: F401
     Form,  # noqa: F401
+    FormIntegration,  # noqa: F401
+    Integration,  # noqa: F401
     OverageCharge,  # noqa: F401
     ProcessedWebhook,  # noqa: F401
     Project,  # noqa: F401
+    RateLimitBucket,  # noqa: F401
+    Submission,  # noqa: F401
     Subscription,  # noqa: F401
+    ThankYouToken,  # noqa: F401
     User,  # noqa: F401
 )
 

@@ -1,9 +1,13 @@
 import asyncio
+import hashlib
 import os
+import secrets
 import uuid
+from datetime import UTC, datetime, timedelta
 from typing import Annotated
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
+from asyncpg import InternalServerError
 from fastapi import (
     APIRouter,
     BackgroundTasks,
@@ -20,9 +24,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.datastructures import UploadFile
 
 from app.core.db import get_db
+from app.core.errors import NotFoundError
 from app.core.settings import settings
+from app.core.templates import temp
 from app.models.user import Form as FormDB
-from app.models.user import Project, Submission, SubmissionStatus, User
+from app.models.user import Project, Submission, SubmissionStatus, ThankYouToken, User
 from app.services.client_form import (
     _build_submission_payload,
     _finish,
@@ -47,6 +53,50 @@ MAX_UPLOAD_BYTES = settings.MAX_UPLOAD_BYTES  # 10 MB/file
 MAX_FILES_PER_SUBMISSION = settings.MAX_FILES_PER_SUBMISSION
 
 client_form_router = APIRouter(prefix="/f")
+
+
+# User submits form
+#        │
+#        ▼
+# POST /f/{form_id}
+#        │
+#        ├── validation fails ──► 400 / error response
+#        │
+#        ├── spam/rate-limit fails ──► reject
+#        │
+#        ├── database save fails ──► 500 / error
+#        │
+#        ▼
+# Submission successfully saved
+#        │
+#        ▼
+# Create one-time thank-you token
+#        │
+#        ▼
+# Redirect → /thank-you/{token}
+#        │
+#        ▼
+# Server validates token
+#        │
+#        ├── invalid/expired/used ──► 404
+#        │
+#        ▼
+# Show thank-you page + submission details
+
+
+# How to Send an Autoresponse to the Submitter
+# 1. Include an email field in your HTML form (usually named email or _replyto) so Formspree knows where to send the message.
+# 2. Go to your Formspree dashboard and open your form settings.
+# 3. Navigate to the Plugins or Emails tab and add the Autoresponses feature.
+# 4. Write your custom confirmation text, subject line, and sender name.
+# 4. Save your changes to enable automatic replies for future submissions.
+# 5. Explore the official documentation on Formspree Autoresponses.
+# 6. Read a guide on building a Formspree Registration Form with autoresponses.
+
+
+def create_token(submission_id: str):
+    token = secrets.token_urlsafe(32)
+    return hashlib.sha256(token.encode()).hexdigest()
 
 
 @client_form_router.post("/{form_id}")
@@ -275,6 +325,15 @@ async def handle_form_submit(
             form_id=form.id, payload=submission_payload, country=country_name
         )
         db.add(submission)
+        await db.flush()
+        token_hash = create_token(submission.id)
+        db.add(
+            ThankYouToken(
+                token_hash=token_hash,
+                submission_id=submission.id,
+                expires_at=datetime.now(UTC) + timedelta(minutes=5),
+            )
+        )
         await db.commit()
     except SQLAlchemyError as exc:
         await db.rollback()
@@ -313,4 +372,47 @@ async def handle_form_submit(
         json_body={"status": "accepted"},
         status_code=200,
         redirect_ok=True,
+    )
+
+
+@client_form_router.post("/{form_id}/thank-you/{token}")
+async def handle_form_submit_sucess(
+    request: Request,
+    token: str,
+    form_id: str,
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    # Need to find out
+
+    token_hash = hashlib.sha256(token.encode()).hexdigest()
+
+    result = await db.execute(
+        select(ThankYouToken).where(ThankYouToken.token_hash == token_hash)
+    )
+
+    thank_you_token = result.scalar_one_or_none()
+
+    if not thank_you_token:
+        raise NotFoundError("Submission not found")
+
+    if thank_you_token.used_at is not None:
+        raise NotFoundError("Submission not found")
+
+    if thank_you_token.expires_at < datetime.now(UTC):
+        raise InternalServerError("Something went wrong")
+
+    submission = await db.get(
+        Submission,
+        thank_you_token.submission_id,
+    )
+
+    if not submission:
+        raise HTTPException(status_code=404)
+
+    return temp.TemplateResponse(
+        request=request,
+        name="thankyou.html",
+        context={
+            "submission": submission,
+        },
     )
