@@ -32,6 +32,46 @@
     <meta name="twitter:image" content="https://formdata.cloud/images/og-image.png">
     <meta name="twitter:image:alt" content="Formdata — Form Backend for HTML & Static Websites">
 
+    <script type="application/ld+json">
+        {
+          "@context": "https://schema.org",
+          "@graph": [
+            {
+              "@type": "Organization",
+              "@id": "https://formdata.cloud/#organization",
+              "name": "Formdata",
+              "url": "https://formdata.cloud/",
+              "logo": {
+                "@type": "ImageObject",
+                "url": "https://formdata.cloud/images/logo.png"
+              }
+            },
+            {
+              "@type": "WebSite",
+              "@id": "https://formdata.cloud/#website",
+              "url": "https://formdata.cloud/",
+              "name": "Formdata",
+              "publisher": {
+                "@id": "https://formdata.cloud/#organization"
+              }
+            },
+            {
+              "@type": "SoftwareApplication",
+              "@id": "https://formdata.cloud/#software",
+              "name": "Formdata",
+              "url": "https://formdata.cloud/",
+              "description": "Formdata is a form backend for HTML, static websites, Webflow, Framer, React, and JavaScript applications.",
+              "applicationCategory": "DeveloperApplication",
+              "applicationSubCategory": "Form Backend",
+              "operatingSystem": "Web",
+              "publisher": {
+                "@id": "https://formdata.cloud/#organization"
+              }
+            }
+          ]
+        }
+        </script>
+
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="{{ url_for('static', path='/images/favicon.png') }}">
 
