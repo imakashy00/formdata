@@ -19,6 +19,7 @@ PUBLIC_PATHS = {
     "/privacy-policy",
     "/terms-of-service",
     "/robots.txt",
+    "/llms.txt",
     "/sitemap.xml",
     "/favicon.ico",
 }
