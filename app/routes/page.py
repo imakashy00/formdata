@@ -4,9 +4,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Request, Response
 from fastapi.responses import FileResponse, HTMLResponse
 from loguru import logger as log
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.db import get_db
 from app.core.templates import temp
 from app.models.user import User
 from app.services.dependencies import current_user
@@ -118,3 +116,8 @@ async def sitemap_xml(request: Request) -> Response:
 
     xml = "\n".join(lines) + "\n"
     return Response(content=xml, media_type="application/xml")
+
+
+@page_router.get("/llms.txt", include_in_schema=False)
+async def llms_txt() -> FileResponse:
+    return FileResponse("app/static/llm.txt", media_type="text/plain")
