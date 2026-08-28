@@ -46,8 +46,10 @@ class FormSettingsPayload(BaseModel):
     name: str
     honeypot: str
     notification_email: EmailStr
+    redirect: bool
     redirect_url: str | None = None
     allowed_domains: str
+    turnstile_enabled: bool
     turnstile_secret: str | None = None
     duplicate_allowed: bool
     duplicate_check_input: str | None = None
@@ -58,24 +60,41 @@ class FormSettingsPayload(BaseModel):
     sub_lnk_color: str
 
     @model_validator(mode="after")
-    def validate_deduplication_input(self) -> Self:
-        # If duplicates are blocked, we require a target payload key to track uniqueness
+    def validate_conditional_features(self) -> Self:
+        # 1. Validate Deduplication
         if not self.duplicate_allowed:
-            # Strip any unintended trailing or leading whitespaces
             input_val = (
                 self.duplicate_check_input.strip() if self.duplicate_check_input else ""
             )
-
             if not input_val:
                 raise ValueError(
                     "A target field name is required when duplicate submissions are blocked."
                 )
-
-            # Save the clean stripped value back onto the instance
             self.duplicate_check_input = input_val
         else:
-            # Clean up and reset field if duplicates are allowed anyway
             self.duplicate_check_input = None
+
+        # 2. Validate Redirection
+        if self.redirect:
+            url_val = self.redirect_url.strip() if self.redirect_url else ""
+            if not url_val:
+                raise ValueError(
+                    "A redirect URL is required when redirection is enabled."
+                )
+            self.redirect_url = url_val
+        else:
+            self.redirect_url = None
+
+        # 3. Validate Turnstile Bot Protection
+        if self.turnstile_enabled:
+            secret_val = self.turnstile_secret.strip() if self.turnstile_secret else ""
+            if not secret_val:
+                raise ValueError(
+                    "A Cloudflare Turnstile secret key is required when Turnstile is enabled."
+                )
+            self.turnstile_secret = secret_val
+        else:
+            self.turnstile_secret = None
 
         return self
 

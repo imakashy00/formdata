@@ -25,19 +25,17 @@
             isActive: {{ form.is_active | tojson }},
             duplicateBlocked: {{ (not form.duplicate_allowed) | tojson }},
             duplicateCheckInput: {{ (form.duplicate_check_input | default('', true)) | tojson }},
-            restrictDomains: {{ (form.allowed_domains | length > 0) | tojson }},
             allowedDomains: {{ (form.allowed_domains | join(', ')) | tojson }},
-            botProtectionEnabled: {{ (form.turnstile_secret | default('', true) != '') | tojson }},
-            turnstileSecret: {{ (form.turnstile_secret | default('', true)) | tojson }},
-            redirectEnabled: {{ (form.redirect_url | default('', true) != '') | tojson }},
-            redirectUrl: {{ (form.redirect_url | default('', true)) | tojson }},
+            botProtectionEnabled: {{ (form.turnstile_enabled ) | tojson }},
+            turnstileSecret: {{ (form.turnstile_secret) | tojson }},
+            redirectEnabled: {{ (form.redirect) | tojson }},
+            redirectUrl: {{ (form.redirect_url)| tojson }},
             subMessage: {{ (form.sub_message | default('Submission successful!', true)) | tojson }},
             bgColor: {{ (form.sub_bg_color.lstrip('#') if form.sub_bg_color else 'FFFFFF') | tojson }},
             txtColor: {{ (form.sub_txt_color.lstrip('#') if form.sub_txt_color else '111111') | tojson }},
             lnkColor: {{ (form.sub_lnk_color.lstrip('#') if form.sub_lnk_color else '2563EB') | tojson }}
         }" @submit.capture="
             if (!redirectEnabled) redirectUrl = '';
-            if (!restrictDomains) allowedDomains = '';
             if (!botProtectionEnabled) turnstileSecret = '';
             if (!duplicateBlocked) duplicateCheckInput = '';
         " class="space-y-6">
@@ -133,14 +131,13 @@
                         <p class="text-xs text-gray-400 mt-0.5">Off by default, so submissions are accepted from
                             anywhere — any website, app, or tool. Turn this on to only allow the domains you list.
                         </p>
-                        <div x-show="restrictDomains" x-cloak x-transition class="mt-3 max-w-sm">
-                            <input type="text" name="allowed_domains" x-model="allowedDomains"
-                                :required="restrictDomains" placeholder="e.g., mysite.com, yoursite.com"
+                        <div x-cloak x-transition class="mt-3 max-w-sm">
+                            <input type="text" name="allowed_domains" x-model="allowedDomains" required
+                                placeholder="e.g., mysite.com, yoursite.com"
                                 class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand transition-colors">
                             <p class="text-[11px] text-gray-400 mt-1">Comma-separated, no https:// needed.</p>
                         </div>
                     </div>
-                    {{ toggle_switch('restrictDomains') }}
                 </div>
 
                 <!-- Bot Protection -->
@@ -160,6 +157,7 @@
                                 class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand transition-colors">
                         </div>
                     </div>
+                    <input type="hidden" name="turnstile_enabled" :value="botProtectionEnabled?'true':'false'">
                     {{ toggle_switch('botProtectionEnabled') }}
                 </div>
             </div>
@@ -227,6 +225,7 @@
                                 class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand transition-colors">
                         </div>
                     </div>
+                    <input type="hidden" name="redirect" :value="redirectEnabled ? 'true' : 'false' ">
                     {{ toggle_switch('redirectEnabled') }}
                 </div>
 

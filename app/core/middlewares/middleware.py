@@ -1,3 +1,5 @@
+import re
+
 from fastapi import HTTPException, Request
 from fastapi.responses import RedirectResponse
 from jwt.exceptions import ExpiredSignatureError
@@ -21,6 +23,9 @@ PUBLIC_PATHS = {
     "/sitemap.xml",
     "/favicon.ico",
 }
+
+# Pre-compile the pattern for performance
+SECRET_ROUTE_RE = re.compile(r"^/f/[a-zA-Z0-9_-]{8}/?$")
 
 
 def redirect_home():
@@ -121,8 +126,10 @@ def register_middlewares(app):
             if not request.state.user:
                 return redirect_home()
 
-        is_public = request.url.path in PUBLIC_PATHS or request.url.path.startswith(
-            PUBLIC_PREFIXES
+        is_public = (
+            request.url.path in PUBLIC_PATHS
+            or request.url.path.startswith(PUBLIC_PREFIXES)
+            or bool(SECRET_ROUTE_RE.match(request.url.path))
         )
 
         if request.state.user is None and not is_public:

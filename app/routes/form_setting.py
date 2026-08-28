@@ -2,6 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Form, Request, status
 from fastapi.responses import HTMLResponse
+from loguru import logger as log
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_db
@@ -66,7 +67,7 @@ async def handle_update_form_setting(
     payload: Annotated[FormSettingsPayload, Form()],
 ):
 
-    db_form = await FormRepository(db).get_by_id_and_project(form_id, project_id)
+    db_form = await FormRepository(db).get_by_id_and_project(form_id, project_id) 
     if not db_form:
         raise NotFoundError("Form not found")
     # 3. Parse comma-separated accepted domains into a list

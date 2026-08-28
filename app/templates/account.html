@@ -438,7 +438,7 @@
           Jinja-in-a-<script> XSS footgun.
         -->
         {% set billing_config = {
-        'userId': user.id | default(''),
+        'userId': (user.id | string | default('')),
         'userEmail':user.email,
         'subId': sub_id | default(''),
         'currentPlan': current_plan,

@@ -252,13 +252,18 @@ class Form(Base):
     allowed_domains: Mapped[list[str]] = mapped_column(
         ARRAY(String), server_default="'{}'::varchar[]"
     )
+    redirect: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     redirect_url: Mapped[str | None] = mapped_column(String(2083), nullable=True)
     notification_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    autoresponse: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     duplicate_allowed: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=True
     )
     duplicate_check_input: Mapped[str | None] = mapped_column(
         String(100), nullable=True
+    )
+    turnstile_enabled: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False
     )
     turnstile_secret: Mapped[str | None] = mapped_column(String(255), nullable=True)
 

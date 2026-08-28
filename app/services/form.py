@@ -4,7 +4,7 @@ from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 import httpx
-from fastapi import HTTPException, Request, status
+from fastapi import HTTPException, Request
 from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -234,49 +234,44 @@ def _none_if_blank(value: str | None) -> str | None:
 async def update_form_settings(
     payload: FormSettingsPayload, db_form: FormDB, db: AsyncSession
 ):
-    # Parse comma-separated allowed domains into a list.
+    # 1. Parse comma-separated allowed domains into a list.
     accepted_domains_raw = payload.allowed_domains
     accepted_domains_list = [
         d.strip() for d in accepted_domains_raw.split(",") if d.strip()
     ]
 
-    turnstile_secret = _none_if_blank(payload.turnstile_secret)
-    duplicate_check_input = _none_if_blank(payload.duplicate_check_input)
+    # 2. Key Length Validation (Leave this payload safety valve here)
+    if (
+        payload.turnstile_enabled
+        and payload.turnstile_secret
+        and len(payload.turnstile_secret) != 40
+    ):
+        raise IncorrectCloudflareTournstileKey()
 
-    # Defend against a client that bypasses the browser's `required`
-    # validation (curl, a modified request, a disabled JS toggle, etc.).
-    # Bot Protection is "on" whenever a secret is present — there's no
-    # separate enabled column for it, so its own value is the signal.
-    if payload.turnstile_secret and not turnstile_secret:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Turnstile secret key cannot be blank when Bot Protection is enabled.",
-        )
-    if payload.turnstile_secret and len(payload.turnstile_secret) != 40:
-        IncorrectCloudflareTournstileKey()
-
-    # duplicate_allowed False means "Block Duplicate Submissions" is on,
-    # which requires a field to check uniqueness against.
-    if payload.duplicate_allowed is False and not duplicate_check_input:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="A field to check is required when blocking duplicate submissions.",
-        )
-
+    # 3. Apply Clean Payload Parameters directly to your SQLAlchemy Model instance
     db_form.name = payload.name.strip()
     db_form.honeypot = payload.honeypot
     db_form.notification_email = payload.notification_email
     db_form.allowed_domains = accepted_domains_list
-    db_form.redirect_url = _none_if_blank(payload.redirect_url)
-    db_form.turnstile_secret = turnstile_secret
+
+    # Feature Toggle Column Assignments
+    db_form.redirect = payload.redirect
+    db_form.redirect_url = payload.redirect_url
+
+    db_form.turnstile_enabled = payload.turnstile_enabled
+    db_form.turnstile_secret = payload.turnstile_secret
+
     db_form.duplicate_allowed = payload.duplicate_allowed
-    db_form.duplicate_check_input = duplicate_check_input
+    db_form.duplicate_check_input = payload.duplicate_check_input
+
+    # Style and Visibility Settings
     db_form.is_active = payload.is_active
     db_form.sub_message = payload.sub_message
     db_form.sub_bg_color = payload.sub_bg_color
     db_form.sub_txt_color = payload.sub_txt_color
     db_form.sub_lnk_color = payload.sub_lnk_color
 
+    # 4. Save Changes to PostgreSQL
     await db.commit()
     await db.refresh(db_form)
 

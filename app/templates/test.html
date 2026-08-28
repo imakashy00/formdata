@@ -9,24 +9,16 @@
 
     <h2>Contact Form</h2>
 
-    <form action="http://localhost:8000/f/-Re1PwWI" method="POST" enctype="multipart/form-data">
-
+    <form action="https://e8ea-116-73-141-40.ngrok-free.app/f/Tyv8P05l" method="POST">
         <input type="email" name="email" placeholder="Email" required />
-
-        <input name="files" type="file" accept="image/*, .pdf" multiple>
-
         <textarea name="message" placeholder="Message" required></textarea>
 
-        <!-- Honeypot -->
-        <input type="text" name="_gotcha" style="display:none" tabindex="-1" autocomplete="off" />
-        <!-- Cloudflare Turnstile Widget -->
-        <div class="cf-turnstile" data-sitekey="1x00000000000000000000AA"></div>
+        <!-- Optional honeypot generated for this form -->
+        <input type="text" name="gotcha" tabindex="-1" autocomplete="off" aria-hidden="true"
+            style="position:absolute;left:-9999px" />
 
-        <button type="submit">Send</button>
-
+        <button type="submit">Send message</button>
     </form>
-    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
-
 </body>
 
 </html>
