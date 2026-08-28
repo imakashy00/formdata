@@ -6,6 +6,7 @@ User-agent: *
 # Allow public pages
 Allow: /
 Allow: /static/
+Allow: /blogs
 
 # Block non-public or sensitive endpoints
 Disallow: /auth
@@ -15,14 +16,10 @@ Disallow: /logout
 Disallow: /webhook/
 Disallow: /webhook/paddle
 Disallow: /subscription/
-Disallow: /modal
-Disallow: /users
-Disallow: /notes
-Disallow: /folders
+Disallow: /projects
 
-# Optional: reduce crawl pressure on APIs if any (most bots ignore Crawl-delay)
 # Crawl-delay: 5
 
 # Sitemap (replace with your live URL)
-Sitemap: https://your-domain.com/sitemap.xml
+Sitemap: https://formdata.cloud/sitemap.xml
 

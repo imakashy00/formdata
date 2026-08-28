@@ -12,7 +12,6 @@ from app.services.cookies import clear_auth_cookies, set_auth_cookies
 PUBLIC_PREFIXES = ("/static", "/blogs")
 PUBLIC_PATHS = {
     "/",
-    "/help",
     "/auth",
     "/auth/callback",
     "/webhook/paddle",

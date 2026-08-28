@@ -39,19 +39,6 @@ def robots_txt():
     return FileResponse("app/static/robots.txt", media_type="text/plain")
 
 
-@page_router.get("/help", response_class=HTMLResponse)
-async def help_page(
-    request: Request,
-    db: Annotated[AsyncSession, Depends(get_db)],
-    user: Annotated[User, Depends(current_user)],
-):
-    log.info("Help page sending")
-    return temp.TemplateResponse(
-        request,
-        "help.html",
-    )
-
-
 @page_router.get("/blogs", response_class=HTMLResponse)
 async def blogs(request: Request):
     log.info("Blogs")

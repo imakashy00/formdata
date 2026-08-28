@@ -1,0 +1,26 @@
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+
+    <url>
+        <loc>https://formdata.cloud/</loc>
+    </url>
+
+    <url>
+        <loc>https://formdata.cloud/robot.txt</loc>
+    </url>
+
+    <url>
+        <loc>https://formdata.cloud/blogs</loc>
+    </url>
+
+    <url>
+        <loc>https://formdata.cloud/privacy-policy</loc>
+    </url>
+
+    <url>
+        <loc>https://formdata.cloud/terms-of-service</loc>
+    </url>
+
+</urlset>
+```
