@@ -1,7 +1,6 @@
-from datetime import UTC, datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Request, Response
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import FileResponse, HTMLResponse
 from loguru import logger as log
 
@@ -60,64 +59,13 @@ async def terms_and_conditions(request: Request):
 
 
 @page_router.get("/sitemap.xml", include_in_schema=False)
-async def sitemap_xml(request: Request) -> Response:
-    """Dynamically generate a minimal, SEO-friendly XML sitemap.
-
-    Includes publicly accessible pages only. Uses the incoming request's base URL
-    so it works across localhost, ngrok, and production.
-    """
-    base = str(request.base_url).rstrip("/")
-
-    def route_exists(path: str) -> bool:
-        try:
-            return any(getattr(r, "path", None) == path for r in request.app.routes)
-        except ValueError:
-            return False
-
-    today = datetime.now(UTC).date().isoformat()
-
-    # Core URLs to include
-    url_defs = [
-        {"loc": f"{base}/", "changefreq": "daily", "priority": "1.0", "lastmod": today},
-    ]
-
-    # Optional pages if present in the app
-    optional_paths = [
-        ("/help", "monthly", "0.4"),
-        ("/blogs", "weekly", "0.5"),
-        ("/privacy-policy", "yearly", "0.3"),
-        ("/terms-of-service", "yearly", "0.3"),
-    ]
-
-    for path, changefreq, priority in optional_paths:
-        if route_exists(path):
-            url_defs.append(
-                {
-                    "loc": f"{base}{path}",
-                    "changefreq": changefreq,
-                    "priority": priority,
-                    "lastmod": today,
-                }
-            )
-
-    # Build XML
-    lines = [
-        '<?xml version="1.0" encoding="UTF-8"?>',
-        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
-    ]
-    for u in url_defs:
-        lines.append("  <url>")
-        lines.append(f"    <loc>{u['loc']}</loc>")
-        lines.append(f"    <lastmod>{u['lastmod']}</lastmod>")
-        lines.append(f"    <changefreq>{u['changefreq']}</changefreq>")
-        lines.append(f"    <priority>{u['priority']}</priority>")
-        lines.append("  </url>")
-    lines.append("</urlset>")
-
-    xml = "\n".join(lines) + "\n"
-    return Response(content=xml, media_type="application/xml")
+async def sitemap_xml() -> FileResponse:
+    return FileResponse(
+        "app/static/sitemap.xml",
+        media_type="application/xml",
+    )
 
 
 @page_router.get("/llms.txt", include_in_schema=False)
 async def llms_txt() -> FileResponse:
-    return FileResponse("app/static/llm.txt", media_type="text/plain")
+    return FileResponse("app/static/llms.txt", media_type="text/plain")

@@ -1,0 +1,28 @@
+```markdown
+# Formdata
+
+> Formdata is a hosted form backend for HTML, static websites, Webflow, Framer, React, and JavaScript applications. It lets developers collect form submissions without building and maintaining their own backend.
+
+Formdata provides a backend for websites and applications that need to receive, process, and manage form submissions.
+
+## Product
+
+- Collect form submissions from HTML and static websites.
+- Use Formdata with React and JavaScript applications.
+- Protect forms against spam and automated submissions.
+- Receive notifications when forms are submitted.
+- Manage and export collected submissions.
+- Connect form submissions with external services.
+
+## Website
+
+- [Formdata](https://formdata.cloud/): Official website and product overview.
+- [Privacy Policy](https://formdata.cloud/privacy-policy): Formdata privacy policy.
+- [Terms of Service](https://formdata.cloud/terms-of-service): Formdata terms of service.
+
+## Usage
+
+Formdata is intended for developers and website builders who need form submission handling without implementing their own backend infrastructure.
+
+The official website is the authoritative source for current product capabilities, pricing, limitations, and terms.
+```
