@@ -24,6 +24,7 @@ from app.core.db import get_db
 from app.core.errors import NotFoundError
 from app.core.settings import settings
 from app.core.templates import temp
+from app.models.user import Form as FormDB
 from app.models.user import Project, Submission, ThankYouToken, User
 from app.repositories.client_form_repository import ClientFormRepository
 from app.services.client_form import (
@@ -35,7 +36,6 @@ from app.services.client_form import (
     parse_request_data,
     process_and_upload_files,
 )
-from app.services.email_service import EmailService
 from app.services.file_upload import (
     delete_submission_file,
 )
@@ -103,8 +103,8 @@ async def handle_form_submit(
             form_data,
             form,
             json_body={"status": "accepted"},
-            status_code=200,
-            redirect_ok=True,
+            status_code=status.HTTP_200_OK,
+            redirect_ok=form.redirect,
         )
 
     required_fields = set(getattr(form, "required_fields", None) or ())
@@ -191,21 +191,21 @@ async def handle_form_submit(
     if not user:
         raise HTTPException(404, "user not found")
 
-    background_task.add_task(
-        EmailService().send_user_notification, user.email, form.name, form_data
-    )
+    # background_task.add_task(
+    #     EmailService().send_user_notification, user.email, form.name, form_data
+    # )
     return _finish(
         request,
         form_data,
         form,
         json_body={"status": "accepted"},
-        status_code=200,
-        redirect_ok=True,
+        status_code=status.HTTP_200_OK,
+        redirect_ok=form.redirect,
         token=raw_token,
     )
 
 
-@client_form_router.post("/{form_id}/thank-you/{token}")
+@client_form_router.get("/{form_id}/thank-you/{token}")
 async def handle_form_submit_sucess(
     request: Request,
     token: str,
@@ -239,10 +239,20 @@ async def handle_form_submit_sucess(
     if not submission:
         raise HTTPException(status_code=404)
 
+    thank_you_token.used_at = datetime.now(UTC)
+
+    try:
+        await db.commit()
+    except SQLAlchemyError:
+        await db.rollback()
+        # Keep moving so the user still gets their template visual even if the database sync fails
+    query = select(FormDB).where(FormDB.public_id == form_id)
+    result = await db.execute(query)
+    form = result.scalar_one_or_none()
+    if not form:
+        return temp.TemplateResponse(request, name="submission_error.html")
     return temp.TemplateResponse(
         request=request,
-        name="thankyou.html",
-        context={
-            "submission": submission,
-        },
+        name="submission_sucess.html",
+        context={"submission": submission, "form": form},
     )

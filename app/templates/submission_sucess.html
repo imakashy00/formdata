@@ -4,12 +4,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Submission Successful</title>
     <link rel="stylesheet" href="{{ url_for('static', path='/css/output.css') }}">
 </head>
+<!-- Dynamically inject the background and text color from the Form configuration -->
 
-<body class="flex justify-center items-center">
-    <h1>Thankyou for you submisison</h1>
+<body
+    class="min-h-screen flex flex-col justify-center items-center font-sans antialiased p-4 transition-colors duration-150"
+    style="background-color: {{ form.sub_bg_color }}; color: {{ form.sub_txt_color }};">
+
+    <main class="max-w-md w-full text-center space-y-6">
+        <!-- Success Icon Visual Anchor -->
+        <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-black/5 dark:bg-white/10 mb-2">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://w3.org">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+        </div>
+
+        <!-- Primary Header -->
+        <h1 class="text-3xl font-extrabold tracking-tight sm:text-4xl">
+            Thank you!
+        </h1>
+
+        <!-- Dynamically injected Custom Submission Message -->
+        <p class="text-lg opacity-90 max-w-sm mx-auto leading-relaxed">
+            {{ form.sub_message }}
+        </p>
+
+        <!-- Dynamic Action Button/Link -->
+        {% if form.redirect and form.redirect_url %}
+        <div class="pt-4">
+            <a href="{{ form.redirect_url }}"
+                class="inline-flex items-center justify-center px-5 py-2.5 text-sm font-semibold rounded-lg shadow-sm border border-current/20 hover:bg-current/5 transition-all duration-150"
+                style="color: {{ form.sub_lnk_color }};">
+                Return to Website
+                <svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://w3.org">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3">
+                    </path>
+                </svg>
+            </a>
+        </div>
+        {% endif %}
+    </main>
+
 </body>
 
 </html>

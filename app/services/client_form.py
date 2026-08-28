@@ -81,7 +81,7 @@ def _resolve_redirect_target(
 ) -> str | None:
     """Where to send the visitor's browser after a plain (non-AJAX) form
     POST. Mirrors Formspree's `_next` convention."""
-    target = _safe_redirect_target(form_data.get("_next"), request, form)
+    target = _safe_redirect_target(form.redirect_url, request, form)
     return target or request.headers.get("referer")
 
 
@@ -105,25 +105,28 @@ def _finish(
     if wants_json:
         return JSONResponse(json_body, status_code=status_code)
 
+    # Reconstruct the absolute path to your platform's default thank-you template page
+    base_url = str(settings.BASE_URL).rstrip("/")
+    internal_thank_you_url = (
+        f"{base_url}/f/{form.public_id}/thank-you/{token}" if token else None
+    )
+
+    target_url = internal_thank_you_url
+    log.debug(f"target _url = {target_url}")
+
     if redirect_ok:
         # Check if the user specified a custom redirect target (_next URL)
-        target = _resolve_redirect_target(form_data, request, form)
+        target_url = _resolve_redirect_target(form_data, request, form)
 
-        # If no custom redirect URL is provided, fall back to our platform's thank-you path
-        if not target and token:
-            # Reconstructs absolute path to your dynamic /{form_id}/thank-you/{token} route
-            base_url = str(request.base_url).rstrip("/")
-            target = f"{base_url}/client-forms/{form.public_id}/thank-you/{token}"  # Match your exact prefix router mount
+        if not target_url:
+            target_url = internal_thank_you_url
 
-        if target:
-            fragment = (
-                "formdata-success"
-                if json_body.get("status") != "error"
-                else "formdata-error"
+        if target_url:
+            return RedirectResponse(
+                url=f"{target_url}", status_code=status.HTTP_303_SEE_OTHER
             )
-            return RedirectResponse(url=f"{target}#{fragment}", status_code=303)
 
-    return JSONResponse(json_body, status_code=status_code)
+    return RedirectResponse(url=f"{target_url}", status_code=status.HTTP_303_SEE_OTHER)
 
 
 @lru_cache(maxsize=256)

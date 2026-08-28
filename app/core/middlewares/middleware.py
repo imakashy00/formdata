@@ -26,6 +26,10 @@ PUBLIC_PATHS = {
 
 # Pre-compile the pattern for performance
 SECRET_ROUTE_RE = re.compile(r"^/f/[a-zA-Z0-9_-]{8}/?$")
+THANK_YOU_ROUTE_RE = re.compile(r"^/f/[a-zA-Z0-9_-]{8}/thank-you/[a-zA-Z0-9_-]+/?$")
+# PUBLIC_FORM_ROUTES_RE = re.compile(
+#    r"^/f/[a-zA-Z0-9_-]{8}(/thank-you/[a-zA-Z0-9_-]+)?/?$"
+# )
 
 
 def redirect_home():
@@ -130,6 +134,7 @@ def register_middlewares(app):
             request.url.path in PUBLIC_PATHS
             or request.url.path.startswith(PUBLIC_PREFIXES)
             or bool(SECRET_ROUTE_RE.match(request.url.path))
+            or bool(THANK_YOU_ROUTE_RE.match(request.url.path))
         )
 
         if request.state.user is None and not is_public:

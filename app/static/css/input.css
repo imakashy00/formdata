@@ -1,10 +1,11 @@
+/* 2. Unified Google Font Import */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
 @import "tailwindcss";
+
 
 /* 1. Track template components across your FastAPI layout */
 @source "../../../templates/**/*.html";
-
-/* 2. Unified Google Font Import */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 
 /* 3. Tailwind v4 Custom Core Theme Definitions */
 @theme {
