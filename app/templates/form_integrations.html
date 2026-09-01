@@ -2,8 +2,8 @@
     <p class="text-sm text-gray-400 mb-5">Sync form payloads automatically to external platforms.</p>
 
     {% set integration_map = integration_map or {} %}
-    {% set google_sheet_cfg = integration_map.get('google_sheets', {}) %}
-    {% set notion_cfg = integration_map.get('notion', {}) %}
+    {% set google_sheet_cfg = integration_map.google_sheets or {} %}
+    {% set notion_cfg = integration_map.notion or {} %}
 
     <div class="space-y-5">
         <div class="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
@@ -21,14 +21,14 @@
                 hx-target="#tab-content" hx-swap="outerHTML" class="space-y-3">
                 <div>
                     <label class="block text-xs font-semibold text-gray-700 mb-1.5">Spreadsheet URL</label>
-                    <input type="url" name="sheet_url" value="{{ google_sheet_cfg.get('sheet_url', '') }}"
+                    <input type="url" name="sheet_url" value="{{ google_sheet_cfg.sheet_url or '' }}"
                         placeholder="https://docs.google.com/spreadsheets/..." required
                         class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand transition-colors">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-gray-700 mb-1.5">Worksheet Name</label>
                     <input type="text" name="worksheet_name"
-                        value="{{ google_sheet_cfg.get('worksheet_name', 'Sheet1') }}" placeholder="Sheet1"
+                        value="{{ google_sheet_cfg.worksheet_name or 'Sheet1' }}" placeholder="Sheet1"
                         class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand transition-colors">
                 </div>
                 <button type="submit"
@@ -52,13 +52,13 @@
                 hx-swap="outerHTML" class="space-y-3">
                 <div>
                     <label class="block text-xs font-semibold text-gray-700 mb-1.5">Notion Database ID</label>
-                    <input type="text" name="database_id" value="{{ notion_cfg.get('database_id', '') }}"
+                    <input type="text" name="database_id" value="{{ notion_cfg.database_id or '' }}"
                         placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" required
                         class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand transition-colors">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-gray-700 mb-1.5">Notion Token</label>
-                    <input type="password" name="notion_token" value="{{ notion_cfg.get('notion_token', '') }}"
+                    <input type="password" name="notion_token" value="{{ notion_cfg.notion_token or '' }}"
                         placeholder="secret_..." required
                         class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand transition-colors">
                 </div>

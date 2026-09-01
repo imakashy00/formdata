@@ -33,7 +33,7 @@
 
                     <!-- 2. DATE -->
                     <td class="p-4 text-gray-500">
-                        {{ sub.created_at.strftime('%B %d, %Y') }}
+                        {{ sub.created_at | strftime('%B %d, %Y') }}
                     </td>
 
                     <!-- 3. COUNTRY -->

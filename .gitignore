@@ -82,3 +82,16 @@ tailwindcss.exe
 akash
 todo.md
 akash.json
+
+# Node & AI Studio preview bridge
+node_modules/
+dist/
+package.json
+package-lock.json
+bun.lock
+bun.lockb
+server.ts
+src/
+metadata.json
+.app/
+.data/

@@ -13,7 +13,7 @@
             <p class="text-xl text-gray-900">{{ form.name }}</p>
         </div>
         <nav class="flex gap-6 -mb-px" aria-label="Project tabs">
-            {% for tab_id in ['submissions', 'setup', 'templates', 'settings', 'integrations',]
+            {% for tab_id in ['submissions', 'setup', 'templates', 'settings', 'integrations']
             %}
             <button type="button" hx-get="/projects/{{form.project_id}}/forms/{{ form.id }}/{{ tab_id }}"
                 hx-target="#tab-content" hx-push-url="true" hx-history="false" @click="activeTab = '{{ tab_id }}'"

@@ -57,28 +57,36 @@
 
 {% block script%}
 <script>
-    document.addEventListener('alpine:init', () => {
-        Alpine.data('formModal', () => ({
-            isOpen: false,
+    function registerFormModal() {
+        if (window.Alpine) {
+            Alpine.data('formModal', () => ({
+                isOpen: false,
 
-            open() {
-                this.isOpen = true;
-                setTimeout(() => {
-                    this.$refs.formName.focus();
-                }, 50);
-            },
+                open() {
+                    this.isOpen = true;
+                    setTimeout(() => {
+                        this.$refs.formName?.focus();
+                    }, 50);
+                },
 
-            close() {
-                this.isOpen = false;
-            },
+                close() {
+                    this.isOpen = false;
+                },
 
-            handleSubmit(event) {
-                if (event.detail.successful) {
-                    this.close();
-                    this.$refs.formContainer.reset();
+                handleSubmit(event) {
+                    if (event.detail.successful) {
+                        this.close();
+                        this.$refs.formContainer?.reset();
+                    }
                 }
-            }
-        }));
-    });
+            }));
+        }
+    }
+
+    if (window.Alpine) {
+        registerFormModal();
+    } else {
+        document.addEventListener('alpine:init', registerFormModal, { once: true });
+    }
 </script>
 {% endblock %}

@@ -116,34 +116,37 @@
 
 {% block script %}
 <script>
-    document.addEventListener('alpine:init', () => {
-        Alpine.data('exportManager', () => ({
-            // Initialize status variable matching what's selected initially on load
-            status: "{{ status or '' }}",
+    function registerExportManager() {
+        if (window.Alpine) {
+            Alpine.data('exportManager', () => ({
+                status: "{{ status or '' }}",
 
-            async downloadExcel() {
-                // Fixed: Added enclosing double-quotes around the Jinja variables so JS reads them as valid strings
-                const projectId = "{{ form.project_id }}";
-                const formId = "{{ form.id }}";
+                async downloadExcel() {
+                    const projectId = "{{ form.project_id }}";
+                    const formId = "{{ form.id }}";
 
-                // Fetch the Excel file securely via API routes
-                const response = await fetch(`/projects/${projectId}/forms/${formId}/export?status=${this.status}`);
-                const blob = await response.blob();
+                    const response = await window.fetch(`/projects/${projectId}/forms/${formId}/export?status=${this.status}`);
+                    const blob = await response.blob();
 
-                // Generate temporary invisible document pointer target links
-                const url = window.URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.href = url;
-                link.download = `form_${formId}_export_${this.status || 'all'}.xlsx`;
+                    const url = window.URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `form_${formId}_export_${this.status || 'all'}.xlsx`;
 
-                document.body.appendChild(link);
-                link.click();
+                    document.body.appendChild(link);
+                    link.click();
 
-                // Memory cleanup routines
-                window.URL.revokeObjectURL(url);
-                link.remove();
-            }
-        }));
-    });
+                    window.URL.revokeObjectURL(url);
+                    link.remove();
+                }
+            }));
+        }
+    }
+
+    if (window.Alpine) {
+        registerExportManager();
+    } else {
+        document.addEventListener('alpine:init', registerExportManager, { once: true });
+    }
 </script>
 {% endblock %}

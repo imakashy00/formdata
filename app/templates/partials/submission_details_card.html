@@ -27,7 +27,7 @@
             <div>
                 <span class="block text-xs font-semibold text-gray-400 uppercase tracking-wider">Submitted At</span>
                 <p class="text-sm font-medium text-gray-800 mt-1">
-                    {{ submission.created_at.strftime('%Y-%m-%d %H:%M:%S UTC') }}
+                    {{ submission.created_at | strftime('%Y-%m-%d %H:%M:%S UTC') }}
                 </p>
             </div>
 

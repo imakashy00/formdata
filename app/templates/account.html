@@ -446,7 +446,7 @@
         'paddleClientToken': paddle_client_token | default(''),
         'paddleEnvironment': paddle_environment | default('sandbox'),
         'solo_price':paddle_solo_price,
-        'studio_price':paddle_studio_price,
+        'studio_price':paddle_studio_price
         } %}
         <script type="application/json" id="billing-config">{{ billing_config | tojson }}</script>
 
@@ -457,7 +457,28 @@
 
 
 {% block script %}
-<script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
+<script>
+    "use strict";
+
+    // Safely load Paddle v2 only when paddleClientToken is configured
+    (function loadPaddle() {
+        if (!document.getElementById("billing-config")) return;
+        try {
+            const config = JSON.parse(document.getElementById("billing-config").textContent);
+            if (config && config.paddleClientToken && !window.Paddle) {
+                const s = document.createElement("script");
+                s.src = "https://cdn.paddle.com/paddle/v2/paddle.js";
+                s.async = true;
+                s.onload = () => {
+                    if (typeof initializePaddle === "function") {
+                        initializePaddle();
+                    }
+                };
+                document.head.appendChild(s);
+            }
+        } catch (_) {}
+    })();
+</script>
 <script>
     "use strict";
 

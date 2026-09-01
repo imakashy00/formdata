@@ -8,6 +8,22 @@
     <title>{% block title %}Formdata{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', path='/css/output.css') }}">
 
+    <script>
+        // Ensure window.fetch is writable and configurable in sandboxed environments
+        try {
+            if (typeof window !== 'undefined' && typeof window.fetch === 'function') {
+                const nativeFetch = window.fetch.bind(window);
+                try {
+                    Object.defineProperty(window, 'fetch', {
+                        value: nativeFetch,
+                        writable: true,
+                        configurable: true,
+                        enumerable: true
+                    });
+                } catch (_) {}
+            }
+        } catch (_) {}
+    </script>
     <script defer src="{{ url_for('static', path='/js/htmx.js') }}"></script>
     <script defer src="{{ url_for('static', path='/js/alpine.js' )}}"></script>
     <script>
@@ -58,29 +74,38 @@
 
 
     <script>
-        document.addEventListener('alpine:init', () => {
-            Alpine.data('toastComponent', () => ({
-                openToast: false,
-                message: '',
-                type: 'success', // Can be 'success' or 'error'
-                timeoutId: null,
+        function registerToastComponent() {
+            if (window.Alpine) {
+                Alpine.data('toastComponent', () => ({
+                    openToast: false,
+                    message: '',
+                    type: 'success', // Can be 'success' or 'error'
+                    timeoutId: null,
 
-                show(text, type = 'success') {
-                    if (this.timeoutId) {
-                        clearTimeout(this.timeoutId);
+                    show(text, type = 'success') {
+                        if (this.timeoutId) {
+                            clearTimeout(this.timeoutId);
+                        }
+
+                        this.message = text;
+                        this.type = type;
+                        this.openToast = true;
+
+                        this.timeoutId = setTimeout(() => {
+                            this.openToast = false;
+                            this.timeoutId = null;
+                        }, 3500);
                     }
+                }));
+            }
+        }
 
-                    this.message = text;
-                    this.type = type;
-                    this.openToast = true;
+        if (window.Alpine) {
+            registerToastComponent();
+        } else {
+            document.addEventListener('alpine:init', registerToastComponent, { once: true });
+        }
 
-                    this.timeoutId = setTimeout(() => {
-                        this.openToast = false;
-                        this.timeoutId = null;
-                    }, 3500);
-                }
-            }));
-        });
         window.showToast = function (message, type = 'success') {
             window.dispatchEvent(new CustomEvent('show-toast', { detail: { value: message, type } }));
         };
