@@ -2,13 +2,12 @@ import os
 import uuid
 from functools import lru_cache
 from typing import Annotated
-from urllib.parse import parse_qsl, urlencode, urlparse
+from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 import pycountry
 from fastapi import Depends, Request, Response, status
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from loguru import logger as log
-from requests.compat import urlunparse
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
