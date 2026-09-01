@@ -1,65 +1,71 @@
 <div x-show="activeTab === 'integrations'" class="p-5 md:p-7" x-cloak>
     <p class="text-sm text-gray-400 mb-5">Sync form payloads automatically to external platforms.</p>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <!-- Google Sheets -->
-        <div class="bg-white rounded-xl border border-gray-100 p-5 flex flex-col justify-between shadow-sm">
+    {% set integration_map = integration_map or {} %}
+    {% set google_sheet_cfg = integration_map.get('google_sheets', {}) %}
+    {% set notion_cfg = integration_map.get('notion', {}) %}
+
+    <div class="space-y-5">
+        <div class="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
             <div class="flex items-center gap-3 mb-4">
                 <div
                     class="w-9 h-9 rounded-lg bg-green-50 flex items-center justify-center text-green-600 font-bold text-xs">
                     GS</div>
                 <div>
                     <h4 class="text-sm font-semibold text-gray-900 mb-0.5">Google Sheets</h4>
-                    <p class="text-xs text-gray-400">Append records directly into rows.</p>
+                    <p class="text-xs text-gray-400">Append submission rows to a spreadsheet tab.</p>
                 </div>
             </div>
-            <button type="button" hx-get="/forms/{{form.id}}/integrations/google-sheets"
-                class="w-full py-2 text-xs font-medium text-gray-700 bg-gray-50 border border-gray-200 hover:bg-gray-100 rounded-lg transition-colors">Coming Soon...</button>
+
+            <form hx-post="/projects/{{form.project_id}}/forms/{{form.id}}/integrations/google_sheets"
+                hx-target="#tab-content" hx-swap="outerHTML" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 mb-1.5">Spreadsheet URL</label>
+                    <input type="url" name="sheet_url" value="{{ google_sheet_cfg.get('sheet_url', '') }}"
+                        placeholder="https://docs.google.com/spreadsheets/..." required
+                        class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand transition-colors">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 mb-1.5">Worksheet Name</label>
+                    <input type="text" name="worksheet_name"
+                        value="{{ google_sheet_cfg.get('worksheet_name', 'Sheet1') }}" placeholder="Sheet1"
+                        class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand transition-colors">
+                </div>
+                <button type="submit"
+                    class="w-full py-2 text-xs font-medium text-white bg-brand hover:bg-brand-dark rounded-lg transition-colors">Save
+                    Google Sheets</button>
+            </form>
         </div>
 
-        <!-- Notion -->
-        <div class="bg-white rounded-xl border border-gray-100 p-5 flex flex-col justify-between shadow-sm">
+        <div class="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
             <div class="flex items-center gap-3 mb-4">
                 <div
                     class="w-9 h-9 rounded-lg bg-gray-50 flex items-center justify-center text-gray-900 font-bold text-xs">
                     N</div>
                 <div>
                     <h4 class="text-sm font-semibold text-gray-900 mb-0.5">Notion</h4>
-                    <p class="text-xs text-gray-400">Insert responses to a database.</p>
+                    <p class="text-xs text-gray-400">Create a new page in a Notion database.</p>
                 </div>
             </div>
-            <button type="button" hx-get="/forms/{{form.id}}/integrations/notion"
-                class="w-full py-2 text-xs font-medium text-gray-700 bg-gray-50 border border-gray-200 hover:bg-gray-100 rounded-lg transition-colors">Coming Soon...</button>
-        </div>
 
-        <!-- Slack -->
-        <div class="bg-white rounded-xl border border-gray-100 p-5 flex flex-col justify-between shadow-sm">
-            <div class="flex items-center gap-3 mb-4">
-                <div
-                    class="w-9 h-9 rounded-lg bg-purple-50 flex items-center justify-center text-purple-600 font-bold text-xs">
-                    SL</div>
+            <form hx-post="/projects/{{form.project_id}}/forms/{{form.id}}/integrations/notion" hx-target="#tab-content"
+                hx-swap="outerHTML" class="space-y-3">
                 <div>
-                    <h4 class="text-sm font-semibold text-gray-900 mb-0.5">Slack</h4>
-                    <p class="text-xs text-gray-400">Ping alerts to text channels.</p>
+                    <label class="block text-xs font-semibold text-gray-700 mb-1.5">Notion Database ID</label>
+                    <input type="text" name="database_id" value="{{ notion_cfg.get('database_id', '') }}"
+                        placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" required
+                        class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand transition-colors">
                 </div>
-            </div>
-            <button type="button" hx-get="/forms/{{form.id}}/integrations/slack"
-                class="w-full py-2 text-xs font-medium text-gray-700 bg-gray-50 border border-gray-200 hover:bg-gray-100 rounded-lg transition-colors">Coming Soon...</button>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 mb-1.5">Notion Token</label>
+                    <input type="password" name="notion_token" value="{{ notion_cfg.get('notion_token', '') }}"
+                        placeholder="secret_..." required
+                        class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand transition-colors">
+                </div>
+                <button type="submit"
+                    class="w-full py-2 text-xs font-medium text-white bg-brand hover:bg-brand-dark rounded-lg transition-colors">Save
+                    Notion</button>
+            </form>
         </div>
-
-        <!-- Zapier -->
-        <!-- <div class="bg-white rounded-xl border border-gray-100 p-5 flex flex-col justify-between shadow-sm">
-            <div class="flex items-center gap-3 mb-4">
-                <div
-                    class="w-9 h-9 rounded-lg bg-orange-50 flex items-center justify-center text-orange-600 font-bold text-xs">
-                    ZP</div>
-                <div>
-                    <h4 class="text-sm font-semibold text-gray-900 mb-0.5">Zapier</h4>
-                    <p class="text-xs text-gray-400">Integrate thousands of workflows.</p>
-                </div>
-            </div>
-            <button type="button" hx-get="/forms/{{form.id}}/integrations/zapier"
-                class="w-full py-2 text-xs font-medium text-gray-700 bg-gray-50 border border-gray-200 hover:bg-gray-100 rounded-lg transition-colors">Coming Soon...</button>
-        </div> -->
     </div>
 </div>

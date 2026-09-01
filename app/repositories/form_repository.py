@@ -6,7 +6,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.user import Form as FormDB
-from app.models.user import Submission, SubmissionStatus
+from app.models.user import (
+    FormIntegration,
+    Integration,
+    IntegrationProvider,
+    Project,
+    Submission,
+    SubmissionStatus,
+)
 
 
 class FormRepository:
@@ -40,6 +47,131 @@ class FormRepository:
         )
         result = await self.db.execute(query)
         return result.scalar_one_or_none()
+
+    async def get_integration_map(
+        self, form_id: str, project_id: str
+    ) -> dict[str, dict]:
+        form = await self.get_by_id_and_project(form_id, project_id)
+        if not form:
+            return {}
+
+        query = (
+            select(FormIntegration.config, Integration.provider)
+            .join(Integration, Integration.id == FormIntegration.integration_id)
+            .where(FormIntegration.form_id == form.id)
+        )
+        result = await self.db.execute(query)
+        integration_map: dict[str, dict] = {}
+        for config, provider in result.all():
+            integration_map[provider.value] = dict(config or {})
+        return integration_map
+
+    async def get_enabled_integrations(self, form_id: str) -> list[dict]:
+        result = await self.db.execute(
+            select(
+                Integration.provider,
+                Integration.access_token,
+                Integration.refresh_token,
+                Integration.integration_metadata,
+                Integration.enabled,
+                FormIntegration.enabled.label("form_enabled"),
+                FormIntegration.config,
+            )
+            .join(Integration, Integration.id == FormIntegration.integration_id)
+            .where(FormIntegration.form_id == form_id)
+            .where(FormIntegration.enabled.is_(True))
+            .where(Integration.enabled.is_(True))
+        )
+
+        integrations: list[dict] = []
+        for row in result.all():
+            (
+                provider,
+                access_token,
+                refresh_token,
+                metadata,
+                enabled,
+                form_enabled,
+                config,
+            ) = row
+            integrations.append(
+                {
+                    "provider": provider.value,
+                    "access_token": access_token,
+                    "refresh_token": refresh_token,
+                    "metadata": dict(metadata or {}),
+                    "enabled": enabled and form_enabled,
+                    "config": dict(config or {}),
+                }
+            )
+
+        return integrations
+
+    async def upsert_form_integration(
+        self,
+        form_id: str,
+        project_id: str,
+        provider: IntegrationProvider,
+        config: dict,
+        enabled: bool = True,
+    ) -> FormIntegration:
+        form = await self.get_by_id_and_project(form_id, project_id)
+        if not form:
+            raise ValueError("Form not found")
+
+        project = await self.db.get(Project, project_id)
+        if project is None:
+            raise ValueError("Project not found")
+
+        integration = await self.db.execute(
+            select(Integration).where(
+                Integration.user_id == project.user_id,
+                Integration.provider == provider,
+            )
+        )
+        integration = integration.scalar_one_or_none()
+        if integration is None:
+            integration = Integration(
+                user_id=project.user_id,
+                provider=provider,
+                enabled=True,
+            )
+            self.db.add(integration)
+            await self.db.flush()
+
+        if provider == IntegrationProvider.NOTION and config.get("notion_token"):
+            integration.access_token = config["notion_token"]
+        elif provider == IntegrationProvider.GOOGLE_SHEETS and config.get("sheet_url"):
+            integration.integration_metadata = {
+                "sheet_url": config.get("sheet_url"),
+                "worksheet_name": config.get("worksheet_name") or "Sheet1",
+            }
+        else:
+            integration.integration_metadata = dict(config or {})
+        integration.enabled = enabled
+
+        existing = await self.db.execute(
+            select(FormIntegration).where(
+                FormIntegration.form_id == form.id,
+                FormIntegration.integration_id == integration.id,
+            )
+        )
+        form_integration = existing.scalar_one_or_none()
+        if form_integration is None:
+            form_integration = FormIntegration(
+                form_id=form.id,
+                integration_id=integration.id,
+                enabled=enabled,
+                config={},
+            )
+            self.db.add(form_integration)
+
+        form_integration.config = dict(config or {})
+        form_integration.enabled = enabled
+        await self.db.commit()
+        await self.db.refresh(integration)
+        await self.db.refresh(form_integration)
+        return form_integration
 
     async def create(self, name: str, project_id: str, email: str) -> FormDB:
         new_form = FormDB(name=name, project_id=project_id, notification_email=email)

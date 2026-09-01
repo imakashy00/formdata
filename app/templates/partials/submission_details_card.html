@@ -37,46 +37,64 @@
                     {{ submission.country or 'Unknown Country' }}
                 </p>
             </div>
-        </div>
 
             <div>
-                <span class="block text-xs font-semibold text-gray-400 uppercase tracking-wider">Admin Notes</span>
-                <p
-                    class="text-sm italic text-gray-600 mt-1 bg-gray-50 p-2.5 rounded-lg border border-dashed border-gray-200">
-                    {{ submission.note or 'No notes attached to this submission.' }}
+                <span class="block text-xs font-semibold text-gray-400 uppercase tracking-wider">Sync Status</span>
+                <p class="text-sm font-medium text-gray-800 mt-1">
+                    {% if submission.integration_sync_state == 'synced' %}
+                    Synced
+                    {% elif submission.integration_sync_state == 'failed' %}
+                    Failed
+                    {% elif submission.integration_sync_state == 'pending' %}
+                    Pending
+                    {% else %}
+                    Not configured
+                    {% endif %}
                 </p>
+                {% if submission.integration_sync_summary %}
+                <p class="text-xs text-gray-500 mt-1">{{ submission.integration_sync_summary }}</p>
+                {% endif %}
             </div>
         </div>
-    </div>
 
-    <!-- Dynamic Payload Display -->
-    <div class="border-t border-gray-100 pt-6">
-        <h2 class="text-lg font-semibold text-gray-900 mb-4">Form Form Payload (Data)</h2>
-
-        <div class="bg-gray-50 rounded-xl border border-gray-200 overflow-hidden">
-            <!-- Inside submission_details.html -->
-            <dl class="divide-y divide-gray-200">
-                {% for key, value in submission.payload.items() %}
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-6 py-4 hover:bg-gray-50/50 transition-colors">
-                    <dt class="text-sm font-semibold text-gray-600 capitalize">
-                        {{ key.replace('_', ' ') }}
-                    </dt>
-                    <dd class="text-sm text-gray-900 sm:col-span-2 break-words font-medium">
-                        {% if value is mapping or value is iterable and value is not string %}
-                        <pre
-                            class="text-xs bg-gray-900 text-gray-100 p-3 rounded-lg overflow-x-auto shadow-inner">{{ value | tojson(indent=2) }}</pre>
-                        {% else %}
-                        {{ value }}
-                        {% endif %}
-                    </dd>
-                </div>
-                {% else %} <!-- Changed from empty to else -->
-                <div class="px-6 py-8 text-center text-sm text-gray-400">
-                    This payload structure is completely empty.
-                </div>
-                {% endfor %}
-            </dl>
-
+        <div>
+            <span class="block text-xs font-semibold text-gray-400 uppercase tracking-wider">Admin Notes</span>
+            <p
+                class="text-sm italic text-gray-600 mt-1 bg-gray-50 p-2.5 rounded-lg border border-dashed border-gray-200">
+                {{ submission.note or 'No notes attached to this submission.' }}
+            </p>
         </div>
     </div>
+</div>
+
+<!-- Dynamic Payload Display -->
+<div class="border-t border-gray-100 pt-6">
+    <h2 class="text-lg font-semibold text-gray-900 mb-4">Form Form Payload (Data)</h2>
+
+    <div class="bg-gray-50 rounded-xl border border-gray-200 overflow-hidden">
+        <!-- Inside submission_details.html -->
+        <dl class="divide-y divide-gray-200">
+            {% for key, value in submission.payload.items() %}
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-6 py-4 hover:bg-gray-50/50 transition-colors">
+                <dt class="text-sm font-semibold text-gray-600 capitalize">
+                    {{ key.replace('_', ' ') }}
+                </dt>
+                <dd class="text-sm text-gray-900 sm:col-span-2 break-words font-medium">
+                    {% if value is mapping or value is iterable and value is not string %}
+                    <pre
+                        class="text-xs bg-gray-900 text-gray-100 p-3 rounded-lg overflow-x-auto shadow-inner">{{ value | tojson(indent=2) }}</pre>
+                    {% else %}
+                    {{ value }}
+                    {% endif %}
+                </dd>
+            </div>
+            {% else %} <!-- Changed from empty to else -->
+            <div class="px-6 py-8 text-center text-sm text-gray-400">
+                This payload structure is completely empty.
+            </div>
+            {% endfor %}
+        </dl>
+
+    </div>
+</div>
 </div>

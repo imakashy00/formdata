@@ -1,4 +1,50 @@
-<div x-show="activeTab === 'setup'" x-cloak x-data="integrationSetup" class="space-y-6">
+<div x-show="activeTab === 'setup'" x-cloak x-data="integrationSetup" class="setup-panel space-y-6 font-sans">
+    <style>
+        /* Keep x-cloak elements hidden even if this fragment is swapped in
+           via htmx before Alpine has had a chance to process it. */
+        [x-cloak] {
+            display: none !important;
+        }
+
+        /* Syntax-highlight palette, derived from the brand theme (--color-brand*)
+           instead of a stock highlight.js theme, so the code blocks stay on-brand. */
+        .setup-panel {
+            --code-comment: #64748b;
+            --code-string: #86efac;
+            --code-number: #fbbf24;
+            --code-tag: var(--color-brand-mid);
+            --code-attr: color-mix(in srgb, var(--color-brand) 35%, #94a3b8);
+            --code-keyword: color-mix(in srgb, var(--color-brand) 60%, white);
+        }
+
+        .tok-comment {
+            color: var(--code-comment);
+            font-style: italic;
+        }
+
+        .tok-string {
+            color: var(--code-string);
+        }
+
+        .tok-tag {
+            color: var(--code-tag);
+            font-weight: 600;
+        }
+
+        .tok-attr {
+            color: var(--code-attr);
+        }
+
+        .tok-keyword {
+            color: var(--code-keyword);
+            font-weight: 600;
+        }
+
+        .tok-number {
+            color: var(--code-number);
+        }
+    </style>
+
     <header class="mb-7">
         <div
             class="mb-3 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
@@ -12,17 +58,17 @@
     <div class="mb-6 grid gap-3 sm:grid-cols-3">
         <div class="rounded-xl border border-slate-200 bg-white p-4">
             <span
-                class="mb-2 flex h-7 w-7 items-center justify-center rounded-full bg-indigo-50 text-xs font-bold text-indigo-600">1</span>
+                class="mb-2 flex h-7 w-7 items-center justify-center rounded-full bg-brand-light text-xs font-bold text-brand-dark">1</span>
             <p class="text-sm font-semibold text-slate-900">Choose a framework</p>
         </div>
         <div class="rounded-xl border border-slate-200 bg-white p-4">
             <span
-                class="mb-2 flex h-7 w-7 items-center justify-center rounded-full bg-indigo-50 text-xs font-bold text-indigo-600">2</span>
+                class="mb-2 flex h-7 w-7 items-center justify-center rounded-full bg-brand-light text-xs font-bold text-brand-dark">2</span>
             <p class="text-sm font-semibold text-slate-900">Paste the form code</p>
         </div>
         <div class="rounded-xl border border-slate-200 bg-white p-4">
             <span
-                class="mb-2 flex h-7 w-7 items-center justify-center rounded-full bg-indigo-50 text-xs font-bold text-indigo-600">3</span>
+                class="mb-2 flex h-7 w-7 items-center justify-center rounded-full bg-brand-light text-xs font-bold text-brand-dark">3</span>
             <p class="text-sm font-semibold text-slate-900">Submit a test message</p>
         </div>
     </div>
@@ -30,25 +76,25 @@
     <div class="rounded-2xl border border-slate-200 bg-white shadow-sm">
         <nav class="flex gap-1 overflow-x-auto border-b border-slate-100 p-3">
             <button @click="framework='html'"
-                :class="framework==='html' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'"
+                :class="framework==='html' ? 'bg-brand-dark text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'"
                 class="whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition">HTML</button>
             <button @click="framework='react'"
-                :class="framework==='react' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'"
+                :class="framework==='react' ? 'bg-brand-dark text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'"
                 class="whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition">React</button>
             <button @click="framework='vue'"
-                :class="framework==='vue' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'"
+                :class="framework==='vue' ? 'bg-brand-dark text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'"
                 class="whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition">Vue 3</button>
             <button @click="framework='svelte'"
-                :class="framework==='svelte' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'"
+                :class="framework==='svelte' ? 'bg-brand-dark text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'"
                 class="whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition">Svelte</button>
             <button @click="framework='angular'"
-                :class="framework==='angular' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'"
+                :class="framework==='angular' ? 'bg-brand-dark text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'"
                 class="whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition">Angular</button>
             <button @click="framework='wordpress'"
-                :class="framework==='wordpress' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'"
+                :class="framework==='wordpress' ? 'bg-brand-dark text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'"
                 class="whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition">WordPress</button>
             <button @click="framework='next'"
-                :class="framework==='next' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'"
+                :class="framework==='next' ? 'bg-brand-dark text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'"
                 class="whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition">Next.js</button>
         </nav>
         <div class="p-5 sm:p-7">
@@ -84,7 +130,7 @@
                             class="absolute right-3 top-3 z-10 rounded-md border border-white/10 bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-slate-300 transition-colors hover:bg-white/20 hover:text-white"
                             x-text="copied ? 'Copied!' : 'Copy'"></button>
                         <pre
-                            class="overflow-x-auto p-5 pr-20 font-mono text-xs leading-relaxed text-slate-200"><code x-text="code"></code></pre>
+                            class="overflow-x-auto p-5 pr-20 font-mono text-xs leading-relaxed text-slate-200"><code x-html="highlighted"></code></pre>
                     </div>
                 </div>
                 <div x-show="mode==='turnstile'" x-data="codeBlock"
@@ -94,7 +140,7 @@
                             class="absolute right-3 top-3 z-10 rounded-md border border-white/10 bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-slate-300 transition-colors hover:bg-white/20 hover:text-white"
                             x-text="copied ? 'Copied!' : 'Copy'"></button>
                         <pre
-                            class="overflow-x-auto p-5 pr-20 font-mono text-xs leading-relaxed text-slate-200"><code x-text="code"></code></pre>
+                            class="overflow-x-auto p-5 pr-20 font-mono text-xs leading-relaxed text-slate-200"><code x-html="highlighted"></code></pre>
                     </div>
                 </div>
             </section>
@@ -123,9 +169,9 @@
                     <strong>Before copying:</strong> Open <b>Settings → Spam protection</b>, enable Turnstile and save
                     the secret key. Put only the public site key in this code.
                 </div>
-                <div x-show="mode==='turnstile'" class="mb-4 rounded-xl border border-indigo-100 bg-indigo-50 p-4">
-                    <p class="text-xs font-semibold uppercase tracking-wide text-indigo-700">Recommended integration</p>
-                    <p class="mt-1 text-sm text-indigo-950">
+                <div x-show="mode==='turnstile'" class="mb-4 rounded-xl border border-brand-mid bg-brand-light p-4">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-brand-dark">Recommended integration</p>
+                    <p class="mt-1 text-sm text-brand-dark">
                         <code class="rounded bg-white px-1.5 py-0.5">@marsidev/react-turnstile</code>
                     </p>
                 </div>
@@ -136,7 +182,7 @@
                             class="absolute right-3 top-3 z-10 rounded-md border border-white/10 bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-slate-300 transition-colors hover:bg-white/20 hover:text-white"
                             x-text="copied ? 'Copied!' : 'Copy'"></button>
                         <pre
-                            class="overflow-x-auto p-5 pr-20 font-mono text-xs leading-relaxed text-slate-200"><code x-text="code"></code></pre>
+                            class="overflow-x-auto p-5 pr-20 font-mono text-xs leading-relaxed text-slate-200"><code x-html="highlighted"></code></pre>
                     </div>
                 </div>
                 <div x-show="mode==='turnstile'" x-data="codeBlock"
@@ -146,7 +192,7 @@
                             class="absolute right-3 top-3 z-10 rounded-md border border-white/10 bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-slate-300 transition-colors hover:bg-white/20 hover:text-white"
                             x-text="copied ? 'Copied!' : 'Copy'"></button>
                         <pre
-                            class="overflow-x-auto p-5 pr-20 font-mono text-xs leading-relaxed text-slate-200"><code x-text="code"></code></pre>
+                            class="overflow-x-auto p-5 pr-20 font-mono text-xs leading-relaxed text-slate-200"><code x-html="highlighted"></code></pre>
                     </div>
                 </div>
             </section>
@@ -175,9 +221,9 @@
                     <strong>Before copying:</strong> Open <b>Settings → Spam protection</b>, enable Turnstile and save
                     the secret key. Put only the public site key in this code.
                 </div>
-                <div x-show="mode==='turnstile'" class="mb-4 rounded-xl border border-indigo-100 bg-indigo-50 p-4">
-                    <p class="text-xs font-semibold uppercase tracking-wide text-indigo-700">Recommended integration</p>
-                    <p class="mt-1 text-sm text-indigo-950">
+                <div x-show="mode==='turnstile'" class="mb-4 rounded-xl border border-brand-mid bg-brand-light p-4">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-brand-dark">Recommended integration</p>
+                    <p class="mt-1 text-sm text-brand-dark">
                         <code class="rounded bg-white px-1.5 py-0.5">vue-turnstile</code>
                     </p>
                 </div>
@@ -188,7 +234,7 @@
                             class="absolute right-3 top-3 z-10 rounded-md border border-white/10 bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-slate-300 transition-colors hover:bg-white/20 hover:text-white"
                             x-text="copied ? 'Copied!' : 'Copy'"></button>
                         <pre
-                            class="overflow-x-auto p-5 pr-20 font-mono text-xs leading-relaxed text-slate-200"><code x-text="code"></code></pre>
+                            class="overflow-x-auto p-5 pr-20 font-mono text-xs leading-relaxed text-slate-200"><code x-html="highlighted"></code></pre>
                     </div>
                 </div>
                 <div x-show="mode==='turnstile'" x-data="codeBlock"
@@ -198,7 +244,7 @@
                             class="absolute right-3 top-3 z-10 rounded-md border border-white/10 bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-slate-300 transition-colors hover:bg-white/20 hover:text-white"
                             x-text="copied ? 'Copied!' : 'Copy'"></button>
                         <pre
-                            class="overflow-x-auto p-5 pr-20 font-mono text-xs leading-relaxed text-slate-200"><code x-text="code"></code></pre>
+                            class="overflow-x-auto p-5 pr-20 font-mono text-xs leading-relaxed text-slate-200"><code x-html="highlighted"></code></pre>
                     </div>
                 </div>
             </section>
@@ -227,9 +273,9 @@
                     <strong>Before copying:</strong> Open <b>Settings → Spam protection</b>, enable Turnstile and save
                     the secret key. Put only the public site key in this code.
                 </div>
-                <div x-show="mode==='turnstile'" class="mb-4 rounded-xl border border-indigo-100 bg-indigo-50 p-4">
-                    <p class="text-xs font-semibold uppercase tracking-wide text-indigo-700">Recommended integration</p>
-                    <p class="mt-1 text-sm text-indigo-950">
+                <div x-show="mode==='turnstile'" class="mb-4 rounded-xl border border-brand-mid bg-brand-light p-4">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-brand-dark">Recommended integration</p>
+                    <p class="mt-1 text-sm text-brand-dark">
                         <code class="rounded bg-white px-1.5 py-0.5">svelte-turnstile</code>
                     </p>
                 </div>
@@ -240,7 +286,7 @@
                             class="absolute right-3 top-3 z-10 rounded-md border border-white/10 bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-slate-300 transition-colors hover:bg-white/20 hover:text-white"
                             x-text="copied ? 'Copied!' : 'Copy'"></button>
                         <pre
-                            class="overflow-x-auto p-5 pr-20 font-mono text-xs leading-relaxed text-slate-200"><code x-text="code"></code></pre>
+                            class="overflow-x-auto p-5 pr-20 font-mono text-xs leading-relaxed text-slate-200"><code x-html="highlighted"></code></pre>
                     </div>
                 </div>
                 <div x-show="mode==='turnstile'" x-data="codeBlock"
@@ -250,7 +296,7 @@
                             class="absolute right-3 top-3 z-10 rounded-md border border-white/10 bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-slate-300 transition-colors hover:bg-white/20 hover:text-white"
                             x-text="copied ? 'Copied!' : 'Copy'"></button>
                         <pre
-                            class="overflow-x-auto p-5 pr-20 font-mono text-xs leading-relaxed text-slate-200"><code x-text="code"></code></pre>
+                            class="overflow-x-auto p-5 pr-20 font-mono text-xs leading-relaxed text-slate-200"><code x-html="highlighted"></code></pre>
                     </div>
                 </div>
             </section>
@@ -279,9 +325,9 @@
                     <strong>Before copying:</strong> Open <b>Settings → Spam protection</b>, enable Turnstile and save
                     the secret key. Put only the public site key in this code.
                 </div>
-                <div x-show="mode==='turnstile'" class="mb-4 rounded-xl border border-indigo-100 bg-indigo-50 p-4">
-                    <p class="text-xs font-semibold uppercase tracking-wide text-indigo-700">Recommended integration</p>
-                    <p class="mt-1 text-sm text-indigo-950">
+                <div x-show="mode==='turnstile'" class="mb-4 rounded-xl border border-brand-mid bg-brand-light p-4">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-brand-dark">Recommended integration</p>
+                    <p class="mt-1 text-sm text-brand-dark">
                         <code class="rounded bg-white px-1.5 py-0.5">ngx-turnstile</code>
                     </p>
                 </div>
@@ -292,7 +338,7 @@
                             class="absolute right-3 top-3 z-10 rounded-md border border-white/10 bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-slate-300 transition-colors hover:bg-white/20 hover:text-white"
                             x-text="copied ? 'Copied!' : 'Copy'"></button>
                         <pre
-                            class="overflow-x-auto p-5 pr-20 font-mono text-xs leading-relaxed text-slate-200"><code x-text="code"></code></pre>
+                            class="overflow-x-auto p-5 pr-20 font-mono text-xs leading-relaxed text-slate-200"><code x-html="highlighted"></code></pre>
                     </div>
                 </div>
                 <div x-show="mode==='turnstile'" x-data="codeBlock"
@@ -302,7 +348,7 @@
                             class="absolute right-3 top-3 z-10 rounded-md border border-white/10 bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-slate-300 transition-colors hover:bg-white/20 hover:text-white"
                             x-text="copied ? 'Copied!' : 'Copy'"></button>
                         <pre
-                            class="overflow-x-auto p-5 pr-20 font-mono text-xs leading-relaxed text-slate-200"><code x-text="code"></code></pre>
+                            class="overflow-x-auto p-5 pr-20 font-mono text-xs leading-relaxed text-slate-200"><code x-html="highlighted"></code></pre>
                     </div>
                 </div>
             </section>
@@ -338,7 +384,7 @@
                             class="absolute right-3 top-3 z-10 rounded-md border border-white/10 bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-slate-300 transition-colors hover:bg-white/20 hover:text-white"
                             x-text="copied ? 'Copied!' : 'Copy'"></button>
                         <pre
-                            class="overflow-x-auto p-5 pr-20 font-mono text-xs leading-relaxed text-slate-200"><code x-text="code"></code></pre>
+                            class="overflow-x-auto p-5 pr-20 font-mono text-xs leading-relaxed text-slate-200"><code x-html="highlighted"></code></pre>
                     </div>
                 </div>
                 <div x-show="mode==='turnstile'" x-data="codeBlock"
@@ -348,7 +394,7 @@
                             class="absolute right-3 top-3 z-10 rounded-md border border-white/10 bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-slate-300 transition-colors hover:bg-white/20 hover:text-white"
                             x-text="copied ? 'Copied!' : 'Copy'"></button>
                         <pre
-                            class="overflow-x-auto p-5 pr-20 font-mono text-xs leading-relaxed text-slate-200"><code x-text="code"></code></pre>
+                            class="overflow-x-auto p-5 pr-20 font-mono text-xs leading-relaxed text-slate-200"><code x-html="highlighted"></code></pre>
                     </div>
                 </div>
             </section>
@@ -377,9 +423,9 @@
                     <strong>Before copying:</strong> Open <b>Settings → Spam protection</b>, enable Turnstile and save
                     the secret key. Put only the public site key in this code.
                 </div>
-                <div x-show="mode==='turnstile'" class="mb-4 rounded-xl border border-indigo-100 bg-indigo-50 p-4">
-                    <p class="text-xs font-semibold uppercase tracking-wide text-indigo-700">Recommended integration</p>
-                    <p class="mt-1 text-sm text-indigo-950">
+                <div x-show="mode==='turnstile'" class="mb-4 rounded-xl border border-brand-mid bg-brand-light p-4">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-brand-dark">Recommended integration</p>
+                    <p class="mt-1 text-sm text-brand-dark">
                         <code class="rounded bg-white px-1.5 py-0.5">@marsidev/react-turnstile</code>
                     </p>
                 </div>
@@ -390,7 +436,7 @@
                             class="absolute right-3 top-3 z-10 rounded-md border border-white/10 bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-slate-300 transition-colors hover:bg-white/20 hover:text-white"
                             x-text="copied ? 'Copied!' : 'Copy'"></button>
                         <pre
-                            class="overflow-x-auto p-5 pr-20 font-mono text-xs leading-relaxed text-slate-200"><code x-text="code"></code></pre>
+                            class="overflow-x-auto p-5 pr-20 font-mono text-xs leading-relaxed text-slate-200"><code x-html="highlighted"></code></pre>
                     </div>
                 </div>
                 <div x-show="mode==='turnstile'" x-data="codeBlock"
@@ -400,7 +446,7 @@
                             class="absolute right-3 top-3 z-10 rounded-md border border-white/10 bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-slate-300 transition-colors hover:bg-white/20 hover:text-white"
                             x-text="copied ? 'Copied!' : 'Copy'"></button>
                         <pre
-                            class="overflow-x-auto p-5 pr-20 font-mono text-xs leading-relaxed text-slate-200"><code x-text="code"></code></pre>
+                            class="overflow-x-auto p-5 pr-20 font-mono text-xs leading-relaxed text-slate-200"><code x-html="highlighted"></code></pre>
                     </div>
                 </div>
             </section>
@@ -430,7 +476,54 @@
     </section>
 
     <script>
-        document.addEventListener('alpine:init', () => {
+        // --- Minimal dependency-free syntax highlighter ---------------------------
+        // Not a full parser — just enough token recognition (tags, attributes,
+        // strings, comments, keywords/decorators, numbers) to color the code
+        // samples without pulling in highlight.js or another library.
+        function highlightCode(code) {
+            const escapeHtml = (s) => s
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+
+            const tokenRegex = new RegExp([
+                /<!--[\s\S]*?-->/,                                      // 1 html comment
+                /\/\*[\s\S]*?\*\//,                                     // 2 block comment
+                /\/\/[^\n]*/,                                           // 3 line comment
+                /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`/, // 4 string
+                /@[A-Za-z_]\w*/,                                        // 5 decorator (e.g. @Component)
+                /<\/?[A-Za-z][\w.-]*/,                                  // 6 tag open + name
+                /\b[a-zA-Z_:][\w:.-]*(?=[\]\)]?\s*=(?!=))/,             // 7 attribute / bound prop name
+                /\b(?:import|export|from|default|function|return|const|let|var|class|extends|implements|interface|type|new|this|async|await|if|else|for|of|in|while|npm|install|public|private|readonly|standalone|selector|templateUrl|imports|string|number|boolean|void|null|undefined|any)\b/, // 8 keyword
+                /\b\d+(?:\.\d+)?\b/                                     // 9 number
+            ].map((r) => `(${r.source})`).join('|'), 'g');
+
+            let out = '';
+            let last = 0;
+            let match;
+
+            while ((match = tokenRegex.exec(code)) !== null) {
+                const full = match[0];
+                out += escapeHtml(code.slice(last, match.index));
+
+                let cls = null;
+                if (match[1] || match[2] || match[3]) cls = 'tok-comment';
+                else if (match[4]) cls = 'tok-string';
+                else if (match[5]) cls = 'tok-keyword';
+                else if (match[6]) cls = 'tok-tag';
+                else if (match[7]) cls = 'tok-attr';
+                else if (match[8]) cls = 'tok-keyword';
+                else if (match[9]) cls = 'tok-number';
+
+                out += cls ? `<span class="${cls}">${escapeHtml(full)}</span>` : escapeHtml(full);
+                last = match.index + full.length;
+            }
+            out += escapeHtml(code.slice(last));
+            return out;
+        }
+
+        // --- Alpine component registration -----------------------------------------
+        function registerAlpineComponents() {
             Alpine.data('integrationSetup', () => ({
                 framework: 'html',
                 mode: 'basic'
@@ -438,6 +531,7 @@
 
             Alpine.data('codeBlock', () => ({
                 code: '',
+                highlighted: '',
                 copied: false,
 
                 init() {
@@ -457,6 +551,8 @@
                             .replace(/\\&quot;/g, '&quot;')
                             .replace(/\\\\/g, '\\\\');
                     }
+
+                    this.highlighted = highlightCode(this.code);
                 },
 
                 decodeCode(value) {
@@ -486,6 +582,26 @@
                     }, 1500);
                 }
             }));
-        });
+        }
+
+        // --- HTMX + Alpine timing fix ------------------------------------------------
+        // `alpine:init` fires exactly once, the moment Alpine.js itself boots.
+        // The previous version always registered the components inside that
+        // listener. That's correct on the very first, full page load — but this
+        // whole "setup" panel (this <script> included) gets re-fetched and
+        // swapped in by htmx every time the tab is switched. On that second and
+        // later run, `alpine:init` has already fired once and for all, so
+        // `Alpine.data(...)` was silently never (re)called: the freshly
+        // swapped-in `x-data="codeBlock"` elements had no matching component to
+        // bind to, which is exactly why they rendered as blank/black boxes —
+        // and why a full reload "fixed" it, since that always goes through the
+        // normal first-boot sequence.
+        // Fix: if Alpine has already started, register right away; otherwise
+        // wait for the one-time boot event like before.
+        if (window.Alpine) {
+            registerAlpineComponents();
+        } else {
+            document.addEventListener('alpine:init', registerAlpineComponents, { once: true });
+        }
     </script>
 </div>

@@ -27,7 +27,7 @@ from app.core.errors import (
 )
 from app.core.htmx import hx_toast_headers, is_htmx_dep
 from app.core.templates import temp
-from app.models.user import User
+from app.models.user import IntegrationProvider, User
 from app.repositories.form_repository import FormRepository
 from app.schemas.form import (
     TAB_LABELS,
@@ -41,6 +41,10 @@ from app.services.form import (
     _get_owned_form,
     generate_workbook_sheet,
     get_form_analytics,
+)
+from app.services.submission_sync import (
+    validate_google_sheets_config,
+    validate_notion_config,
 )
 
 form_router = APIRouter(prefix="/projects")
@@ -362,11 +366,77 @@ async def handle_get_project_form_integrations(
         "tab_labels": TAB_LABELS,
         "user": user,
         "page": "projects",
+        "integration_map": await FormRepository(db).get_integration_map(
+            form_id, project_id
+        ),
     }
     return temp.TemplateResponse(
         request,
         template,
         context,
+    )
+
+
+@form_router.post(
+    "/{project_id}/forms/{form_id}/integrations/{provider}",
+    response_class=HTMLResponse,
+)
+async def handle_save_form_integration(
+    request: Request,
+    project_id: str,
+    form_id: str,
+    provider: str,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(current_user)],
+    sheet_url: Annotated[str | None, Form()] = None,
+    worksheet_name: Annotated[str | None, Form()] = None,
+    database_id: Annotated[str | None, Form()] = None,
+    notion_token: Annotated[str | None, Form()] = None,
+):
+    form = await FormRepository(db).get_by_id_and_project(form_id, project_id)
+    if not form:
+        raise NotFoundError("Form not found")
+
+    provider_name = provider.lower().strip()
+    if provider_name == "google_sheets":
+        config = validate_google_sheets_config(sheet_url, worksheet_name)
+        await FormRepository(db).upsert_form_integration(
+            form_id,
+            project_id,
+            IntegrationProvider.GOOGLE_SHEETS,
+            config,
+            enabled=False,
+        )
+    elif provider_name == "notion":
+        config = validate_notion_config(database_id, notion_token)
+        await FormRepository(db).upsert_form_integration(
+            form_id,
+            project_id,
+            IntegrationProvider.NOTION,
+            config,
+        )
+    else:
+        raise NotFoundError("Integration not found")
+
+    return temp.TemplateResponse(
+        request,
+        "form_integrations.html",
+        {
+            "request": request,
+            "form": form,
+            "active_tab": "integrations",
+            "active_tab_template": TAB_TEMPLATES[FormTab.integrations],
+            "tab_labels": TAB_LABELS,
+            "user": user,
+            "page": "projects",
+            "integration_map": await FormRepository(db).get_integration_map(
+                form_id, project_id
+            ),
+        },
+        headers=hx_toast_headers(
+            "Integration saved successfully!", type_=ToastType.SUCCESS
+        ),
+        status_code=status.HTTP_200_OK,
     )
 
 

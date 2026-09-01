@@ -84,8 +84,11 @@ class Subscription(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(PG_UUID(as_uuid=True), **UUID_PRIMARY_KEY)
 
-    user_id: Mapped[str] = mapped_column(
-        String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     paddle_customer_id: Mapped[str | None] = mapped_column(
         String(255), unique=True, nullable=True
@@ -236,6 +239,7 @@ class Form(Base):
     id: Mapped[uuid.UUID] = mapped_column(PG_UUID(as_uuid=True), **UUID_PRIMARY_KEY)
 
     name: Mapped[str] = mapped_column(String(150), nullable=False)
+    heading: Mapped[str | None] = mapped_column(String(200), nullable=True)
     public_id: Mapped[str] = mapped_column(
         String(8), unique=True, index=True, nullable=False, default=generate_short_id
     )
@@ -335,6 +339,12 @@ class Submission(Base):
     # 4. Dynamic Payload Storage (PostgreSQL JSONB)
     payload: Mapped[dict] = mapped_column(JSONB, nullable=False)
 
+    integration_sync_status: Mapped[dict] = mapped_column(
+        JSONB,
+        default=dict,
+        nullable=False,
+    )
+
     status: Mapped[SubmissionStatus] = mapped_column(
         Enum(
             SubmissionStatus,
@@ -354,6 +364,51 @@ class Submission(Base):
     )
 
     form: Mapped["Form"] = relationship("Form", back_populates="submissions")
+
+    @property
+    def integration_sync_state(self) -> str:
+        status_map = self.integration_sync_status or {}
+        states = [
+            entry.get("state")
+            for entry in status_map.values()
+            if isinstance(entry, dict)
+        ]
+
+        if not states:
+            return "not_synced"
+        if any(state == "failed" for state in states):
+            return "failed"
+        if any(state in {"pending", "queued", "awaiting_auth"} for state in states):
+            return "pending"
+        if all(state == "synced" for state in states):
+            return "synced"
+        return "partial"
+
+    @property
+    def integration_sync_summary(self) -> str | None:
+        status_map = self.integration_sync_status or {}
+        if not status_map:
+            return None
+
+        parts: list[str] = []
+        for provider, entry in status_map.items():
+            if not isinstance(entry, dict):
+                continue
+
+            state = entry.get("state")
+            message = entry.get("message")
+            if state == "synced":
+                parts.append(f"{provider}: synced")
+            elif state == "failed":
+                parts.append(f"{provider}: failed")
+            elif state == "awaiting_auth":
+                parts.append(f"{provider}: auth required")
+            elif state == "pending":
+                parts.append(f"{provider}: pending")
+            elif message:
+                parts.append(f"{provider}: {message}")
+
+        return ", ".join(parts) if parts else None
 
 
 class IntegrationProvider(str, PyEnum):
@@ -481,7 +536,7 @@ class RateLimitBucket(Base):
 
     __tablename__ = "rate_limit_buckets"
 
-    __table_args__ = {"prefixes": ["UNLOGGED"]}
+    __table_args__ = ({"prefixes": ["UNLOGGED"]},)
 
     bucket_key: Mapped[str] = mapped_column(String, primary_key=True)
     window_start: Mapped[datetime] = mapped_column(

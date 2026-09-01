@@ -43,6 +43,10 @@ from app.services.form import (
     check_honeypot,
     check_user_agent,
 )
+from app.services.submission_sync import (
+    build_pending_sync_status,
+    sync_submission_integrations,
+)
 
 MAX_UPLOAD_BYTES = settings.MAX_UPLOAD_BYTES  # 10 MB/file
 MAX_FILES_PER_SUBMISSION = settings.MAX_FILES_PER_SUBMISSION
@@ -149,10 +153,17 @@ async def handle_form_submit(
     log.info(f"Files{files}")
     if files:
         await process_and_upload_files(files, form_id, submission_payload)
+    enabled_integrations = await ClientFormRepository(db).get_enabled_integrations(
+        str(form.id)
+    )
     try:
         submission = Submission(
             form_id=form.id, payload=submission_payload, country=country_name
         )
+        if enabled_integrations:
+            submission.integration_sync_status = build_pending_sync_status(
+                enabled_integrations
+            )
         db.add(submission)
         await db.flush()
         raw_token, token_hash = create_token(submission.id)
@@ -191,9 +202,9 @@ async def handle_form_submit(
     if not user:
         raise HTTPException(404, "user not found")
 
-    # background_task.add_task(
-    #     EmailService().send_user_notification, user.email, form.name, form_data
-    # )
+    if enabled_integrations:
+        background_task.add_task(sync_submission_integrations, str(submission.id))
+
     return _finish(
         request,
         form_data,

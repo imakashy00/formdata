@@ -44,6 +44,7 @@ class WidgetConfig(BaseModel):
 
 class FormSettingsPayload(BaseModel):
     name: str
+    heading: str | None = None
     honeypot: str
     notification_email: EmailStr
     redirect: bool
@@ -61,6 +62,10 @@ class FormSettingsPayload(BaseModel):
 
     @model_validator(mode="after")
     def validate_conditional_features(self) -> Self:
+        if self.heading is not None:
+            self.heading = self.heading.strip()
+            if not self.heading:
+                self.heading = None
         # 1. Validate Deduplication
         if not self.duplicate_allowed:
             input_val = (

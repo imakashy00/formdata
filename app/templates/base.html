@@ -10,7 +10,14 @@
 
     <script defer src="{{ url_for('static', path='/js/htmx.js') }}"></script>
     <script defer src="{{ url_for('static', path='/js/alpine.js' )}}"></script>
-
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            if (window.htmx) {
+                window.htmx.config.historyEnabled = false;
+                window.htmx.config.historyCacheSize = 0;
+            }
+        });
+    </script>
 
     <style>
         [x-cloak] {

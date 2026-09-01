@@ -16,7 +16,8 @@
             {% for tab_id in ['submissions', 'setup', 'templates', 'settings', 'integrations',]
             %}
             <button type="button" hx-get="/projects/{{form.project_id}}/forms/{{ form.id }}/{{ tab_id }}"
-                hx-target="#tab-content" hx-push-url="true" @click="activeTab = '{{ tab_id }}'" x-cloak
+                hx-target="#tab-content" hx-push-url="true" hx-history="false" @click="activeTab = '{{ tab_id }}'"
+                x-cloak
                 :class="activeTab === '{{ tab_id }}' ? 'border-brand text-brand' : 'border-transparent text-gray-500 hover:text-gray-700'"
                 class="py-4 px-1 border-b-2 text-sm transition-all">
                 {{ tab_labels[tab_id] }}
@@ -27,7 +28,7 @@
     </div>
 
     <div id="tab-content" class="space-y-4">
-    {% include "partials/submission_details_card.html" %}
+        {% include "partials/submission_details_card.html" %}
     </div>
 </div>
 {% endblock %}

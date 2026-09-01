@@ -11,14 +11,15 @@
                 <path stroke-linecap="round" stroke-linejoin="round"
                     d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-            <p class="text-xl text-gray-900">{{ form.name }}</p>
+            <p class="text-xl text-gray-900">{{ form.heading or form.name }}</p>
         </div>
         <nav class="flex gap-6 -mb-px" aria-label="Project tabs">
             {% for tab_id in ['submissions', 'setup', 'templates', 'settings', 'integrations',]
             %}
             <button type="button" hx-indicator="#form-loader"
                 hx-get="/projects/{{form.project_id}}/forms/{{ form.id }}/{{ tab_id }}" hx-target="#tab-content"
-                hx-push-url="true" @click="activeTab = '{{ tab_id }}'" x-cloak :disabled="activeTab === '{{ tab_id }}'"
+                hx-push-url="true" hx-history="false" @click="activeTab = '{{ tab_id }}'" x-cloak
+                :disabled="activeTab === '{{ tab_id }}'"
                 :class="activeTab === '{{ tab_id }}' ? 'border-brand text-brand' : 'border-transparent text-gray-500 hover:text-gray-700 cursor-pointer'"
                 class="py-4 px-1 border-b-2 text-sm transition-all poi">
                 {{ tab_labels[tab_id] }}
