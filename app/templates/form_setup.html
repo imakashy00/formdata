@@ -97,357 +97,131 @@
                 :class="framework==='next' ? 'bg-brand-dark text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'"
                 class="whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition">Next.js</button>
         </nav>
+        {% macro code_card(code_data) -%}
+        <div x-data="codeBlock" data-code='{{ code_data }}'>
+            <div class="relative overflow-hidden rounded-xl bg-slate-900 shadow-lg shadow-slate-900/10">
+                <button @click="copy()"
+                    class="absolute right-3 top-3 z-10 rounded-md border border-white/10 bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-slate-300 transition-colors hover:bg-white/20 hover:text-white"
+                    x-text="copied ? 'Copied!' : 'Copy'"></button>
+                <pre class="overflow-x-auto p-5 pr-20 font-mono text-xs leading-relaxed text-slate-200"><code x-html="highlighted"></code></pre>
+            </div>
+        </div>
+        {%- endmacro %}
+
+        {% macro framework_header(title, desc='Submit directly to your FormData endpoint.') -%}
+        <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+                <h2 class="text-xl font-bold text-slate-950">{{ title }}</h2>
+                <p class="mt-1 text-sm text-slate-500">{{ desc }}</p>
+            </div>
+            <div class="inline-flex self-start rounded-xl bg-slate-100 p-1">
+                <button @click="mode='basic'"
+                    :class="mode==='basic' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'"
+                    class="rounded-lg px-3 py-2 text-xs font-semibold">Simple</button>
+                <button @click="mode='turnstile'"
+                    :class="mode==='turnstile' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'"
+                    class="rounded-lg px-3 py-2 text-xs font-semibold">With Turnstile</button>
+            </div>
+        </div>
+        <div x-show="mode==='basic'"
+            class="mb-4 rounded-xl border border-emerald-100 bg-emerald-50 p-4 text-sm text-emerald-900">
+            <strong>Default setup:</strong> Turnstile is off. This example works without a site key or secret key.
+        </div>
+        <div x-show="mode==='turnstile'"
+            class="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+            <strong>Before copying:</strong> Open <b>Settings → Spam protection</b>, enable Turnstile and save the secret key. Put only the public site key in this code.
+        </div>
+        {%- endmacro %}
+
+        {% macro recommended_pkg(pkg_name) -%}
+        <div x-show="mode==='turnstile'" class="mb-4 rounded-xl border border-brand-mid bg-brand-light p-4">
+            <p class="text-xs font-semibold uppercase tracking-wide text-brand-dark">Recommended integration</p>
+            <p class="mt-1 text-sm text-brand-dark">
+                <code class="rounded bg-white px-1.5 py-0.5">{{ pkg_name }}</code>
+            </p>
+        </div>
+        {%- endmacro %}
+
         <div class="p-5 sm:p-7">
+            <!-- HTML -->
             <section x-show="framework==='html'" x-cloak>
-                <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                        <h2 class="text-xl font-bold text-slate-950">HTML</h2>
-                        <p class="mt-1 text-sm text-slate-500">Submit directly to your FormData endpoint.</p>
-                    </div>
-                    <div class="inline-flex self-start rounded-xl bg-slate-100 p-1">
-                        <button @click="mode='basic'"
-                            :class="mode==='basic' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'"
-                            class="rounded-lg px-3 py-2 text-xs font-semibold">Simple</button><button
-                            @click="mode='turnstile'"
-                            :class="mode==='turnstile' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'"
-                            class="rounded-lg px-3 py-2 text-xs font-semibold">With Turnstile</button>
-                    </div>
+                {{ framework_header('HTML') }}
+                <div x-show="mode==='basic'">
+                    {{ code_card('&quot;&lt;form action=\&quot;https://formdata.cloud/f/' ~ form.public_id ~ '\&quot; method=\&quot;POST\&quot;&gt;\n  &lt;input type=\&quot;email\&quot; name=\&quot;email\&quot; placeholder=\&quot;Email\&quot; required /&gt;\n  &lt;textarea name=\&quot;message\&quot; placeholder=\&quot;Message\&quot; required&gt;&lt;/textarea&gt;\n\n  &lt;!-- Optional honeypot generated for this form --&gt;\n  &lt;input type=\&quot;text\&quot; name=\&quot;' ~ form.honeypot ~ '\&quot; tabindex=\&quot;-1\&quot;\n         autocomplete=\&quot;off\&quot; aria-hidden=\&quot;true\&quot;\n         style=\&quot;position:absolute;left:-9999px\&quot; /&gt;\n\n  &lt;button type=\&quot;submit\&quot;&gt;Send message&lt;/button&gt;\n&lt;/form&gt;&quot;') }}
                 </div>
-                <div x-show="mode==='basic'"
-                    class="mb-4 rounded-xl border border-emerald-100 bg-emerald-50 p-4 text-sm text-emerald-900">
-                    <strong>Default setup:</strong> Turnstile is off. This example works without a site key or secret
-                    key.
-                </div>
-                <div x-show="mode==='turnstile'"
-                    class="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
-                    <strong>Before copying:</strong> Open <b>Settings → Spam protection</b>, enable Turnstile and save
-                    the secret key. Put only the public site key in this code.
-                </div>
-                <div x-show="mode==='basic'" x-data="codeBlock"
-                    data-code='&quot;&lt;form action=\&quot;https://formdata.cloud/f/{{ form.public_id }}\&quot; method=\&quot;POST\&quot;&gt;\n  &lt;input type=\&quot;email\&quot; name=\&quot;email\&quot; placeholder=\&quot;Email\&quot; required /&gt;\n  &lt;textarea name=\&quot;message\&quot; placeholder=\&quot;Message\&quot; required&gt;&lt;/textarea&gt;\n\n  &lt;!-- Optional honeypot generated for this form --&gt;\n  &lt;input type=\&quot;text\&quot; name=\&quot;{{ form.honeypot }}\&quot; tabindex=\&quot;-1\&quot;\n         autocomplete=\&quot;off\&quot; aria-hidden=\&quot;true\&quot;\n         style=\&quot;position:absolute;left:-9999px\&quot; /&gt;\n\n  &lt;button type=\&quot;submit\&quot;&gt;Send message&lt;/button&gt;\n&lt;/form&gt;&quot;'>
-                    <div class="relative overflow-hidden rounded-xl bg-slate-900 shadow-lg shadow-slate-900/10">
-                        <button @click="copy()"
-                            class="absolute right-3 top-3 z-10 rounded-md border border-white/10 bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-slate-300 transition-colors hover:bg-white/20 hover:text-white"
-                            x-text="copied ? 'Copied!' : 'Copy'"></button>
-                        <pre
-                            class="overflow-x-auto p-5 pr-20 font-mono text-xs leading-relaxed text-slate-200"><code x-html="highlighted"></code></pre>
-                    </div>
-                </div>
-                <div x-show="mode==='turnstile'" x-data="codeBlock"
-                    data-code='&quot;&lt;form action=\&quot;https://formdata.cloud/f/{{ form.public_id }}\&quot; method=\&quot;POST\&quot;&gt;\n  &lt;input type=\&quot;email\&quot; name=\&quot;email\&quot; placeholder=\&quot;Email\&quot; required /&gt;\n  &lt;textarea name=\&quot;message\&quot; placeholder=\&quot;Message\&quot; required&gt;&lt;/textarea&gt;\n\n  &lt;div class=\&quot;cf-turnstile\&quot;\n       data-sitekey=\&quot;YOUR_TURNSTILE_SITE_KEY\&quot;&gt;&lt;/div&gt;\n\n  &lt;button type=\&quot;submit\&quot;&gt;Send message&lt;/button&gt;\n&lt;/form&gt;\n\n&lt;script src=\&quot;https://challenges.cloudflare.com/turnstile/v0/api.js\&quot;\n        async defer&gt;&lt;/script&gt;&quot;'>
-                    <div class="relative overflow-hidden rounded-xl bg-slate-900 shadow-lg shadow-slate-900/10">
-                        <button @click="copy()"
-                            class="absolute right-3 top-3 z-10 rounded-md border border-white/10 bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-slate-300 transition-colors hover:bg-white/20 hover:text-white"
-                            x-text="copied ? 'Copied!' : 'Copy'"></button>
-                        <pre
-                            class="overflow-x-auto p-5 pr-20 font-mono text-xs leading-relaxed text-slate-200"><code x-html="highlighted"></code></pre>
-                    </div>
+                <div x-show="mode==='turnstile'">
+                    {{ code_card('&quot;&lt;form action=\&quot;https://formdata.cloud/f/' ~ form.public_id ~ '\&quot; method=\&quot;POST\&quot;&gt;\n  &lt;input type=\&quot;email\&quot; name=\&quot;email\&quot; placeholder=\&quot;Email\&quot; required /&gt;\n  &lt;textarea name=\&quot;message\&quot; placeholder=\&quot;Message\&quot; required&gt;&lt;/textarea&gt;\n\n  &lt;div class=\&quot;cf-turnstile\&quot;\n       data-sitekey=\&quot;YOUR_TURNSTILE_SITE_KEY\&quot;&gt;&lt;/div&gt;\n\n  &lt;button type=\&quot;submit\&quot;&gt;Send message&lt;/button&gt;\n&lt;/form&gt;\n\n&lt;script src=\&quot;https://challenges.cloudflare.com/turnstile/v0/api.js\&quot;\n        async defer&gt;&lt;/script&gt;&quot;') }}
                 </div>
             </section>
+
+            <!-- React -->
             <section x-show="framework==='react'" x-cloak>
-                <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                        <h2 class="text-xl font-bold text-slate-950">React</h2>
-                        <p class="mt-1 text-sm text-slate-500">Submit directly to your FormData endpoint.</p>
-                    </div>
-                    <div class="inline-flex self-start rounded-xl bg-slate-100 p-1">
-                        <button @click="mode='basic'"
-                            :class="mode==='basic' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'"
-                            class="rounded-lg px-3 py-2 text-xs font-semibold">Simple</button><button
-                            @click="mode='turnstile'"
-                            :class="mode==='turnstile' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'"
-                            class="rounded-lg px-3 py-2 text-xs font-semibold">With Turnstile</button>
-                    </div>
+                {{ framework_header('React') }}
+                {{ recommended_pkg('@marsidev/react-turnstile') }}
+                <div x-show="mode==='basic'">
+                    {{ code_card('&quot;export default function ContactForm() {\n  return (\n    &lt;form action=\&quot;https://formdata.cloud/f/' ~ form.public_id ~ '\&quot; method=\&quot;POST\&quot;&gt;\n      &lt;input type=\&quot;email\&quot; name=\&quot;email\&quot; placeholder=\&quot;Email\&quot; required /&gt;\n      &lt;textarea name=\&quot;message\&quot; placeholder=\&quot;Message\&quot; required /&gt;\n      &lt;button type=\&quot;submit\&quot;&gt;Send message&lt;/button&gt;\n    &lt;/form&gt;\n  );\n}&quot;') }}
                 </div>
-                <div x-show="mode==='basic'"
-                    class="mb-4 rounded-xl border border-emerald-100 bg-emerald-50 p-4 text-sm text-emerald-900">
-                    <strong>Default setup:</strong> Turnstile is off. This example works without a site key or secret
-                    key.
-                </div>
-                <div x-show="mode==='turnstile'"
-                    class="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
-                    <strong>Before copying:</strong> Open <b>Settings → Spam protection</b>, enable Turnstile and save
-                    the secret key. Put only the public site key in this code.
-                </div>
-                <div x-show="mode==='turnstile'" class="mb-4 rounded-xl border border-brand-mid bg-brand-light p-4">
-                    <p class="text-xs font-semibold uppercase tracking-wide text-brand-dark">Recommended integration</p>
-                    <p class="mt-1 text-sm text-brand-dark">
-                        <code class="rounded bg-white px-1.5 py-0.5">@marsidev/react-turnstile</code>
-                    </p>
-                </div>
-                <div x-show="mode==='basic'" x-data="codeBlock"
-                    data-code='&quot;export default function ContactForm() {\n  return (\n    &lt;form action=\&quot;https://formdata.cloud/f/{{ form.public_id }}\&quot; method=\&quot;POST\&quot;&gt;\n      &lt;input type=\&quot;email\&quot; name=\&quot;email\&quot; placeholder=\&quot;Email\&quot; required /&gt;\n      &lt;textarea name=\&quot;message\&quot; placeholder=\&quot;Message\&quot; required /&gt;\n      &lt;button type=\&quot;submit\&quot;&gt;Send message&lt;/button&gt;\n    &lt;/form&gt;\n  );\n}&quot;'>
-                    <div class="relative overflow-hidden rounded-xl bg-slate-900 shadow-lg shadow-slate-900/10">
-                        <button @click="copy()"
-                            class="absolute right-3 top-3 z-10 rounded-md border border-white/10 bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-slate-300 transition-colors hover:bg-white/20 hover:text-white"
-                            x-text="copied ? 'Copied!' : 'Copy'"></button>
-                        <pre
-                            class="overflow-x-auto p-5 pr-20 font-mono text-xs leading-relaxed text-slate-200"><code x-html="highlighted"></code></pre>
-                    </div>
-                </div>
-                <div x-show="mode==='turnstile'" x-data="codeBlock"
-                    data-code='&quot;// npm install @marsidev/react-turnstile\nimport { Turnstile } from \&quot;@marsidev/react-turnstile\&quot;;\n\nexport default function ContactForm() {\n  return (\n    &lt;form action=\&quot;https://formdata.cloud/f/{{ form.public_id }}\&quot; method=\&quot;POST\&quot;&gt;\n      &lt;input type=\&quot;email\&quot; name=\&quot;email\&quot; placeholder=\&quot;Email\&quot; required /&gt;\n      &lt;textarea name=\&quot;message\&quot; placeholder=\&quot;Message\&quot; required /&gt;\n\n      &lt;Turnstile\n        siteKey=\&quot;YOUR_TURNSTILE_SITE_KEY\&quot;\n        options={ {\n          responseField: true,\n          responseFieldName: \&quot;cf-turnstile-response\&quot;\n        } }\n      /&gt;\n\n      &lt;button type=\&quot;submit\&quot;&gt;Send message&lt;/button&gt;\n    &lt;/form&gt;\n  );\n}&quot;'>
-                    <div class="relative overflow-hidden rounded-xl bg-slate-900 shadow-lg shadow-slate-900/10">
-                        <button @click="copy()"
-                            class="absolute right-3 top-3 z-10 rounded-md border border-white/10 bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-slate-300 transition-colors hover:bg-white/20 hover:text-white"
-                            x-text="copied ? 'Copied!' : 'Copy'"></button>
-                        <pre
-                            class="overflow-x-auto p-5 pr-20 font-mono text-xs leading-relaxed text-slate-200"><code x-html="highlighted"></code></pre>
-                    </div>
+                <div x-show="mode==='turnstile'">
+                    {{ code_card('&quot;// npm install @marsidev/react-turnstile\nimport { Turnstile } from \&quot;@marsidev/react-turnstile\&quot;;\n\nexport default function ContactForm() {\n  return (\n    &lt;form action=\&quot;https://formdata.cloud/f/' ~ form.public_id ~ '\&quot; method=\&quot;POST\&quot;&gt;\n      &lt;input type=\&quot;email\&quot; name=\&quot;email\&quot; placeholder=\&quot;Email\&quot; required /&gt;\n      &lt;textarea name=\&quot;message\&quot; placeholder=\&quot;Message\&quot; required /&gt;\n\n      &lt;Turnstile\n        siteKey=\&quot;YOUR_TURNSTILE_SITE_KEY\&quot;\n        options={ {\n          responseField: true,\n          responseFieldName: \&quot;cf-turnstile-response\&quot;\n        } }\n      /&gt;\n\n      &lt;button type=\&quot;submit\&quot;&gt;Send message&lt;/button&gt;\n    &lt;/form&gt;\n  );\n}&quot;') }}
                 </div>
             </section>
+
+            <!-- Vue 3 -->
             <section x-show="framework==='vue'" x-cloak>
-                <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                        <h2 class="text-xl font-bold text-slate-950">Vue 3</h2>
-                        <p class="mt-1 text-sm text-slate-500">Submit directly to your FormData endpoint.</p>
-                    </div>
-                    <div class="inline-flex self-start rounded-xl bg-slate-100 p-1">
-                        <button @click="mode='basic'"
-                            :class="mode==='basic' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'"
-                            class="rounded-lg px-3 py-2 text-xs font-semibold">Simple</button><button
-                            @click="mode='turnstile'"
-                            :class="mode==='turnstile' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'"
-                            class="rounded-lg px-3 py-2 text-xs font-semibold">With Turnstile</button>
-                    </div>
+                {{ framework_header('Vue 3') }}
+                {{ recommended_pkg('vue-turnstile') }}
+                <div x-show="mode==='basic'">
+                    {{ code_card('&quot;&lt;template&gt;\n  &lt;form action=\&quot;https://formdata.cloud/f/' ~ form.public_id ~ '\&quot; method=\&quot;POST\&quot;&gt;\n    &lt;input type=\&quot;email\&quot; name=\&quot;email\&quot; placeholder=\&quot;Email\&quot; required /&gt;\n    &lt;textarea name=\&quot;message\&quot; placeholder=\&quot;Message\&quot; required&gt;&lt;/textarea&gt;\n    &lt;button type=\&quot;submit\&quot;&gt;Send message&lt;/button&gt;\n  &lt;/form&gt;\n&lt;/template&gt;&quot;') }}
                 </div>
-                <div x-show="mode==='basic'"
-                    class="mb-4 rounded-xl border border-emerald-100 bg-emerald-50 p-4 text-sm text-emerald-900">
-                    <strong>Default setup:</strong> Turnstile is off. This example works without a site key or secret
-                    key.
-                </div>
-                <div x-show="mode==='turnstile'"
-                    class="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
-                    <strong>Before copying:</strong> Open <b>Settings → Spam protection</b>, enable Turnstile and save
-                    the secret key. Put only the public site key in this code.
-                </div>
-                <div x-show="mode==='turnstile'" class="mb-4 rounded-xl border border-brand-mid bg-brand-light p-4">
-                    <p class="text-xs font-semibold uppercase tracking-wide text-brand-dark">Recommended integration</p>
-                    <p class="mt-1 text-sm text-brand-dark">
-                        <code class="rounded bg-white px-1.5 py-0.5">vue-turnstile</code>
-                    </p>
-                </div>
-                <div x-show="mode==='basic'" x-data="codeBlock"
-                    data-code='&quot;&lt;template&gt;\n  &lt;form action=\&quot;https://formdata.cloud/f/{{ form.public_id }}\&quot; method=\&quot;POST\&quot;&gt;\n    &lt;input type=\&quot;email\&quot; name=\&quot;email\&quot; placeholder=\&quot;Email\&quot; required /&gt;\n    &lt;textarea name=\&quot;message\&quot; placeholder=\&quot;Message\&quot; required&gt;&lt;/textarea&gt;\n    &lt;button type=\&quot;submit\&quot;&gt;Send message&lt;/button&gt;\n  &lt;/form&gt;\n&lt;/template&gt;&quot;'>
-                    <div class="relative overflow-hidden rounded-xl bg-slate-900 shadow-lg shadow-slate-900/10">
-                        <button @click="copy()"
-                            class="absolute right-3 top-3 z-10 rounded-md border border-white/10 bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-slate-300 transition-colors hover:bg-white/20 hover:text-white"
-                            x-text="copied ? 'Copied!' : 'Copy'"></button>
-                        <pre
-                            class="overflow-x-auto p-5 pr-20 font-mono text-xs leading-relaxed text-slate-200"><code x-html="highlighted"></code></pre>
-                    </div>
-                </div>
-                <div x-show="mode==='turnstile'" x-data="codeBlock"
-                    data-code='&quot;&lt;!-- npm install vue-turnstile --&gt;\n&lt;script setup&gt;\nimport { ref } from \&quot;vue\&quot;;\nimport VueTurnstile from \&quot;vue-turnstile\&quot;;\nconst token = ref(\&quot;\&quot;);\n&lt;/script&gt;\n\n&lt;template&gt;\n  &lt;form action=\&quot;https://formdata.cloud/f/{{ form.public_id }}\&quot; method=\&quot;POST\&quot;&gt;\n    &lt;input type=\&quot;email\&quot; name=\&quot;email\&quot; placeholder=\&quot;Email\&quot; required /&gt;\n    &lt;textarea name=\&quot;message\&quot; placeholder=\&quot;Message\&quot; required&gt;&lt;/textarea&gt;\n\n    &lt;VueTurnstile site-key=\&quot;YOUR_TURNSTILE_SITE_KEY\&quot; v-model=\&quot;token\&quot; /&gt;\n    &lt;input type=\&quot;hidden\&quot; name=\&quot;cf-turnstile-response\&quot; :value=\&quot;token\&quot; /&gt;\n\n    &lt;button type=\&quot;submit\&quot; :disabled=\&quot;!token\&quot;&gt;Send message&lt;/button&gt;\n  &lt;/form&gt;\n&lt;/template&gt;&quot;'>
-                    <div class="relative overflow-hidden rounded-xl bg-slate-900 shadow-lg shadow-slate-900/10">
-                        <button @click="copy()"
-                            class="absolute right-3 top-3 z-10 rounded-md border border-white/10 bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-slate-300 transition-colors hover:bg-white/20 hover:text-white"
-                            x-text="copied ? 'Copied!' : 'Copy'"></button>
-                        <pre
-                            class="overflow-x-auto p-5 pr-20 font-mono text-xs leading-relaxed text-slate-200"><code x-html="highlighted"></code></pre>
-                    </div>
+                <div x-show="mode==='turnstile'">
+                    {{ code_card('&quot;&lt;!-- npm install vue-turnstile --&gt;\n&lt;script setup&gt;\nimport { ref } from \&quot;vue\&quot;;\nimport VueTurnstile from \&quot;vue-turnstile\&quot;;\nconst token = ref(\&quot;\&quot;);\n&lt;/script&gt;\n\n&lt;template&gt;\n  &lt;form action=\&quot;https://formdata.cloud/f/' ~ form.public_id ~ '\&quot; method=\&quot;POST\&quot;&gt;\n    &lt;input type=\&quot;email\&quot; name=\&quot;email\&quot; placeholder=\&quot;Email\&quot; required /&gt;\n    &lt;textarea name=\&quot;message\&quot; placeholder=\&quot;Message\&quot; required&gt;&lt;/textarea&gt;\n\n    &lt;VueTurnstile site-key=\&quot;YOUR_TURNSTILE_SITE_KEY\&quot; v-model=\&quot;token\&quot; /&gt;\n    &lt;input type=\&quot;hidden\&quot; name=\&quot;cf-turnstile-response\&quot; :value=\&quot;token\&quot; /&gt;\n\n    &lt;button type=\&quot;submit\&quot; :disabled=\&quot;!token\&quot;&gt;Send message&lt;/button&gt;\n  &lt;/form&gt;\n&lt;/template&gt;&quot;') }}
                 </div>
             </section>
+
+            <!-- Svelte -->
             <section x-show="framework==='svelte'" x-cloak>
-                <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                        <h2 class="text-xl font-bold text-slate-950">Svelte</h2>
-                        <p class="mt-1 text-sm text-slate-500">Submit directly to your FormData endpoint.</p>
-                    </div>
-                    <div class="inline-flex self-start rounded-xl bg-slate-100 p-1">
-                        <button @click="mode='basic'"
-                            :class="mode==='basic' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'"
-                            class="rounded-lg px-3 py-2 text-xs font-semibold">Simple</button><button
-                            @click="mode='turnstile'"
-                            :class="mode==='turnstile' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'"
-                            class="rounded-lg px-3 py-2 text-xs font-semibold">With Turnstile</button>
-                    </div>
+                {{ framework_header('Svelte') }}
+                {{ recommended_pkg('svelte-turnstile') }}
+                <div x-show="mode==='basic'">
+                    {{ code_card('&quot;&lt;form action=\&quot;https://formdata.cloud/f/' ~ form.public_id ~ '\&quot; method=\&quot;POST\&quot;&gt;\n  &lt;input type=\&quot;email\&quot; name=\&quot;email\&quot; placeholder=\&quot;Email\&quot; required /&gt;\n  &lt;textarea name=\&quot;message\&quot; placeholder=\&quot;Message\&quot; required&gt;&lt;/textarea&gt;\n  &lt;button type=\&quot;submit\&quot;&gt;Send message&lt;/button&gt;\n&lt;/form&gt;&quot;') }}
                 </div>
-                <div x-show="mode==='basic'"
-                    class="mb-4 rounded-xl border border-emerald-100 bg-emerald-50 p-4 text-sm text-emerald-900">
-                    <strong>Default setup:</strong> Turnstile is off. This example works without a site key or secret
-                    key.
-                </div>
-                <div x-show="mode==='turnstile'"
-                    class="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
-                    <strong>Before copying:</strong> Open <b>Settings → Spam protection</b>, enable Turnstile and save
-                    the secret key. Put only the public site key in this code.
-                </div>
-                <div x-show="mode==='turnstile'" class="mb-4 rounded-xl border border-brand-mid bg-brand-light p-4">
-                    <p class="text-xs font-semibold uppercase tracking-wide text-brand-dark">Recommended integration</p>
-                    <p class="mt-1 text-sm text-brand-dark">
-                        <code class="rounded bg-white px-1.5 py-0.5">svelte-turnstile</code>
-                    </p>
-                </div>
-                <div x-show="mode==='basic'" x-data="codeBlock"
-                    data-code='&quot;&lt;form action=\&quot;https://formdata.cloud/f/{{ form.public_id }}\&quot; method=\&quot;POST\&quot;&gt;\n  &lt;input type=\&quot;email\&quot; name=\&quot;email\&quot; placeholder=\&quot;Email\&quot; required /&gt;\n  &lt;textarea name=\&quot;message\&quot; placeholder=\&quot;Message\&quot; required&gt;&lt;/textarea&gt;\n  &lt;button type=\&quot;submit\&quot;&gt;Send message&lt;/button&gt;\n&lt;/form&gt;&quot;'>
-                    <div class="relative overflow-hidden rounded-xl bg-slate-900 shadow-lg shadow-slate-900/10">
-                        <button @click="copy()"
-                            class="absolute right-3 top-3 z-10 rounded-md border border-white/10 bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-slate-300 transition-colors hover:bg-white/20 hover:text-white"
-                            x-text="copied ? 'Copied!' : 'Copy'"></button>
-                        <pre
-                            class="overflow-x-auto p-5 pr-20 font-mono text-xs leading-relaxed text-slate-200"><code x-html="highlighted"></code></pre>
-                    </div>
-                </div>
-                <div x-show="mode==='turnstile'" x-data="codeBlock"
-                    data-code='&quot;&lt;!-- npm install svelte-turnstile --&gt;\n&lt;script&gt;\n  import { Turnstile } from \&quot;svelte-turnstile\&quot;;\n&lt;/script&gt;\n\n&lt;form action=\&quot;https://formdata.cloud/f/{{ form.public_id }}\&quot; method=\&quot;POST\&quot;&gt;\n  &lt;input type=\&quot;email\&quot; name=\&quot;email\&quot; placeholder=\&quot;Email\&quot; required /&gt;\n  &lt;textarea name=\&quot;message\&quot; placeholder=\&quot;Message\&quot; required&gt;&lt;/textarea&gt;\n\n  &lt;Turnstile siteKey=\&quot;YOUR_TURNSTILE_SITE_KEY\&quot;\n    responseField={true}\n    responseFieldName=\&quot;cf-turnstile-response\&quot; /&gt;\n\n  &lt;button type=\&quot;submit\&quot;&gt;Send message&lt;/button&gt;\n&lt;/form&gt;&quot;'>
-                    <div class="relative overflow-hidden rounded-xl bg-slate-900 shadow-lg shadow-slate-900/10">
-                        <button @click="copy()"
-                            class="absolute right-3 top-3 z-10 rounded-md border border-white/10 bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-slate-300 transition-colors hover:bg-white/20 hover:text-white"
-                            x-text="copied ? 'Copied!' : 'Copy'"></button>
-                        <pre
-                            class="overflow-x-auto p-5 pr-20 font-mono text-xs leading-relaxed text-slate-200"><code x-html="highlighted"></code></pre>
-                    </div>
+                <div x-show="mode==='turnstile'">
+                    {{ code_card('&quot;&lt;!-- npm install svelte-turnstile --&gt;\n&lt;script&gt;\n  import { Turnstile } from \&quot;svelte-turnstile\&quot;;\n&lt;/script&gt;\n\n&lt;form action=\&quot;https://formdata.cloud/f/' ~ form.public_id ~ '\&quot; method=\&quot;POST\&quot;&gt;\n  &lt;input type=\&quot;email\&quot; name=\&quot;email\&quot; placeholder=\&quot;Email\&quot; required /&gt;\n  &lt;textarea name=\&quot;message\&quot; placeholder=\&quot;Message\&quot; required&gt;&lt;/textarea&gt;\n\n  &lt;Turnstile siteKey=\&quot;YOUR_TURNSTILE_SITE_KEY\&quot;\n    responseField={true}\n    responseFieldName=\&quot;cf-turnstile-response\&quot; /&gt;\n\n  &lt;button type=\&quot;submit\&quot;&gt;Send message&lt;/button&gt;\n&lt;/form&gt;&quot;') }}
                 </div>
             </section>
+
+            <!-- Angular -->
             <section x-show="framework==='angular'" x-cloak>
-                <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                        <h2 class="text-xl font-bold text-slate-950">Angular</h2>
-                        <p class="mt-1 text-sm text-slate-500">Submit directly to your FormData endpoint.</p>
-                    </div>
-                    <div class="inline-flex self-start rounded-xl bg-slate-100 p-1">
-                        <button @click="mode='basic'"
-                            :class="mode==='basic' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'"
-                            class="rounded-lg px-3 py-2 text-xs font-semibold">Simple</button><button
-                            @click="mode='turnstile'"
-                            :class="mode==='turnstile' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'"
-                            class="rounded-lg px-3 py-2 text-xs font-semibold">With Turnstile</button>
-                    </div>
+                {{ framework_header('Angular') }}
+                {{ recommended_pkg('ngx-turnstile') }}
+                <div x-show="mode==='basic'">
+                    {{ code_card('&quot;&lt;!-- contact-form.component.html --&gt;\n&lt;form action=\&quot;https://formdata.cloud/f/' ~ form.public_id ~ '\&quot; method=\&quot;POST\&quot;&gt;\n  &lt;input type=\&quot;email\&quot; name=\&quot;email\&quot; placeholder=\&quot;Email\&quot; required /&gt;\n  &lt;textarea name=\&quot;message\&quot; placeholder=\&quot;Message\&quot; required&gt;&lt;/textarea&gt;\n  &lt;button type=\&quot;submit\&quot;&gt;Send message&lt;/button&gt;\n&lt;/form&gt;&quot;') }}
                 </div>
-                <div x-show="mode==='basic'"
-                    class="mb-4 rounded-xl border border-emerald-100 bg-emerald-50 p-4 text-sm text-emerald-900">
-                    <strong>Default setup:</strong> Turnstile is off. This example works without a site key or secret
-                    key.
-                </div>
-                <div x-show="mode==='turnstile'"
-                    class="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
-                    <strong>Before copying:</strong> Open <b>Settings → Spam protection</b>, enable Turnstile and save
-                    the secret key. Put only the public site key in this code.
-                </div>
-                <div x-show="mode==='turnstile'" class="mb-4 rounded-xl border border-brand-mid bg-brand-light p-4">
-                    <p class="text-xs font-semibold uppercase tracking-wide text-brand-dark">Recommended integration</p>
-                    <p class="mt-1 text-sm text-brand-dark">
-                        <code class="rounded bg-white px-1.5 py-0.5">ngx-turnstile</code>
-                    </p>
-                </div>
-                <div x-show="mode==='basic'" x-data="codeBlock"
-                    data-code='&quot;&lt;!-- contact-form.component.html --&gt;\n&lt;form action=\&quot;https://formdata.cloud/f/{{ form.public_id }}\&quot; method=\&quot;POST\&quot;&gt;\n  &lt;input type=\&quot;email\&quot; name=\&quot;email\&quot; placeholder=\&quot;Email\&quot; required /&gt;\n  &lt;textarea name=\&quot;message\&quot; placeholder=\&quot;Message\&quot; required&gt;&lt;/textarea&gt;\n  &lt;button type=\&quot;submit\&quot;&gt;Send message&lt;/button&gt;\n&lt;/form&gt;&quot;'>
-                    <div class="relative overflow-hidden rounded-xl bg-slate-900 shadow-lg shadow-slate-900/10">
-                        <button @click="copy()"
-                            class="absolute right-3 top-3 z-10 rounded-md border border-white/10 bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-slate-300 transition-colors hover:bg-white/20 hover:text-white"
-                            x-text="copied ? 'Copied!' : 'Copy'"></button>
-                        <pre
-                            class="overflow-x-auto p-5 pr-20 font-mono text-xs leading-relaxed text-slate-200"><code x-html="highlighted"></code></pre>
-                    </div>
-                </div>
-                <div x-show="mode==='turnstile'" x-data="codeBlock"
-                    data-code='&quot;// npm install ngx-turnstile\n// contact-form.component.ts\nimport { Component } from \&quot;@angular/core\&quot;;\nimport { NgxTurnstileComponent } from \&quot;ngx-turnstile\&quot;;\n\n@Component({\n  selector: \&quot;app-contact-form\&quot;,\n  standalone: true,\n  imports: [NgxTurnstileComponent],\n  templateUrl: \&quot;./contact-form.component.html\&quot;\n})\nexport class ContactFormComponent {\n  siteKey = \&quot;YOUR_TURNSTILE_SITE_KEY\&quot;;\n  token = \&quot;\&quot;;\n  resolved(value: string | null) { this.token = value ?? \&quot;\&quot;; }\n}\n\n&lt;!-- contact-form.component.html --&gt;\n&lt;form action=\&quot;https://formdata.cloud/f/{{ form.public_id }}\&quot; method=\&quot;POST\&quot;&gt;\n  &lt;input type=\&quot;email\&quot; name=\&quot;email\&quot; placeholder=\&quot;Email\&quot; required /&gt;\n  &lt;textarea name=\&quot;message\&quot; placeholder=\&quot;Message\&quot; required&gt;&lt;/textarea&gt;\n\n  &lt;ngx-turnstile [siteKey]=\&quot;siteKey\&quot;\n    (resolved)=\&quot;resolved($event)\&quot;&gt;&lt;/ngx-turnstile&gt;\n  &lt;input type=\&quot;hidden\&quot; name=\&quot;cf-turnstile-response\&quot; [value]=\&quot;token\&quot; /&gt;\n\n  &lt;button type=\&quot;submit\&quot; [disabled]=\&quot;!token\&quot;&gt;Send message&lt;/button&gt;\n&lt;/form&gt;&quot;'>
-                    <div class="relative overflow-hidden rounded-xl bg-slate-900 shadow-lg shadow-slate-900/10">
-                        <button @click="copy()"
-                            class="absolute right-3 top-3 z-10 rounded-md border border-white/10 bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-slate-300 transition-colors hover:bg-white/20 hover:text-white"
-                            x-text="copied ? 'Copied!' : 'Copy'"></button>
-                        <pre
-                            class="overflow-x-auto p-5 pr-20 font-mono text-xs leading-relaxed text-slate-200"><code x-html="highlighted"></code></pre>
-                    </div>
+                <div x-show="mode==='turnstile'">
+                    {{ code_card('&quot;// npm install ngx-turnstile\n// contact-form.component.ts\nimport { Component } from \&quot;@angular/core\&quot;;\nimport { NgxTurnstileComponent } from \&quot;ngx-turnstile\&quot;;\n\n@Component({\n  selector: \&quot;app-contact-form\&quot;,\n  standalone: true,\n  imports: [NgxTurnstileComponent],\n  templateUrl: \&quot;./contact-form.component.html\&quot;\n})\nexport class ContactFormComponent {\n  siteKey = \&quot;YOUR_TURNSTILE_SITE_KEY\&quot;;\n  token = \&quot;\&quot;;\n  resolved(value: string | null) { this.token = value ?? \&quot;\&quot;; }\n}\n\n&lt;!-- contact-form.component.html --&gt;\n&lt;form action=\&quot;https://formdata.cloud/f/' ~ form.public_id ~ '\&quot; method=\&quot;POST\&quot;&gt;\n  &lt;input type=\&quot;email\&quot; name=\&quot;email\&quot; placeholder=\&quot;Email\&quot; required /&gt;\n  &lt;textarea name=\&quot;message\&quot; placeholder=\&quot;Message\&quot; required&gt;&lt;/textarea&gt;\n\n  &lt;ngx-turnstile [siteKey]=\&quot;siteKey\&quot;\n    (resolved)=\&quot;resolved($event)\&quot;&gt;&lt;/ngx-turnstile&gt;\n  &lt;input type=\&quot;hidden\&quot; name=\&quot;cf-turnstile-response\&quot; [value]=\&quot;token\&quot; /&gt;\n\n  &lt;button type=\&quot;submit\&quot; [disabled]=\&quot;!token\&quot;&gt;Send message&lt;/button&gt;\n&lt;/form&gt;&quot;') }}
                 </div>
             </section>
+
+            <!-- WordPress -->
             <section x-show="framework==='wordpress'" x-cloak>
-                <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                        <h2 class="text-xl font-bold text-slate-950">WordPress</h2>
-                        <p class="mt-1 text-sm text-slate-500">Submit directly to your FormData endpoint.</p>
-                    </div>
-                    <div class="inline-flex self-start rounded-xl bg-slate-100 p-1">
-                        <button @click="mode='basic'"
-                            :class="mode==='basic' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'"
-                            class="rounded-lg px-3 py-2 text-xs font-semibold">Simple</button><button
-                            @click="mode='turnstile'"
-                            :class="mode==='turnstile' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'"
-                            class="rounded-lg px-3 py-2 text-xs font-semibold">With Turnstile</button>
-                    </div>
+                {{ framework_header('WordPress') }}
+                <div x-show="mode==='basic'">
+                    {{ code_card('&quot;&lt;!-- Paste into a WordPress Custom HTML block --&gt;\n&lt;form action=\&quot;https://formdata.cloud/f/' ~ form.public_id ~ '\&quot; method=\&quot;POST\&quot;&gt;\n  &lt;p&gt;&lt;input type=\&quot;email\&quot; name=\&quot;email\&quot; placeholder=\&quot;Email\&quot; required /&gt;&lt;/p&gt;\n  &lt;p&gt;&lt;textarea name=\&quot;message\&quot; placeholder=\&quot;Message\&quot; required&gt;&lt;/textarea&gt;&lt;/p&gt;\n  &lt;p&gt;&lt;button type=\&quot;submit\&quot;&gt;Send message&lt;/button&gt;&lt;/p&gt;\n&lt;/form&gt;&quot;') }}
                 </div>
-                <div x-show="mode==='basic'"
-                    class="mb-4 rounded-xl border border-emerald-100 bg-emerald-50 p-4 text-sm text-emerald-900">
-                    <strong>Default setup:</strong> Turnstile is off. This example works without a site key or secret
-                    key.
-                </div>
-                <div x-show="mode==='turnstile'"
-                    class="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
-                    <strong>Before copying:</strong> Open <b>Settings → Spam protection</b>, enable Turnstile and save
-                    the secret key. Put only the public site key in this code.
-                </div>
-                <div x-show="mode==='basic'" x-data="codeBlock"
-                    data-code='&quot;&lt;!-- Paste into a WordPress Custom HTML block --&gt;\n&lt;form action=\&quot;https://formdata.cloud/f/{{ form.public_id }}\&quot; method=\&quot;POST\&quot;&gt;\n  &lt;p&gt;&lt;input type=\&quot;email\&quot; name=\&quot;email\&quot; placeholder=\&quot;Email\&quot; required /&gt;&lt;/p&gt;\n  &lt;p&gt;&lt;textarea name=\&quot;message\&quot; placeholder=\&quot;Message\&quot; required&gt;&lt;/textarea&gt;&lt;/p&gt;\n  &lt;p&gt;&lt;button type=\&quot;submit\&quot;&gt;Send message&lt;/button&gt;&lt;/p&gt;\n&lt;/form&gt;&quot;'>
-                    <div class="relative overflow-hidden rounded-xl bg-slate-900 shadow-lg shadow-slate-900/10">
-                        <button @click="copy()"
-                            class="absolute right-3 top-3 z-10 rounded-md border border-white/10 bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-slate-300 transition-colors hover:bg-white/20 hover:text-white"
-                            x-text="copied ? 'Copied!' : 'Copy'"></button>
-                        <pre
-                            class="overflow-x-auto p-5 pr-20 font-mono text-xs leading-relaxed text-slate-200"><code x-html="highlighted"></code></pre>
-                    </div>
-                </div>
-                <div x-show="mode==='turnstile'" x-data="codeBlock"
-                    data-code='&quot;&lt;!-- Paste into a WordPress Custom HTML block --&gt;\n&lt;form action=\&quot;https://formdata.cloud/f/{{ form.public_id }}\&quot; method=\&quot;POST\&quot;&gt;\n  &lt;p&gt;&lt;input type=\&quot;email\&quot; name=\&quot;email\&quot; placeholder=\&quot;Email\&quot; required /&gt;&lt;/p&gt;\n  &lt;p&gt;&lt;textarea name=\&quot;message\&quot; placeholder=\&quot;Message\&quot; required&gt;&lt;/textarea&gt;&lt;/p&gt;\n\n  &lt;div class=\&quot;cf-turnstile\&quot;\n       data-sitekey=\&quot;YOUR_TURNSTILE_SITE_KEY\&quot;&gt;&lt;/div&gt;\n\n  &lt;p&gt;&lt;button type=\&quot;submit\&quot;&gt;Send message&lt;/button&gt;&lt;/p&gt;\n&lt;/form&gt;\n\n&lt;script src=\&quot;https://challenges.cloudflare.com/turnstile/v0/api.js\&quot;\n        async defer&gt;&lt;/script&gt;&quot;'>
-                    <div class="relative overflow-hidden rounded-xl bg-slate-900 shadow-lg shadow-slate-900/10">
-                        <button @click="copy()"
-                            class="absolute right-3 top-3 z-10 rounded-md border border-white/10 bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-slate-300 transition-colors hover:bg-white/20 hover:text-white"
-                            x-text="copied ? 'Copied!' : 'Copy'"></button>
-                        <pre
-                            class="overflow-x-auto p-5 pr-20 font-mono text-xs leading-relaxed text-slate-200"><code x-html="highlighted"></code></pre>
-                    </div>
+                <div x-show="mode==='turnstile'">
+                    {{ code_card('&quot;&lt;!-- Paste into a WordPress Custom HTML block --&gt;\n&lt;form action=\&quot;https://formdata.cloud/f/' ~ form.public_id ~ '\&quot; method=\&quot;POST\&quot;&gt;\n  &lt;p&gt;&lt;input type=\&quot;email\&quot; name=\&quot;email\&quot; placeholder=\&quot;Email\&quot; required /&gt;&lt;/p&gt;\n  &lt;p&gt;&lt;textarea name=\&quot;message\&quot; placeholder=\&quot;Message\&quot; required&gt;&lt;/textarea&gt;&lt;/p&gt;\n\n  &lt;div class=\&quot;cf-turnstile\&quot;\n       data-sitekey=\&quot;YOUR_TURNSTILE_SITE_KEY\&quot;&gt;&lt;/div&gt;\n\n  &lt;p&gt;&lt;button type=\&quot;submit\&quot;&gt;Send message&lt;/button&gt;&lt;/p&gt;\n&lt;/form&gt;\n\n&lt;script src=\&quot;https://challenges.cloudflare.com/turnstile/v0/api.js\&quot;\n        async defer&gt;&lt;/script&gt;&quot;') }}
                 </div>
             </section>
+
+            <!-- Next.js -->
             <section x-show="framework==='next'" x-cloak>
-                <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                        <h2 class="text-xl font-bold text-slate-950">Next.js</h2>
-                        <p class="mt-1 text-sm text-slate-500">Submit directly to your FormData endpoint.</p>
-                    </div>
-                    <div class="inline-flex self-start rounded-xl bg-slate-100 p-1">
-                        <button @click="mode='basic'"
-                            :class="mode==='basic' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'"
-                            class="rounded-lg px-3 py-2 text-xs font-semibold">Simple</button><button
-                            @click="mode='turnstile'"
-                            :class="mode==='turnstile' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'"
-                            class="rounded-lg px-3 py-2 text-xs font-semibold">With Turnstile</button>
-                    </div>
+                {{ framework_header('Next.js') }}
+                {{ recommended_pkg('@marsidev/react-turnstile') }}
+                <div x-show="mode==='basic'">
+                    {{ code_card('&quot;export default function ContactForm() {\n  return (\n    &lt;form action=\&quot;https://formdata.cloud/f/' ~ form.public_id ~ '\&quot; method=\&quot;POST\&quot;&gt;\n      &lt;input type=\&quot;email\&quot; name=\&quot;email\&quot; placeholder=\&quot;Email\&quot; required /&gt;\n      &lt;textarea name=\&quot;message\&quot; placeholder=\&quot;Message\&quot; required /&gt;\n      &lt;button type=\&quot;submit\&quot;&gt;Send message&lt;/button&gt;\n    &lt;/form&gt;\n  );\n}&quot;') }}
                 </div>
-                <div x-show="mode==='basic'"
-                    class="mb-4 rounded-xl border border-emerald-100 bg-emerald-50 p-4 text-sm text-emerald-900">
-                    <strong>Default setup:</strong> Turnstile is off. This example works without a site key or secret
-                    key.
-                </div>
-                <div x-show="mode==='turnstile'"
-                    class="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
-                    <strong>Before copying:</strong> Open <b>Settings → Spam protection</b>, enable Turnstile and save
-                    the secret key. Put only the public site key in this code.
-                </div>
-                <div x-show="mode==='turnstile'" class="mb-4 rounded-xl border border-brand-mid bg-brand-light p-4">
-                    <p class="text-xs font-semibold uppercase tracking-wide text-brand-dark">Recommended integration</p>
-                    <p class="mt-1 text-sm text-brand-dark">
-                        <code class="rounded bg-white px-1.5 py-0.5">@marsidev/react-turnstile</code>
-                    </p>
-                </div>
-                <div x-show="mode==='basic'" x-data="codeBlock"
-                    data-code='&quot;export default function ContactForm() {\n  return (\n    &lt;form action=\&quot;https://formdata.cloud/f/{{ form.public_id }}\&quot; method=\&quot;POST\&quot;&gt;\n      &lt;input type=\&quot;email\&quot; name=\&quot;email\&quot; placeholder=\&quot;Email\&quot; required /&gt;\n      &lt;textarea name=\&quot;message\&quot; placeholder=\&quot;Message\&quot; required /&gt;\n      &lt;button type=\&quot;submit\&quot;&gt;Send message&lt;/button&gt;\n    &lt;/form&gt;\n  );\n}&quot;'>
-                    <div class="relative overflow-hidden rounded-xl bg-slate-900 shadow-lg shadow-slate-900/10">
-                        <button @click="copy()"
-                            class="absolute right-3 top-3 z-10 rounded-md border border-white/10 bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-slate-300 transition-colors hover:bg-white/20 hover:text-white"
-                            x-text="copied ? 'Copied!' : 'Copy'"></button>
-                        <pre
-                            class="overflow-x-auto p-5 pr-20 font-mono text-xs leading-relaxed text-slate-200"><code x-html="highlighted"></code></pre>
-                    </div>
-                </div>
-                <div x-show="mode==='turnstile'" x-data="codeBlock"
-                    data-code='&quot;// npm install @marsidev/react-turnstile\n\&quot;use client\&quot;;\n\nimport { Turnstile } from \&quot;@marsidev/react-turnstile\&quot;;\n\nexport default function ContactForm() {\n  return (\n    &lt;form action=\&quot;https://formdata.cloud/f/{{ form.public_id }}\&quot; method=\&quot;POST\&quot;&gt;\n      &lt;input type=\&quot;email\&quot; name=\&quot;email\&quot; placeholder=\&quot;Email\&quot; required /&gt;\n      &lt;textarea name=\&quot;message\&quot; placeholder=\&quot;Message\&quot; required /&gt;\n\n      &lt;Turnstile\n        siteKey=\&quot;YOUR_TURNSTILE_SITE_KEY\&quot;\n        options={ {\n          responseField: true,\n          responseFieldName: \&quot;cf-turnstile-response\&quot;\n        } }\n      /&gt;\n\n      &lt;button type=\&quot;submit\&quot;&gt;Send message&lt;/button&gt;\n    &lt;/form&gt;\n  );\n}&quot;'>
-                    <div class="relative overflow-hidden rounded-xl bg-slate-900 shadow-lg shadow-slate-900/10">
-                        <button @click="copy()"
-                            class="absolute right-3 top-3 z-10 rounded-md border border-white/10 bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-slate-300 transition-colors hover:bg-white/20 hover:text-white"
-                            x-text="copied ? 'Copied!' : 'Copy'"></button>
-                        <pre
-                            class="overflow-x-auto p-5 pr-20 font-mono text-xs leading-relaxed text-slate-200"><code x-html="highlighted"></code></pre>
-                    </div>
+                <div x-show="mode==='turnstile'">
+                    {{ code_card('&quot;// npm install @marsidev/react-turnstile\n\&quot;use client\&quot;;\n\nimport { Turnstile } from \&quot;@marsidev/react-turnstile\&quot;;\n\nexport default function ContactForm() {\n  return (\n    &lt;form action=\&quot;https://formdata.cloud/f/' ~ form.public_id ~ '\&quot; method=\&quot;POST\&quot;&gt;\n      &lt;input type=\&quot;email\&quot; name=\&quot;email\&quot; placeholder=\&quot;Email\&quot; required /&gt;\n      &lt;textarea name=\&quot;message\&quot; placeholder=\&quot;Message\&quot; required /&gt;\n\n      &lt;Turnstile\n        siteKey=\&quot;YOUR_TURNSTILE_SITE_KEY\&quot;\n        options={ {\n          responseField: true,\n          responseFieldName: \&quot;cf-turnstile-response\&quot;\n        } }\n      /&gt;\n\n      &lt;button type=\&quot;submit\&quot;&gt;Send message&lt;/button&gt;\n    &lt;/form&gt;\n  );\n}&quot;') }}
                 </div>
             </section>
         </div>

@@ -154,8 +154,8 @@ async def handle_get_project_form_submissions(
         raise NotFoundError("Form not found")
 
     context = await get_form_analytics(request, form, db, user, search, status, form_id)
-    # Target partial block template for HTMX filter requests, full template for tabs
-    if htmx_req:
+    # Target partial block template for HTMX filter requests, full template for tabs / history restore
+    if htmx_req and not request.headers.get("HX-History-Restore-Request"):
         # If HTMX request came directly from filters, swap just the table body element
         if request.headers.get("HX-Target") == "submissions-table-container":
             template = "partials/submissions_table.html"
@@ -208,8 +208,8 @@ async def handle_get_form_submission_by_id(
         "submission": submission,
     }
 
-    # If it's a direct browser refresh (non-HTMX), you might want to wrap it in a full layout
-    if not htmx_req:
+    # If it's a direct browser refresh or history restore (non-HTMX or HX-History-Restore-Request), wrap in full layout
+    if not htmx_req or request.headers.get("HX-History-Restore-Request"):
         return temp.TemplateResponse(request, "submission_details.html", context)
 
     return temp.TemplateResponse(
@@ -319,7 +319,7 @@ async def handle_get_project_form_setup(
     if not form:
         raise NotFoundError("Form not found")
 
-    if htmx_req:
+    if htmx_req and not request.headers.get("HX-History-Restore-Request"):
         template = "form_setup.html"
     else:
         template = "form.html"
@@ -353,7 +353,7 @@ async def handle_get_project_form_integrations(
     if not form:
         raise NotFoundError("Form not found.")
 
-    if htmx_req:
+    if htmx_req and not request.headers.get("HX-History-Restore-Request"):
         template = "form_integrations.html"
     else:
         template = "form.html"
@@ -453,7 +453,7 @@ async def handle_form_analytics(
 
     analytics = await _get_form_analytics(db, form, range_days=range)
 
-    if htmx_req:
+    if htmx_req and not request.headers.get("HX-History-Restore-Request"):
         template = "form_analytics.html"
     else:
         template = "form.html"
@@ -490,7 +490,7 @@ async def handle_get_project_form_exports(
     if not form:
         raise NotFoundError("Form not found.")
 
-    if htmx_req:
+    if htmx_req and not request.headers.get("HX-History-Restore-Request"):
         template = "form_exports.html"
     else:
         template = "form.html"
@@ -522,7 +522,7 @@ async def handle_get_project_form_template(
     if not form:
         raise NotFoundError("Form not found")
 
-    if htmx_req:
+    if htmx_req and not request.headers.get("HX-History-Restore-Request"):
         template = "form_template.html"
     else:
         template = "form.html"

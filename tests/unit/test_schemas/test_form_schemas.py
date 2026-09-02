@@ -2,10 +2,11 @@ import pytest
 from pydantic import ValidationError
 
 from app.schemas.form import (
-    AutoResponseSettingPayload,
     FormSettingsPayload,
+    FormTab,
     NewForm,
-    SenderEmailPayload,
+    TAB_LABELS,
+    TAB_TEMPLATES,
     WidgetConfig,
 )
 
@@ -41,10 +42,12 @@ def test_form_settings_payload():
         sub_message="Thank you for your submission!",
         sub_bg_color="#ffffff",
         sub_txt_color="#000000",
+        sub_lnk_color="#0066cc",
     )
     assert payload.name == "Lead Generation"
     assert payload.notification_email == "admin@example.com"
     assert payload.redirect is True
+    assert payload.redirect_url == "https://example.com/thanks"
 
 
 def test_widget_config_schema():
@@ -58,3 +61,12 @@ def test_widget_config_schema():
     )
     assert widget.provider == "turnstile"
     assert widget.turnstileSitekey == "sitekey_abc"
+
+
+def test_form_tabs_enum():
+    """Verify FormTab enum and tab dictionaries."""
+    assert FormTab.submissions == "submissions"
+    assert FormTab.settings == "settings"
+    assert TAB_TEMPLATES[FormTab.submissions] == "form_submissions.html"
+    assert TAB_LABELS[FormTab.submissions] == "Submissions"
+

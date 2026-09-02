@@ -1,24 +1,20 @@
 from datetime import datetime, timezone
 import pytest
 
-from app.core.templates import format_datetime, render_template, templates, time_ago
+from app.core.templates import render_template, strftime_filter, temp
 
 
-def test_format_datetime_filter():
-    """Verify custom Jinja datetime formatting filter."""
+def test_strftime_filter():
+    """Verify custom Jinja strftime formatting filter."""
     dt = datetime(2026, 9, 2, 15, 30, 0, tzinfo=timezone.utc)
-    formatted = format_datetime(dt)
+    formatted = strftime_filter(dt)
     assert "Sep" in formatted or "09" in formatted or "2026" in formatted
-
-
-def test_time_ago_filter():
-    """Verify relative time formatting."""
-    now = datetime.now(timezone.utc)
-    assert time_ago(now) == "just now"
+    assert strftime_filter(None) == ""
 
 
 def test_templates_instance():
-    """Verify templates object is initialized with custom filters."""
-    assert templates is not None
-    assert "format_datetime" in templates.env.filters
-    assert "time_ago" in templates.env.filters
+    """Verify Jinja2Templates instance is configured with filters."""
+    assert temp is not None
+    assert "strftime" in temp.env.filters
+    assert "tojson" in temp.env.filters
+

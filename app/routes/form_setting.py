@@ -36,7 +36,7 @@ async def handle_get_project_form_setttings(
     if not form:
         raise NotFoundError("Form not found")
 
-    if htmx_req:
+    if htmx_req and not request.headers.get("HX-History-Restore-Request"):
         template = "form_settings.html"
     else:
         template = "form.html"
