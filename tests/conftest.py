@@ -1,46 +1,76 @@
 import asyncio
 import os
 import uuid
+from datetime import UTC, datetime, timedelta
 from typing import AsyncGenerator
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from httpx import ASGITransport, AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-# Set testing environment variables before importing settings/app
+# 1. Set testing environment variables before importing settings/app
 os.environ["ENV"] = "development"
-os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///:memory:"
-os.environ["REDIS_URL"] = "redis://localhost:6379/0"
-os.environ["JWT_SECRET_KEY"] = "test-secret-key-1234567890-test-secret"
+os.environ["BASE_URL"] = "http://localhost:3000"
+os.environ["CLEANUP_INTERVAL_SECONDS"] = "3600"
+os.environ["SESSION_SECRET"] = "test-session-secret-key-32-chars-long!"
+os.environ["DATABASE_URL"] = "postgresql+asyncpg://postgres:postgres@localhost:5432/formdata_test"
+os.environ["DB_POOL_SIZE"] = "5"
+os.environ["DB_MAX_OVERFLOW"] = "10"
+os.environ["JWT_ALGO"] = "HS256"
+os.environ["JWT_SECRET"] = "test-jwt-secret-key-for-testing-only-12345"
+os.environ["ACCESS_TTL_MIN"] = "15"
+os.environ["REFRESH_TTL_MIN"] = "10080"
+os.environ["GOOGLE_CLIENT_ID"] = "test-google-client-id"
+os.environ["GOOGLE_CLIENT_SECRET"] = "test-google-client-secret"
+os.environ["PADDLE_API_KEY"] = "test-paddle-api-key"
+os.environ["PADDLE_WEBHOOK_SECRET"] = "test-paddle-webhook-secret"
+os.environ["PADDLE_BASE_URL"] = "https://sandbox-api.paddle.com"
+os.environ["PADDLE_PRICE_ID_SOLO"] = "pri_solo_test"
+os.environ["PADDLE_PRICE_ID_STUDIO"] = "pri_studio_test"
+os.environ["PADDLE_CLIENT_TOKEN"] = "test_paddle_token"
+os.environ["PADDLE_ENVIRONMENT"] = "sandbox"
 os.environ["RESEND_API_KEY"] = "re_test_123456789"
-os.environ["GOOGLE_CLIENT_ID"] = "test-google-id"
-os.environ["GOOGLE_CLIENT_SECRET"] = "test-google-secret"
-os.environ["GITHUB_CLIENT_ID"] = "test-github-id"
-os.environ["GITHUB_CLIENT_SECRET"] = "test-github-secret"
-os.environ["PADDLE_API_KEY"] = "test-paddle-key"
-os.environ["PADDLE_WEBHOOK_SECRET_KEY"] = "test-paddle-webhook-secret"
+os.environ["FROM_EMAIL"] = "notifications@formdata.space"
+os.environ["FROM_NAME"] = "Formdata"
+os.environ["MAX_UPLOAD_BYTES"] = "10485760"
+os.environ["MAX_FILES_PER_SUBMISSION"] = "5"
+os.environ["R2_ACCOUNT_ID"] = "test-r2-account-id"
+os.environ["R2_ACCESS_KEY_ID"] = "test-r2-access-key-id"
+os.environ["R2_SECRET_ACCESS_KEY"] = "test-r2-secret-access-key"
+os.environ["R2_BUCKET"] = "test-bucket"
+
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID as PG_UUID
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.compiler import compiles
+
+# Compatibility compilers for SQLite in-memory testing
+@compiles(PG_UUID, "sqlite")
+def compile_pg_uuid(type_, compiler, **kw):
+    return "CHAR(36)"
+
+@compiles(JSONB, "sqlite")
+def compile_jsonb(type_, compiler, **kw):
+    return "JSON"
+
+@compiles(ARRAY, "sqlite")
+def compile_array(type_, compiler, **kw):
+    return "TEXT"
 
 from app.core.db import Base, get_db
 from app.core.settings import settings
 from app.models.user import (
-    Blacklist,
-    BlacklistType,
+    AuthToken,
     Form,
-    GoogleSheetIntegration,
-    IntegrationType,
-    Payment,
-    PaymentStatus,
-    PlanTier,
-    PlanType,
+    FormIntegration,
+    Integration,
+    IntegrationProvider,
     Project,
     Submission,
     SubmissionStatus,
     Subscription,
-    SubscriptionStatus,
     User,
 )
-from app.services.jwt import create_access_token
+from app.services.jwt import create_token
 from main import app
 
 # Test Engine for SQLite in-memory
@@ -98,11 +128,11 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
 async def sample_user(db_session: AsyncSession) -> User:
     """Create and return a sample user in DB."""
     user = User(
-        id=str(uuid.uuid4()),
+        id=uuid.uuid4(),
         name="John Doe",
         email="john.doe@example.com",
+        google_sub="goog_123456789",
         is_active=True,
-        is_verified=True,
     )
     db_session.add(user)
     await db_session.commit()
@@ -114,16 +144,13 @@ async def sample_user(db_session: AsyncSession) -> User:
 async def sample_subscription(db_session: AsyncSession, sample_user: User) -> Subscription:
     """Create and return a sample subscription for the test user."""
     subscription = Subscription(
-        id=str(uuid.uuid4()),
+        id=uuid.uuid4(),
         user_id=sample_user.id,
-        plan_name="Starter Monthly",
-        plan_type=PlanType.MONTHLY,
-        plan_tier=PlanTier.STARTER,
-        status=SubscriptionStatus.ACTIVE,
-        price=19.0,
-        currency="USD",
-        paddle_subscription_id="sub_test_12345",
+        status="active",
+        price_id="pri_solo_test",
         paddle_customer_id="ctm_test_12345",
+        subscription_id="sub_test_12345",
+        trial_end=datetime.now(UTC) + timedelta(days=15),
     )
     db_session.add(subscription)
     await db_session.commit()
@@ -134,14 +161,24 @@ async def sample_subscription(db_session: AsyncSession, sample_user: User) -> Su
 @pytest.fixture
 def auth_headers(sample_user: User) -> dict:
     """Return Authorization Bearer headers for the sample user."""
-    token = create_access_token(data={"sub": sample_user.id, "email": sample_user.email})
+    token, _, _ = create_token(
+        sub=str(sample_user.id),
+        email=sample_user.email,
+        type="access",
+        ttl=timedelta(minutes=15),
+    )
     return {"Authorization": f"Bearer {token}"}
 
 
 @pytest.fixture
 def auth_cookies(sample_user: User) -> dict:
     """Return auth cookies for the sample user."""
-    token = create_access_token(data={"sub": sample_user.id, "email": sample_user.email})
+    token, _, _ = create_token(
+        sub=str(sample_user.id),
+        email=sample_user.email,
+        type="access",
+        ttl=timedelta(minutes=15),
+    )
     return {"access_token": token}
 
 
@@ -149,10 +186,9 @@ def auth_cookies(sample_user: User) -> dict:
 async def sample_project(db_session: AsyncSession, sample_user: User) -> Project:
     """Create and return a sample project."""
     project = Project(
-        id=str(uuid.uuid4()),
+        id=uuid.uuid4(),
         user_id=sample_user.id,
         name="Production Website",
-        description="Main marketing site",
     )
     db_session.add(project)
     await db_session.commit()
@@ -164,15 +200,13 @@ async def sample_project(db_session: AsyncSession, sample_user: User) -> Project
 async def sample_form(db_session: AsyncSession, sample_project: Project) -> Form:
     """Create and return a sample form."""
     form = Form(
-        id=str(uuid.uuid4()),
+        id=uuid.uuid4(),
         project_id=sample_project.id,
-        public_id="frm_" + uuid.uuid4().hex[:8],
+        public_id="frm_test",
         name="Contact Us",
         heading="Get in touch with us",
         notification_email="notify@example.com",
-        email_notification=True,
         is_active=True,
-        spam_protection=True,
         redirect_url="https://example.com/thank-you",
     )
     db_session.add(form)
@@ -185,17 +219,13 @@ async def sample_form(db_session: AsyncSession, sample_project: Project) -> Form
 async def sample_submission(db_session: AsyncSession, sample_form: Form) -> Submission:
     """Create and return a sample submission."""
     submission = Submission(
-        id=str(uuid.uuid4()),
+        id=uuid.uuid4(),
         form_id=sample_form.id,
-        data={"name": "Alice Smith", "email": "alice@example.com", "message": "Hello world"},
-        status=SubmissionStatus.INBOX,
+        payload={"name": "Alice Smith", "email": "alice@example.com", "message": "Hello world"},
+        status=SubmissionStatus.ACCEPTED,
         opened=False,
-        is_spam=False,
-        spam_score=0.1,
-        ip_address="127.0.0.1",
-        user_agent="Mozilla/5.0 Test",
-        country_code="US",
-        country_name="United States",
+        note=None,
+        country="United States",
     )
     db_session.add(submission)
     await db_session.commit()
@@ -235,3 +265,4 @@ def mock_s3():
         client_mock.delete_object = AsyncMock()
         mock_session.return_value.client.return_value.__aenter__.return_value = client_mock
         yield client_mock
+

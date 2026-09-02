@@ -11,7 +11,7 @@ async def test_form_repository_list_for_project(db_session: AsyncSession, sample
     """Verify FormRepository list_for_project returns all forms under a project."""
     repo = FormRepository(db=db_session)
     form1 = FormDB(
-        id=str(uuid.uuid4()),
+        id=uuid.uuid4(),
         project_id=sample_project.id,
         public_id="frm_test1",
         name="Signup Form",

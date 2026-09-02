@@ -1,24 +1,21 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timedelta
 import pytest
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import (
-    Blacklist,
-    BlacklistType,
+    AuthToken,
+    BLACKLIST,
+    WHITELIST,
     Form,
-    GoogleSheetIntegration,
-    IntegrationType,
-    Payment,
-    PaymentStatus,
-    PlanTier,
-    PlanType,
+    FormIntegration,
+    Integration,
+    IntegrationProvider,
     Project,
     Submission,
     SubmissionStatus,
     Subscription,
-    SubscriptionStatus,
     User,
 )
 
@@ -27,11 +24,11 @@ from app.models.user import (
 async def test_user_creation_and_defaults(db_session: AsyncSession):
     """Verify User model creation, defaults, and relationships."""
     user = User(
-        id=str(uuid.uuid4()),
+        id=uuid.uuid4(),
         name="Alice Smith",
         email="alice.test@example.com",
+        google_sub="goog_alice_999",
         is_active=True,
-        is_verified=False,
     )
     db_session.add(user)
     await db_session.commit()
@@ -40,23 +37,22 @@ async def test_user_creation_and_defaults(db_session: AsyncSession):
     assert user.id is not None
     assert user.email == "alice.test@example.com"
     assert user.created_at is not None
-    assert user.is_verified is False
+    assert user.is_active is True
 
 
 @pytest.mark.asyncio
 async def test_project_and_form_relationships(db_session: AsyncSession, sample_user: User):
     """Verify Project and Form relationship cascade."""
     project = Project(
-        id=str(uuid.uuid4()),
+        id=uuid.uuid4(),
         user_id=sample_user.id,
         name="Mobile App API",
-        description="Backend forms for mobile app",
     )
     db_session.add(project)
     await db_session.commit()
 
     form = Form(
-        id=str(uuid.uuid4()),
+        id=uuid.uuid4(),
         project_id=project.id,
         public_id="frm_mob123",
         name="Feedback Form",
@@ -74,70 +70,56 @@ async def test_project_and_form_relationships(db_session: AsyncSession, sample_u
 
 @pytest.mark.asyncio
 async def test_submission_model_and_status(db_session: AsyncSession, sample_form: Form):
-    """Verify Submission model fields and JSON data storage."""
+    """Verify Submission model fields and JSON payload storage."""
     submission = Submission(
-        id=str(uuid.uuid4()),
+        id=uuid.uuid4(),
         form_id=sample_form.id,
-        data={"first_name": "Bob", "phone": "+1234567890"},
-        status=SubmissionStatus.INBOX,
+        payload={"first_name": "Bob", "phone": "+1234567890"},
+        status=SubmissionStatus.ACCEPTED,
         opened=True,
-        is_spam=False,
     )
     db_session.add(submission)
     await db_session.commit()
     await db_session.refresh(submission)
 
-    assert submission.data["first_name"] == "Bob"
-    assert submission.status == SubmissionStatus.INBOX
+    assert submission.payload["first_name"] == "Bob"
+    assert submission.status == SubmissionStatus.ACCEPTED
     assert submission.opened is True
 
 
 @pytest.mark.asyncio
-async def test_blacklist_model(db_session: AsyncSession, sample_form: Form):
-    """Verify Blacklist model for IP, email, domain blocking."""
-    blacklist_entry = Blacklist(
-        id=str(uuid.uuid4()),
-        form_id=sample_form.id,
-        type=BlacklistType.IP,
-        value="192.168.1.100",
+async def test_auth_token_model(db_session: AsyncSession, sample_user: User):
+    """Verify AuthToken model for whitelist and blacklist tracking."""
+    token = AuthToken(
+        jti="jti_test_12345",
+        user_id=sample_user.id,
+        token_type=WHITELIST,
+        expires_at=datetime.now(UTC) + timedelta(days=7),
     )
-    db_session.add(blacklist_entry)
+    db_session.add(token)
     await db_session.commit()
 
-    result = await db_session.execute(select(Blacklist).where(Blacklist.value == "192.168.1.100"))
+    result = await db_session.execute(select(AuthToken).where(AuthToken.jti == "jti_test_12345"))
     entry = result.scalars().first()
     assert entry is not None
-    assert entry.type == BlacklistType.IP
+    assert entry.token_type == WHITELIST
 
 
 @pytest.mark.asyncio
-async def test_subscription_and_payment_models(db_session: AsyncSession, sample_user: User):
-    """Verify Subscription and Payment models with enum plan types."""
+async def test_subscription_model(db_session: AsyncSession, sample_user: User):
+    """Verify Subscription model trial and active states."""
     sub = Subscription(
-        id=str(uuid.uuid4()),
+        id=uuid.uuid4(),
         user_id=sample_user.id,
-        plan_name="Pro Yearly",
-        plan_type=PlanType.YEARLY,
-        plan_tier=PlanTier.PRO,
-        status=SubscriptionStatus.ACTIVE,
-        price=190.0,
-        currency="USD",
+        status="trial",
+        price_id="none",
+        trial_end=datetime.now(UTC) + timedelta(days=15),
     )
     db_session.add(sub)
     await db_session.commit()
 
-    payment = Payment(
-        id=str(uuid.uuid4()),
-        subscription_id=sub.id,
-        amount=190.0,
-        currency="USD",
-        status=PaymentStatus.PAID,
-        paddle_transaction_id="txn_12345",
-    )
-    db_session.add(payment)
-    await db_session.commit()
+    result = await db_session.execute(select(Subscription).where(Subscription.user_id == sample_user.id))
+    fetched_sub = result.scalars().first()
+    assert fetched_sub is not None
+    assert fetched_sub.has_access is True
 
-    result = await db_session.execute(select(Payment).where(Payment.subscription_id == sub.id))
-    fetched_payment = result.scalars().first()
-    assert fetched_payment is not None
-    assert fetched_payment.status == PaymentStatus.PAID
