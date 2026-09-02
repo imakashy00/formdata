@@ -49,13 +49,13 @@ async def blog(req: Request, blog_id: str):
 @page_router.get("/privacy-policy", response_class=HTMLResponse)
 async def privacy_policy(request: Request):
     """Privacy Policy page"""
-    return temp.TemplateResponse(request, "privacy_policy.html")
+    return temp.TemplateResponse(request=request, name="privacy_policy.html", context={"request": request})
 
 
 @page_router.get("/terms-of-service", response_class=HTMLResponse)
 async def terms_and_conditions(request: Request):
     """Terms and Conditions page"""
-    return temp.TemplateResponse(request, "terms_of_service.html")
+    return temp.TemplateResponse(request=request, name="terms_of_service.html", context={"request": request})
 
 
 @page_router.get("/sitemap.xml", include_in_schema=False)
