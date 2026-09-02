@@ -1,8 +1,8 @@
 import pytest
 from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.user import Form as FormDB, Project, User
+from app.models.user import Form as FormDB
+from app.models.user import Project, User
 
 
 @pytest.mark.asyncio

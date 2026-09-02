@@ -16,7 +16,7 @@ async def test_resend_email_webhook_ping(client: AsyncClient):
             "subject": "New Submission",
             "message_id": "msg_12345",
             "attachments": [],
-        }
+        },
     }
     response = await client.post(
         "/email/webhook",

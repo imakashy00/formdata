@@ -1,6 +1,5 @@
 import pytest
 from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import Form as FormDB
 
@@ -13,7 +12,11 @@ async def test_submit_client_form_json(
     """Verify POST /f/{public_id} processes form submissions sent via JSON."""
     response = await client.post(
         f"/f/{sample_form.public_id}",
-        json={"name": "Hannah Abbott", "email": "hannah@example.com", "message": "Hi there!"},
+        json={
+            "name": "Hannah Abbott",
+            "email": "hannah@example.com",
+            "message": "Hi there!",
+        },
         headers={"Accept": "application/json"},
     )
     assert response.status_code in (200, 302, 303)

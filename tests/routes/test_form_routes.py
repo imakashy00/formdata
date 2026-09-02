@@ -1,8 +1,8 @@
 import pytest
 from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.user import Form as FormDB, Project, User
+from app.models.user import Form as FormDB
+from app.models.user import Project, User
 
 
 @pytest.mark.asyncio
@@ -117,4 +117,3 @@ async def test_get_form_submission_by_id_history_restore(
     assert response.status_code == 200
     assert "Submission Details" in response.text
     assert "<!DOCTYPE html>" in response.text or "<nav" in response.text
-

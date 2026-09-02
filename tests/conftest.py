@@ -1,9 +1,9 @@
 import asyncio
 import os
 import uuid
+from collections.abc import AsyncGenerator
 from datetime import UTC, datetime, timedelta
-from typing import AsyncGenerator
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -12,7 +12,9 @@ os.environ["ENV"] = "development"
 os.environ["BASE_URL"] = "http://localhost:3000"
 os.environ["CLEANUP_INTERVAL_SECONDS"] = "3600"
 os.environ["SESSION_SECRET"] = "test-session-secret-key-32-chars-long!"
-os.environ["DATABASE_URL"] = "postgresql+asyncpg://postgres:postgres@localhost:5432/formdata_test"
+os.environ["DATABASE_URL"] = (
+    "postgresql+asyncpg://imakashy00:password@localhost:5432/formdata"
+)
 os.environ["DB_POOL_SIZE"] = "5"
 os.environ["DB_MAX_OVERFLOW"] = "10"
 os.environ["JWT_ALGO"] = "HS256"
@@ -39,31 +41,31 @@ os.environ["R2_SECRET_ACCESS_KEY"] = "test-r2-secret-access-key"
 os.environ["R2_BUCKET"] = "test-bucket"
 
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID as PG_UUID
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.ext.compiler import compiles
+
 
 # Compatibility compilers for SQLite in-memory testing
 @compiles(PG_UUID, "sqlite")
 def compile_pg_uuid(type_, compiler, **kw):
     return "CHAR(36)"
 
+
 @compiles(JSONB, "sqlite")
 def compile_jsonb(type_, compiler, **kw):
     return "JSON"
+
 
 @compiles(ARRAY, "sqlite")
 def compile_array(type_, compiler, **kw):
     return "TEXT"
 
+
 from app.core.db import Base, get_db
-from app.core.settings import settings
 from app.models.user import (
-    AuthToken,
     Form,
-    FormIntegration,
-    Integration,
-    IntegrationProvider,
     Project,
     Submission,
     SubmissionStatus,
@@ -73,9 +75,13 @@ from app.models.user import (
 from app.services.jwt import create_token
 from main import app
 
-# Test Engine for SQLite in-memory
+# Change this section in your conftest.py:
+
+# Fetch the URL directly from the environment variables defined above
+DATABASE_URL = os.environ["DATABASE_URL"]
+
 test_engine = create_async_engine(
-    "sqlite+aiosqlite:///:memory:",
+    DATABASE_URL,
     echo=False,
 )
 
@@ -103,15 +109,16 @@ async def init_db():
 
 
 @pytest.fixture
-async def db_session() -> AsyncGenerator[AsyncSession, None]:
+async def db_session() -> AsyncGenerator[AsyncSession]:
     """Provide a transactional asynchronous DB session for tests."""
     async with TestingSessionLocal() as session:
         yield session
 
 
 @pytest.fixture
-async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
+async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient]:
     """Provide an AsyncClient for FastAPI endpoint testing with DB dependency overridden."""
+
     async def override_get_db():
         yield db_session
 
@@ -141,7 +148,9 @@ async def sample_user(db_session: AsyncSession) -> User:
 
 
 @pytest.fixture
-async def sample_subscription(db_session: AsyncSession, sample_user: User) -> Subscription:
+async def sample_subscription(
+    db_session: AsyncSession, sample_user: User
+) -> Subscription:
     """Create and return a sample subscription for the test user."""
     subscription = Subscription(
         id=uuid.uuid4(),
@@ -221,7 +230,11 @@ async def sample_submission(db_session: AsyncSession, sample_form: Form) -> Subm
     submission = Submission(
         id=uuid.uuid4(),
         form_id=sample_form.id,
-        payload={"name": "Alice Smith", "email": "alice@example.com", "message": "Hello world"},
+        payload={
+            "name": "Alice Smith",
+            "email": "alice@example.com",
+            "message": "Hello world",
+        },
         status=SubmissionStatus.ACCEPTED,
         opened=False,
         note=None,
@@ -261,8 +274,12 @@ def mock_s3():
     with patch("aioboto3.Session") as mock_session:
         client_mock = AsyncMock()
         client_mock.upload_fileobj = AsyncMock()
-        client_mock.generate_presigned_url = AsyncMock(return_value="https://r2.example.com/signed-url")
+        client_mock.generate_presigned_url = AsyncMock(
+            return_value="https://r2.example.com/signed-url"
+        )
         client_mock.delete_object = AsyncMock()
-        mock_session.return_value.client.return_value.__aenter__.return_value = client_mock
+        mock_session.return_value.client.return_value.__aenter__.return_value = (
+            client_mock
+        )
         yield client_mock
 
