@@ -254,7 +254,7 @@ class Form(Base):
 
     # TODO: Add constraints on the String and arary size of the allowed domains
     allowed_domains: Mapped[list[str]] = mapped_column(
-        ARRAY(String), server_default="'{}'::varchar[]"
+        ARRAY(String), server_default="'{}'::varchar[]", default=list
     )
     redirect: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     redirect_url: Mapped[str | None] = mapped_column(String(2083), nullable=True)
@@ -521,12 +521,18 @@ class AuthToken(Base):
         TIMESTAMP(timezone=True), nullable=False
     )
     created_at: Mapped[datetime] = mapped_column(
-        TIMESTAMP(timezone=True), nullable=False, server_default=text("now()")
+        TIMESTAMP(timezone=True),
+        nullable=False,
+        server_default=text("now()"),
+        default=lambda: datetime.now(UTC),
     )
     # Free-form extras (device info, revoke reason, etc.) without a migration
     # every time you want to attach something new to a token row.
     meta: Mapped[dict] = mapped_column(
-        JSONB, nullable=False, server_default=text("'{}'::jsonb")
+        JSONB,
+        nullable=False,
+        server_default=text("'{}'::jsonb"),
+        default=dict,
     )
 
 
@@ -543,7 +549,7 @@ class RateLimitBucket(Base):
         TIMESTAMP(timezone=True), primary_key=True
     )
     request_count: Mapped[int] = mapped_column(
-        Integer, nullable=False, server_default=text("1")
+        Integer, nullable=False, server_default=text("1"), default=1
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC)
