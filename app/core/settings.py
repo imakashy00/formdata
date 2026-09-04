@@ -1,47 +1,44 @@
-import os
 from datetime import timedelta
 from typing import Literal
 
 from pydantic import AnyHttpUrl, PostgresDsn, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-_default_url = os.getenv("APP_URL") or "http://localhost:3000"
-
 
 class Settings(BaseSettings):
     ENV: Literal["development", "production"] = "development"
-    BASE_URL: AnyHttpUrl = _default_url  # type: ignore
+    BASE_URL: AnyHttpUrl  # eg. https://ytnotes.co
 
-    CLEANUP_INTERVAL_SECONDS: int = 3600
+    CLEANUP_INTERVAL_SECONDS: int
 
-    SESSION_SECRET: str = "default-session-secret-key-at-least-32-chars!"
+    SESSION_SECRET: str
 
-    DATABASE_URL: PostgresDsn | str = "postgresql+asyncpg://postgres:postgres@localhost:5432/formdata"
-    DB_POOL_SIZE: int = 10
-    DB_MAX_OVERFLOW: int = 5
+    DATABASE_URL: PostgresDsn
+    DB_POOL_SIZE: int
+    DB_MAX_OVERFLOW: int
 
     # JWT
-    JWT_ALGO: str = "HS256"
-    JWT_SECRET: SecretStr = SecretStr("default-jwt-secret-key-at-least-32-chars-long!")
-    ACCESS_TTL_MIN: int = 15
-    REFRESH_TTL_MIN: int = 45
+    JWT_ALGO: str
+    JWT_SECRET: SecretStr
+    ACCESS_TTL_MIN: int
+    REFRESH_TTL_MIN: int
 
     # OAuth
-    GOOGLE_CLIENT_ID: str = "google_client_id_default"
-    GOOGLE_CLIENT_SECRET: str = "google_client_secret_default"
+    GOOGLE_CLIENT_ID: str
+    GOOGLE_CLIENT_SECRET: str
 
     # Paddle
-    PADDLE_API_KEY: str = "paddle_api_key_default"
-    PADDLE_WEBHOOK_SECRET: str = "paddle_webhook_secret_default"
+    PADDLE_API_KEY: str
+    PADDLE_WEBHOOK_SECRET: str
     PADDLE_BASE_URL: str = "https://sandbox-api.paddle.com"
-    PADDLE_PRICE_ID_SOLO: str = "pri_solo_default"
-    PADDLE_PRICE_ID_STUDIO: str = "pri_studio_default"
-    PADDLE_CLIENT_TOKEN: str = "paddle_client_token_default"
-    PADDLE_ENVIRONMENT: str = "sandbox"
+    PADDLE_PRICE_ID_SOLO: str
+    PADDLE_PRICE_ID_STUDIO: str
+    PADDLE_CLIENT_TOKEN: str
+    PADDLE_ENVIRONMENT: str
 
-    RESEND_API_KEY: str = "resend_api_key_default"
-    FROM_EMAIL: str = "notifications@formdata.space"
-    FROM_NAME: str = "Formdata"
+    RESEND_API_KEY: str
+    FROM_EMAIL: str
+    FROM_NAME: str
 
     # Rate Limiting
     RATE_LIMIT_ENABLED: bool = True
@@ -60,14 +57,14 @@ class Settings(BaseSettings):
     )  # 200 requests / 60s per form, isolates noisy tenants
 
     # File limits
-    MAX_UPLOAD_BYTES: int = 10 * 1024 * 1024
-    MAX_FILES_PER_SUBMISSION: int = 5
+    MAX_UPLOAD_BYTES: int
+    MAX_FILES_PER_SUBMISSION: int
 
     # Cloudflare Storage
-    R2_ACCOUNT_ID: str = "r2_account_id_default"
-    R2_ACCESS_KEY_ID: str = "r2_access_key_default"
-    R2_SECRET_ACCESS_KEY: str = "r2_secret_key_default"
-    R2_BUCKET: str = "r2_bucket_default"
+    R2_ACCOUNT_ID: str
+    R2_ACCESS_KEY_ID: str
+    R2_SECRET_ACCESS_KEY: str
+    R2_BUCKET: str
 
     HONEYPOT_FIELD: str = "_hp"
 

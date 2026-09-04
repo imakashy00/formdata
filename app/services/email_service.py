@@ -61,8 +61,8 @@ class EmailService:
             return str(context.get(tag, match.group(0)))
 
         # Replace bracketed parameters {variable} safely
-        parsed_subject = re.sub(r"\{+([^}]+)\}+", replacer, subject_tpl)
-        parsed_markdown = re.sub(r"\{+([^}]+)\}+", replacer, body_tpl)
+        parsed_subject = re.sub(r"\{([^}]+)\}", replacer, subject_tpl)
+        parsed_markdown = re.sub(r"\{([^}]+)\}", replacer, body_tpl)
 
         # Render Markdown to standard HTML for email client cross-compatibility
         html_body = markdown.markdown(parsed_markdown, extensions=["extra", "nl2br"])
@@ -94,20 +94,8 @@ class EmailService:
             # Native async execution using the official Resend SDK wrapper
             response = await resend.Emails.send_async(params)
             log.info(f"Successfully dispatched Resend email. ID: {response.get('id')}")
-            return response
         except Exception as e:
             log.error(f"Resend API error while dispatching email to {to_email}: {e}")
-            return None
-
-    async def send(self, params: SendParams):
-        to_addr = params.to if isinstance(params.to, str) else params.to[0]
-        reply_to = params.reply_to[0] if isinstance(params.reply_to, list) else (params.reply_to or "")
-        return await self._send_via_resend(
-            to_email=to_addr,
-            subject=params.subject or "",
-            html_content=params.html or "",
-            reply_to=reply_to,
-        )
 
     async def send_user_notification(
         self, user_email: str, form_name: str, payload: dict[str, Any]

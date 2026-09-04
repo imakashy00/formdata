@@ -16,7 +16,7 @@ async def test_get_account_page_authenticated(
 ):
     """Verify GET /account renders the user account settings and billing dashboard."""
     with patch(
-        "app.routes.account.get_account_billing_data", new_callable=AsyncMock
+        "app.services.account.get_account_billing_data", new_callable=AsyncMock
     ) as mock_billing:
         mock_billing.return_value = {
             "current_plan": "starter",

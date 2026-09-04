@@ -85,7 +85,6 @@ class ReceivedEmail(TypedDict):
 
 
 @email_router.post("/webhook/resend")
-@email_router.post("/email/webhook")
 async def handle_receive_support_mail(
     payload: Request, background_tasks: BackgroundTasks
 ):

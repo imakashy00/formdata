@@ -6,8 +6,7 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 from starlette.middleware.sessions import SessionMiddleware
 
-from app.core.db import AsyncSessionLocal, Base, engine, is_sqlite
-import app.models.user  # noqa: F401 - Register models with Base
+from app.core.db import AsyncSessionLocal, engine
 from app.core.logger import setup_logger
 from app.core.middlewares.exception_handlers import register_exception_handlers
 from app.core.middlewares.middleware import register_middlewares
@@ -52,19 +51,14 @@ def start_cleanup_task():
 
 
 async def verify_services() -> None:
-    """Verify database connection and ensure tables exist."""
+    """Replacement for the old verify_services() — Postgres only now, no Redis ping."""
     try:
         async with engine.connect() as connection:
             await connection.execute(text("SELECT 1"))
-        log.info("✅ Database is reachable.")
-        if is_sqlite:
-            async with engine.begin() as conn:
-                await conn.run_sync(Base.metadata.create_all)
-            log.info("✅ SQLite schema initialized.")
+        log.info("✅ Postgres is reachable.")
     except Exception as exc:
-        log.error(f"❌ Database error: {exc}")
-        if settings.ENV != "development":
-            raise
+        log.error(f"❌ Postgres is not reachable: {exc}")
+        raise
 
 
 @asynccontextmanager

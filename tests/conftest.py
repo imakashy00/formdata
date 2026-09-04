@@ -1,7 +1,6 @@
 import asyncio
 import os
 import uuid
-import socket
 from collections.abc import AsyncGenerator
 from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, patch
@@ -13,10 +12,9 @@ os.environ["ENV"] = "development"
 os.environ["BASE_URL"] = "http://localhost:3000"
 os.environ["CLEANUP_INTERVAL_SECONDS"] = "3600"
 os.environ["SESSION_SECRET"] = "test-session-secret-key-32-chars-long!"
-if "DATABASE_URL" not in os.environ:
-    os.environ["DATABASE_URL"] = (
-        "postgresql+asyncpg://imakashy00:password@localhost:5432/formdata"
-    )
+os.environ["DATABASE_URL"] = (
+    "postgresql+asyncpg://imakashy00:password@localhost:5432/formdata"
+)
 os.environ["DB_POOL_SIZE"] = "5"
 os.environ["DB_MAX_OVERFLOW"] = "10"
 os.environ["JWT_ALGO"] = "HS256"
@@ -43,56 +41,27 @@ os.environ["R2_SECRET_ACCESS_KEY"] = "test-r2-secret-access-key"
 os.environ["R2_BUCKET"] = "test-bucket"
 
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy import event, make_url
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.ext.compiler import compiles
-from sqlalchemy.pool import NullPool, StaticPool
-
-import app.core.sqlite_compat
-from app.core.sqlite_compat import register_sqlite_functions
 
 
-def _is_postgres_available(host: str | None, port: int | None) -> bool:
-    if not host:
-        return False
-    try:
-        with socket.create_connection((host, port or 5432), timeout=0.5):
-            return True
-    except (OSError, socket.timeout):
-        return False
+# Compatibility compilers for SQLite in-memory testing
+@compiles(PG_UUID, "sqlite")
+def compile_pg_uuid(type_, compiler, **kw):
+    return "CHAR(36)"
 
 
-db_url = make_url(os.environ["DATABASE_URL"])
-is_postgres = False
-if db_url.drivername.startswith("postgresql") or db_url.drivername.startswith("postgres"):
-    if db_url.host not in ("localhost", "127.0.0.1", None) or _is_postgres_available(
-        db_url.host, db_url.port
-    ):
-        is_postgres = True
+@compiles(JSONB, "sqlite")
+def compile_jsonb(type_, compiler, **kw):
+    return "JSON"
 
-if is_postgres:
-    test_engine = create_async_engine(
-        db_url.set(drivername="postgresql+asyncpg"),
-        echo=False,
-        poolclass=NullPool,
-    )
-else:
-    test_engine = create_async_engine(
-        "sqlite+aiosqlite:///:memory:",
-        echo=False,
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
 
-    @event.listens_for(test_engine.sync_engine, "connect")
-    def on_sqlite_connect(dbapi_conn, _):
-        register_sqlite_functions(dbapi_conn)
+@compiles(ARRAY, "sqlite")
+def compile_array(type_, compiler, **kw):
+    return "TEXT"
 
-TestingSessionLocal = async_sessionmaker(
-    bind=test_engine, class_=AsyncSession, expire_on_commit=False
-)
 
 from app.core.db import Base, get_db
 from app.models.user import (
@@ -105,6 +74,28 @@ from app.models.user import (
 )
 from app.services.jwt import create_token
 from main import app
+
+# Change this section in your conftest.py:
+
+# Fetch the URL directly from the environment variables defined above
+DATABASE_URL = os.environ["DATABASE_URL"]
+
+test_engine = create_async_engine(
+    DATABASE_URL,
+    echo=False,
+)
+
+TestingSessionLocal = async_sessionmaker(
+    bind=test_engine, class_=AsyncSession, expire_on_commit=False
+)
+
+
+@pytest.fixture(scope="session")
+def event_loop():
+    """Create an instance of the default event loop for each test case."""
+    loop = asyncio.get_event_loop_policy().new_event_loop()
+    yield loop
+    loop.close()
 
 
 @pytest.fixture(autouse=True)
@@ -216,23 +207,7 @@ async def sample_project(db_session: AsyncSession, sample_user: User) -> Project
 
 @pytest.fixture
 async def sample_form(db_session: AsyncSession, sample_project: Project) -> Form:
-    """Create and return a sample form with trial subscription for owner."""
-    user_id = sample_project.user_id
-    from sqlalchemy import select
-    from app.models.user import Subscription, SubscriptionStatus
-    existing_sub = await db_session.execute(
-        select(Subscription).where(Subscription.user_id == user_id)
-    )
-    if not existing_sub.scalars().first():
-        sub = Subscription(
-            id=uuid.uuid4(),
-            user_id=user_id,
-            status=SubscriptionStatus.TRIAL.value,
-            trial_end=datetime.now(UTC) + timedelta(days=15),
-        )
-        db_session.add(sub)
-        await db_session.flush()
-
+    """Create and return a sample form."""
     form = Form(
         id=uuid.uuid4(),
         project_id=sample_project.id,
@@ -288,12 +263,9 @@ def mock_redis():
 @pytest.fixture
 def mock_resend():
     """Mock Resend email API calls."""
-    with patch("resend.Emails.send_async", new_callable=AsyncMock) as mock_send_async, patch(
-        "resend.Emails.send"
-    ) as mock_send:
-        mock_send_async.return_value = {"id": "email_msg_12345", "status": "sent"}
+    with patch("resend.Emails.send") as mock_send:
         mock_send.return_value = {"id": "email_msg_12345", "status": "sent"}
-        yield mock_send_async
+        yield mock_send
 
 
 @pytest.fixture

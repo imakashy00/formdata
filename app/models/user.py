@@ -150,29 +150,21 @@ class Subscription(Base):
         """Determine if the user currently has access based on subscription state."""
         now = datetime.now(UTC)
 
-        def _to_utc(dt: datetime | None) -> datetime | None:
-            if dt is None:
-                return None
-            return dt if dt.tzinfo else dt.replace(tzinfo=UTC)
-
         # 1️⃣ Trial period — valid until trial_end
         if self.status == SubscriptionStatus.TRIAL.value:
-            trial_end = _to_utc(self.trial_end)
-            return bool(trial_end and now < trial_end)
+            return self.trial_end and now < self.trial_end
 
         # 2️⃣ Active subscription — valid until the end of the billing period
         if self.status == SubscriptionStatus.ACTIVE.value:
             # If current_period_end is known, enforce it
-            current_period_end = _to_utc(self.current_period_end)
-            if current_period_end:
-                return now < current_period_end
+            if self.current_period_end:
+                return now < self.current_period_end
             # Otherwise assume still valid
             return True
 
         # 3️⃣ Canceled subscription — access until cancel_at (end of billing period)
         if self.status == SubscriptionStatus.CANCELED.value and self.cancel_at:
-            cancel_at = _to_utc(self.cancel_at)
-            return bool(cancel_at and now < cancel_at)
+            return now < self.cancel_at
 
         # ❌ Otherwise, access revoked
         return False
@@ -262,7 +254,7 @@ class Form(Base):
 
     # TODO: Add constraints on the String and arary size of the allowed domains
     allowed_domains: Mapped[list[str]] = mapped_column(
-        ARRAY(String), server_default="{}", default=list
+        ARRAY(String), server_default="'{}'::varchar[]", default=list
     )
     redirect: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     redirect_url: Mapped[str | None] = mapped_column(String(2083), nullable=True)

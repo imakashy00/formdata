@@ -1,6 +1,5 @@
 import pytest
 
-from app.core.settings import settings
 from app.models.user import Subscription
 from app.services.bill_calculation import Overage, calculate_overage
 
@@ -17,9 +16,9 @@ def test_overage_dataclass():
 def test_calculate_overage_within_limits():
     """Verify calculate_overage returns zero overage when usage is within limits."""
     sub = Subscription(
-        price_id=settings.PADDLE_PRICE_ID_SOLO,
-        submissions_used=500,
-        storage_bytes_used=0,
+        price_id="pri_test_solo",
+        monthly_submissions_count=500,
+        storage_bytes=0,
     )
     overage = calculate_overage(sub)
     assert overage.submission_blocks == 0
