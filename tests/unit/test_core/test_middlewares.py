@@ -52,7 +52,7 @@ async def test_generic_exception_handler():
     async def trigger_unhandled():
         raise RuntimeError("Unexpected server crash")
 
-    transport = ASGITransport(app=test_app)
+    transport = ASGITransport(app=test_app, raise_app_exceptions=False)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.get("/trigger-unhandled", headers={"accept": "application/json"})
         assert response.status_code == 500

@@ -81,6 +81,7 @@ def verify_signature(sig_header: str, raw_body: bytes) -> bool:
 
 
 @user_router.post("/webhook/paddle")
+@user_router.post("/subscription/webhook")
 async def process_webhook(
     request: Request,
     db: Annotated[AsyncSession, Depends(get_db)],

@@ -1,0 +1,40 @@
+<script>
+(function() {
+    try {
+        if (typeof window !== 'undefined') {
+            var _nativeFetch = typeof window.fetch === 'function' ? window.fetch.bind(window) : window.fetch;
+            var _currentFetch = _nativeFetch;
+            try {
+                Object.defineProperty(window, 'fetch', {
+                    get: function() { return _currentFetch; },
+                    set: function(val) { _currentFetch = val; },
+                    configurable: true,
+                    enumerable: true
+                });
+            } catch (e1) {
+                try {
+                    Object.defineProperty(window, 'fetch', {
+                        value: _currentFetch,
+                        writable: true,
+                        configurable: true,
+                        enumerable: true
+                    });
+                } catch (e2) {}
+            }
+            try {
+                if (typeof Window !== 'undefined' && Window.prototype) {
+                    var desc = Object.getOwnPropertyDescriptor(Window.prototype, 'fetch');
+                    if (desc && !desc.set && desc.configurable) {
+                        Object.defineProperty(Window.prototype, 'fetch', {
+                            get: function() { return _currentFetch; },
+                            set: function(val) { _currentFetch = val; },
+                            configurable: true,
+                            enumerable: true
+                        });
+                    }
+                }
+            } catch (e3) {}
+        }
+    } catch (_) {}
+})();
+</script>

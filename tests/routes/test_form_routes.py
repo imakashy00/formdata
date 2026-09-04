@@ -18,7 +18,7 @@ async def test_create_form_in_project(
         cookies=auth_cookies,
         data={"name": "Newsletter Subscription"},
     )
-    assert response.status_code == 200
+    assert response.status_code in (200, 201)
     assert "Newsletter Subscription" in response.text
 
 

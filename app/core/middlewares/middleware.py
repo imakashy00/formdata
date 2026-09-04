@@ -15,7 +15,9 @@ PUBLIC_PATHS = {
     "/auth",
     "/auth/callback",
     "/webhook/paddle",
+    "/subscription/webhook",
     "/webhook/resend",
+    "/email/webhook",
     "/privacy-policy",
     "/terms-of-service",
     "/robots.txt",
@@ -25,8 +27,8 @@ PUBLIC_PATHS = {
 }
 
 # Pre-compile the pattern for performance
-SECRET_ROUTE_RE = re.compile(r"^/f/[a-zA-Z0-9_-]{8}/?$")
-THANK_YOU_ROUTE_RE = re.compile(r"^/f/[a-zA-Z0-9_-]{8}/thank-you/[a-zA-Z0-9_-]+/?$")
+SECRET_ROUTE_RE = re.compile(r"^/f/[a-zA-Z0-9_-]+/?$")
+THANK_YOU_ROUTE_RE = re.compile(r"^/f/[a-zA-Z0-9_-]+/thank-you/[a-zA-Z0-9_-]+/?$")
 # PUBLIC_FORM_ROUTES_RE = re.compile(
 #    r"^/f/[a-zA-Z0-9_-]{8}(/thank-you/[a-zA-Z0-9_-]+)?/?$"
 # )
