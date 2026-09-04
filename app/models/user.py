@@ -239,7 +239,6 @@ class Form(Base):
     id: Mapped[uuid.UUID] = mapped_column(PG_UUID(as_uuid=True), **UUID_PRIMARY_KEY)
 
     name: Mapped[str] = mapped_column(String(150), nullable=False)
-    heading: Mapped[str | None] = mapped_column(String(200), nullable=True)
     public_id: Mapped[str] = mapped_column(
         String(8), unique=True, index=True, nullable=False, default=generate_short_id
     )
