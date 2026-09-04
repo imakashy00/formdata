@@ -6,7 +6,8 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 from starlette.middleware.sessions import SessionMiddleware
 
-from app.core.db import AsyncSessionLocal, engine
+from app.core.db import AsyncSessionLocal, Base, engine
+import app.models.user  # noqa: F401 - Register models with Base.metadata
 from app.core.logger import setup_logger
 from app.core.middlewares.exception_handlers import register_exception_handlers
 from app.core.middlewares.middleware import register_middlewares
@@ -39,7 +40,7 @@ async def _cleanup_loop():
                     f"{buckets_deleted} stale rate_limit_buckets."
                 )
         except Exception as e:
-            log.exception(f"🚫Cleanup task failed: {e}")
+            log.warning(f"⚠️ Cleanup task skipped or failed: {e}")
 
         await asyncio.sleep(settings.CLEANUP_INTERVAL_SECONDS)
 
@@ -51,11 +52,16 @@ def start_cleanup_task():
 
 
 async def verify_services() -> None:
-    """Replacement for the old verify_services() — Postgres only now, no Redis ping."""
+    """Verify Postgres connection and ensure tables exist."""
     try:
         async with engine.connect() as connection:
             await connection.execute(text("SELECT 1"))
         log.info("✅ Postgres is reachable.")
+
+        # Ensure all tables (including auth_tokens) exist in the database
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        log.info("✅ Database schema initialized/verified.")
     except Exception as exc:
         log.error(f"❌ Postgres is not reachable: {exc}")
         if settings.ENV != "development":

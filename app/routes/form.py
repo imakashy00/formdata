@@ -5,6 +5,7 @@ from typing import Annotated
 import openpyxl
 from fastapi import (
     APIRouter,
+    BackgroundTasks,
     Depends,
     Form,
     Path,
@@ -27,7 +28,7 @@ from app.core.errors import (
 )
 from app.core.htmx import hx_toast_headers, is_htmx_dep
 from app.core.templates import temp
-from app.models.user import IntegrationProvider, User
+from app.models.user import IntegrationProvider, SubmissionStatus, User
 from app.repositories.form_repository import FormRepository
 from app.schemas.form import (
     TAB_LABELS,
@@ -43,6 +44,8 @@ from app.services.form import (
     get_form_analytics,
 )
 from app.services.submission_sync import (
+    build_pending_sync_status,
+    sync_submission_integrations,
     validate_google_sheets_config,
     validate_notion_config,
 )
@@ -227,6 +230,7 @@ async def handle_toggele_status_form_submission(
     project_id: str,
     action: str,
     submission_id: str,
+    background_tasks: BackgroundTasks,
     htmx_req: Annotated[bool, Depends(is_htmx_dep)],
     db: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(current_user)],
@@ -246,6 +250,17 @@ async def handle_toggele_status_form_submission(
 
     submission = await repository.update_submission_status(submission, action)
 
+    # When unspammed (marked as Approved/Accepted), export to configured integrations
+    if action == "unspam":
+        enabled_integrations = await repository.get_enabled_integrations(form_id)
+        if enabled_integrations:
+            submission.integration_sync_status = build_pending_sync_status(
+                enabled_integrations
+            )
+            await db.commit()
+            await db.refresh(submission)
+            background_tasks.add_task(sync_submission_integrations, str(submission.id))
+
     # 4. Return just the specific table row fragment (`<tr>...</tr>`) to swap out
     # 'sub' context variable is passed so it maps cleanly to your existing template naming
     return temp.TemplateResponse(
@@ -253,7 +268,74 @@ async def handle_toggele_status_form_submission(
         "partials/submission_row.html",
         context={"sub": submission, "form": form},
         headers=hx_toast_headers(
-            "Submission status changed successfully!", type_=ToastType.SUCCESS
+            "Submission marked as Approved and queued for sync!"
+            if action == "unspam"
+            else "Submission marked as Spam.",
+            type_=ToastType.SUCCESS,
+        ),
+    )
+
+
+@form_router.post(
+    "/{project_id}/forms/{form_id}/submissions/{submission_id}/sync",
+    response_class=HTMLResponse,
+)
+async def handle_sync_form_submission(
+    request: Request,
+    form_id: str,
+    project_id: str,
+    submission_id: str,
+    background_tasks: BackgroundTasks,
+    htmx_req: Annotated[bool, Depends(is_htmx_dep)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(current_user)],
+):
+    try:
+        submission_uuid = uuid.UUID(submission_id)
+    except ValueError:
+        raise TypeCoversionError("Invalid Submission id")
+
+    repository = FormRepository(db)
+    submission = await repository.get_submission(form_id, str(submission_uuid))
+
+    if not submission:
+        raise NotFoundError("Submission not found.")
+    form = await repository.get_by_id_and_project(form_id, project_id)
+
+    if submission.status != SubmissionStatus.ACCEPTED:
+        return temp.TemplateResponse(
+            request,
+            "partials/submission_row.html",
+            context={"sub": submission, "form": form},
+            headers=hx_toast_headers(
+                "Only approved submissions can be exported to integrations.",
+                type_=ToastType.WARNING,
+            ),
+        )
+
+    enabled_integrations = await repository.get_enabled_integrations(form_id)
+    if not enabled_integrations:
+        return temp.TemplateResponse(
+            request,
+            "partials/submission_row.html",
+            context={"sub": submission, "form": form},
+            headers=hx_toast_headers(
+                "No active integrations configured. Please connect Google Sheets or Notion first.",
+                type_=ToastType.WARNING,
+            ),
+        )
+
+    submission.integration_sync_status = build_pending_sync_status(enabled_integrations)
+    await db.commit()
+    await db.refresh(submission)
+    background_tasks.add_task(sync_submission_integrations, str(submission.id))
+
+    return temp.TemplateResponse(
+        request,
+        "partials/submission_row.html",
+        context={"sub": submission, "form": form},
+        headers=hx_toast_headers(
+            "Export to integrations queued!", type_=ToastType.SUCCESS
         ),
     )
 
@@ -390,6 +472,7 @@ async def handle_save_form_integration(
     user: Annotated[User, Depends(current_user)],
     sheet_url: Annotated[str | None, Form()] = None,
     worksheet_name: Annotated[str | None, Form()] = None,
+    google_token: Annotated[str | None, Form()] = None,
     database_id: Annotated[str | None, Form()] = None,
     notion_token: Annotated[str | None, Form()] = None,
 ):
@@ -398,25 +481,46 @@ async def handle_save_form_integration(
         raise NotFoundError("Form not found")
 
     provider_name = provider.lower().strip()
-    if provider_name == "google_sheets":
-        config = validate_google_sheets_config(sheet_url, worksheet_name)
-        await FormRepository(db).upsert_form_integration(
-            form_id,
-            project_id,
-            IntegrationProvider.GOOGLE_SHEETS,
-            config,
-            enabled=False,
+    try:
+        if provider_name == "google_sheets":
+            config = validate_google_sheets_config(sheet_url, worksheet_name, google_token)
+            await FormRepository(db).upsert_form_integration(
+                form_id,
+                project_id,
+                IntegrationProvider.GOOGLE_SHEETS,
+                config,
+                enabled=True,
+            )
+        elif provider_name == "notion":
+            config = validate_notion_config(database_id, notion_token)
+            await FormRepository(db).upsert_form_integration(
+                form_id,
+                project_id,
+                IntegrationProvider.NOTION,
+                config,
+                enabled=True,
+            )
+        else:
+            raise NotFoundError("Integration not found")
+    except ValueError as val_err:
+        return temp.TemplateResponse(
+            request,
+            "form_integrations.html",
+            {
+                "request": request,
+                "form": form,
+                "active_tab": "integrations",
+                "active_tab_template": TAB_TEMPLATES[FormTab.integrations],
+                "tab_labels": TAB_LABELS,
+                "user": user,
+                "page": "projects",
+                "integration_map": await FormRepository(db).get_integration_map(
+                    form_id, project_id
+                ),
+            },
+            headers=hx_toast_headers(str(val_err), type_=ToastType.ERROR),
+            status_code=status.HTTP_400_BAD_REQUEST,
         )
-    elif provider_name == "notion":
-        config = validate_notion_config(database_id, notion_token)
-        await FormRepository(db).upsert_form_integration(
-            form_id,
-            project_id,
-            IntegrationProvider.NOTION,
-            config,
-        )
-    else:
-        raise NotFoundError("Integration not found")
 
     return temp.TemplateResponse(
         request,
@@ -434,7 +538,8 @@ async def handle_save_form_integration(
             ),
         },
         headers=hx_toast_headers(
-            "Integration saved successfully!", type_=ToastType.SUCCESS
+            f"{'Google Sheets' if provider_name == 'google_sheets' else 'Notion'} configuration saved successfully!",
+            type_=ToastType.SUCCESS,
         ),
         status_code=status.HTTP_200_OK,
     )

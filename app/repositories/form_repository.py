@@ -29,10 +29,12 @@ class FormRepository:
         return list(result.scalars().all())
 
     async def get_by_id_and_project(
-        self, form_id: str, project_id: str, include_submissions: bool = False
+        self, form_id: str | UUID, project_id: str | UUID, include_submissions: bool = False
     ) -> FormDB | None:
+        f_uuid = UUID(str(form_id)) if not isinstance(form_id, UUID) else form_id
+        p_uuid = UUID(str(project_id)) if not isinstance(project_id, UUID) else project_id
         query = select(FormDB).where(
-            FormDB.id == form_id, FormDB.project_id == project_id
+            FormDB.id == f_uuid, FormDB.project_id == p_uuid
         )
         if include_submissions:
             query = query.options(selectinload(FormDB.submissions))
@@ -40,33 +42,67 @@ class FormRepository:
         return result.scalar_one_or_none()
 
     async def get_by_name_and_project(
-        self, name: str, project_id: str
+        self, name: str, project_id: str | UUID
     ) -> FormDB | None:
+        p_uuid = UUID(str(project_id)) if not isinstance(project_id, UUID) else project_id
         query = select(FormDB).where(
-            FormDB.project_id == project_id, FormDB.name == name
+            FormDB.project_id == p_uuid, FormDB.name == name
         )
         result = await self.db.execute(query)
         return result.scalar_one_or_none()
 
     async def get_integration_map(
-        self, form_id: str, project_id: str
+        self, form_id: str | UUID, project_id: str | UUID
     ) -> dict[str, dict]:
         form = await self.get_by_id_and_project(form_id, project_id)
         if not form:
             return {}
 
         query = (
-            select(FormIntegration.config, Integration.provider)
+            select(
+                FormIntegration.config,
+                Integration.provider,
+                Integration.access_token,
+            )
             .join(Integration, Integration.id == FormIntegration.integration_id)
             .where(FormIntegration.form_id == form.id)
         )
         result = await self.db.execute(query)
         integration_map: dict[str, dict] = {}
-        for config, provider in result.all():
-            integration_map[provider.value] = dict(config or {})
+        for config, provider, access_token in result.all():
+            cfg = dict(config or {})
+            if access_token:
+                if provider == IntegrationProvider.GOOGLE_SHEETS and "access_token" not in cfg:
+                    cfg["access_token"] = access_token
+                elif provider == IntegrationProvider.NOTION and "notion_token" not in cfg:
+                    cfg["notion_token"] = access_token
+            integration_map[provider.value] = cfg
+
+        if "google_sheets" not in integration_map or not integration_map["google_sheets"].get("access_token"):
+            p_uuid = UUID(str(project_id)) if not isinstance(project_id, UUID) else project_id
+            project = await self.db.get(Project, p_uuid)
+            if project:
+                user_integ_res = await self.db.execute(
+                    select(Integration).where(
+                        Integration.user_id == project.user_id,
+                        Integration.provider == IntegrationProvider.GOOGLE_SHEETS,
+                        Integration.enabled.is_(True),
+                    )
+                )
+                user_integ = user_integ_res.scalar_one_or_none()
+                if user_integ and user_integ.access_token:
+                    current_gs = integration_map.get("google_sheets", {})
+                    current_gs["access_token"] = user_integ.access_token
+                    if "sheet_url" not in current_gs and user_integ.integration_metadata:
+                        current_gs["sheet_url"] = user_integ.integration_metadata.get("sheet_url", "")
+                    if "worksheet_name" not in current_gs and user_integ.integration_metadata:
+                        current_gs["worksheet_name"] = user_integ.integration_metadata.get("worksheet_name", "Sheet1")
+                    integration_map["google_sheets"] = current_gs
+
         return integration_map
 
-    async def get_enabled_integrations(self, form_id: str) -> list[dict]:
+    async def get_enabled_integrations(self, form_id: str | UUID) -> list[dict]:
+        form_uuid = UUID(str(form_id)) if not isinstance(form_id, UUID) else form_id
         result = await self.db.execute(
             select(
                 Integration.provider,
@@ -78,7 +114,7 @@ class FormRepository:
                 FormIntegration.config,
             )
             .join(Integration, Integration.id == FormIntegration.integration_id)
-            .where(FormIntegration.form_id == form_id)
+            .where(FormIntegration.form_id == form_uuid)
             .where(FormIntegration.enabled.is_(True))
             .where(Integration.enabled.is_(True))
         )
@@ -109,8 +145,8 @@ class FormRepository:
 
     async def upsert_form_integration(
         self,
-        form_id: str,
-        project_id: str,
+        form_id: str | UUID,
+        project_id: str | UUID,
         provider: IntegrationProvider,
         config: dict,
         enabled: bool = True,
@@ -119,7 +155,8 @@ class FormRepository:
         if not form:
             raise ValueError("Form not found")
 
-        project = await self.db.get(Project, project_id)
+        p_uuid = UUID(str(project_id)) if not isinstance(project_id, UUID) else project_id
+        project = await self.db.get(Project, p_uuid)
         if project is None:
             raise ValueError("Project not found")
 
@@ -141,10 +178,13 @@ class FormRepository:
 
         if provider == IntegrationProvider.NOTION and config.get("notion_token"):
             integration.access_token = config["notion_token"]
-        elif provider == IntegrationProvider.GOOGLE_SHEETS and config.get("sheet_url"):
+        elif provider == IntegrationProvider.GOOGLE_SHEETS:
+            if config.get("access_token"):
+                integration.access_token = config["access_token"]
             integration.integration_metadata = {
                 "sheet_url": config.get("sheet_url"),
                 "worksheet_name": config.get("worksheet_name") or "Sheet1",
+                "spreadsheet_id": config.get("spreadsheet_id"),
             }
         else:
             integration.integration_metadata = dict(config or {})

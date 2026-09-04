@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -21,7 +23,8 @@ class ClientFormRepository:
         result = await self.db.execute(query)
         return result.scalar_one_or_none()
 
-    async def get_enabled_integrations(self, form_id: str) -> list[dict]:
+    async def get_enabled_integrations(self, form_id: str | UUID) -> list[dict]:
+        form_uuid = UUID(str(form_id)) if not isinstance(form_id, UUID) else form_id
         query = (
             select(
                 IntegrationDB.provider,
@@ -31,7 +34,7 @@ class ClientFormRepository:
                 FormIntegration.config,
             )
             .join(IntegrationDB, IntegrationDB.id == FormIntegration.integration_id)
-            .where(FormIntegration.form_id == form_id)
+            .where(FormIntegration.form_id == form_uuid)
             .where(FormIntegration.enabled.is_(True))
             .where(IntegrationDB.enabled.is_(True))
         )

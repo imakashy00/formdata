@@ -3,11 +3,12 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import RedirectResponse
 from loguru import logger as log
+from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_db
-from app.models.user import User
+from app.models.user import Integration, IntegrationProvider, User
 from app.schemas.error import AuthenticationError, TokenGenerationError
 from app.schemas.user import RegisterUser
 from app.services.auth import decode
@@ -50,6 +51,35 @@ async def auth_callback(request: Request, db: Annotated[AsyncSession, Depends(ge
         # and registration (if user is new) and return the internal user_id.
         user_id = await register_user(userinfo=user_info_schema, db=db)
         log.info(f"👤 User registration/lookup successful. Internal ID: {user_id}")
+
+        # Store or update Google OAuth write token in Integration table for Google Sheets
+        google_access_token = token.get("access_token")
+        google_refresh_token = token.get("refresh_token")
+        if google_access_token and user_id:
+            try:
+                result = await db.execute(
+                    select(Integration).where(
+                        Integration.user_id == user_id,
+                        Integration.provider == IntegrationProvider.GOOGLE_SHEETS,
+                    )
+                )
+                user_integration = result.scalar_one_or_none()
+                if not user_integration:
+                    user_integration = Integration(
+                        user_id=user_id,
+                        provider=IntegrationProvider.GOOGLE_SHEETS,
+                        access_token=google_access_token,
+                        refresh_token=google_refresh_token,
+                        enabled=True,
+                    )
+                    db.add(user_integration)
+                else:
+                    user_integration.access_token = google_access_token
+                    if google_refresh_token:
+                        user_integration.refresh_token = google_refresh_token
+                await db.commit()
+            except Exception as integ_err:
+                log.warning(f"Could not persist Google OAuth write token: {integ_err}")
 
     except SQLAlchemyError as e:
         # Catch specific DB exceptions (e.g., integrity errors) if possible
