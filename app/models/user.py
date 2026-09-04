@@ -254,7 +254,7 @@ class Form(Base):
 
     # TODO: Add constraints on the String and arary size of the allowed domains
     allowed_domains: Mapped[list[str]] = mapped_column(
-        ARRAY(String), server_default="'{}'::varchar[]", default=list
+        ARRAY(String), server_default="{}", default=list
     )
     redirect: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     redirect_url: Mapped[str | None] = mapped_column(String(2083), nullable=True)
