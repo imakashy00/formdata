@@ -210,8 +210,8 @@
         <div class="mb-8">
             <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900">Privacy Policy</h1>
             <div class="flex flex-wrap items-center gap-2 mt-1.5 text-sm text-slate-500">
-                <span><i class="fa-regular fa-calendar mr-1.5"></i>Last updated: <strong class="text-slate-700">August
-                        19, 2026</strong></span>
+                <span><i class="fa-regular fa-calendar mr-1.5"></i>Last updated: <strong
+                        class="text-slate-700">September 5, 2026</strong></span>
                 <span class="hidden xs:inline text-slate-300">|</span>
                 <span class="flex items-center gap-1.5"><i class="fa-regular fa-building"></i>Formdata</span>
             </div>
@@ -252,7 +252,7 @@
                 </li>
                 <li><a href="#section-7" class="toc-link text-slate-600 hover:text-blue-600">7. Integrations</a></li>
                 <li><a href="#section-7-google" class="toc-link text-slate-600 hover:text-blue-600">7.1. Google API
-                        Services User Data Policy</a></li>
+                        Services &amp; Google User Data</a></li>
                 <li><a href="#section-8" class="toc-link text-slate-600 hover:text-blue-600">8. Data Security</a></li>
                 <li><a href="#section-9" class="toc-link text-slate-600 hover:text-blue-600">9. Data Retention</a></li>
                 <li><a href="#section-10" class="toc-link text-slate-600 hover:text-blue-600">10. Your Rights</a></li>
@@ -449,26 +449,114 @@
                 Formdata is not responsible for how an external integration provider subsequently uses information after
                 it leaves Formdata's systems.</p>
 
-            <h3 id="section-7-google">7.1. Google API Services User Data Policy Disclosure</h3>
-            <p>Formdata's integration with Google API Services (such as Google OAuth) allows us to access certain Google
-                user data with your explicit authorization.</p>
+            <h3 id="section-7-google">7.1. Google API Services and Google User Data</h3>
 
+            <p>Formdata uses Google API Services to provide Google Sign-In and, when enabled by a customer, integration
+                with Google Sheets. Google user data is accessed only after the user explicitly authorizes the requested
+                Google permissions through Google's authorization flow.</p>
+
+            <h3>7.1.1. Google Data We Access</h3>
+            <p>When you use Google Sign-In to create or access your Formdata account, Formdata may access the following
+                information from your Google Account:</p>
             <ul>
-                <li><strong>Data Accessed:</strong> We only request the minimum required permissions (scopes) needed to
-                    integrate our service with your Google Account, such as exporting form submissions to Google Sheets
-                    or authenticating your account using Google Sign-In.</li>
-                <li><strong>Data Use:</strong> We use this data strictly to provide and improve user-facing features
-                    within Formdata. We do not use Google user data for any other purposes.</li>
-                <li><strong>Data Sharing and Transfer:</strong> We do not sell, rent, or transfer your Google user data
-                    to third parties, including advertising platforms, data brokers, or information resellers.</li>
-                <li><strong>Compliance &amp; Limited Use:</strong> Formdata's use and transfer of information received
-                    from Google APIs to any other app will adhere to the
-                    <a href="https://developers.google.com/terms/api-services-user-data-policy"
-                        class="text-blue-600 hover:text-blue-800 font-medium transition-colors" target="_blank"
-                        rel="noopener noreferrer">Google API Services User Data Policy</a>,
-                    including the <strong>Limited Use</strong> requirements.
-                </li>
+                <li><strong>Email address:</strong> used to identify your Formdata account and communicate with you
+                    about
+                    your account or service.</li>
+                <li><strong>Name:</strong> used to identify your account and display your name within Formdata.</li>
+                <li><strong>Profile picture:</strong> used to display your Google profile image within your Formdata
+                    account or user interface.</li>
+                <li><strong>Google account identifier:</strong> used to associate your Google authorization with the
+                    correct Formdata account, where provided by Google.</li>
             </ul>
+
+            <p>When you enable the Google Sheets integration, Formdata requests permission to create, read, and edit
+                Google Sheets or other Google Drive files necessary to provide the integration. This access allows
+                Formdata to create a spreadsheet when needed, read information necessary to identify or work with the
+                spreadsheet selected or configured by the customer, and edit the spreadsheet by writing or updating
+                authorized form submission data.</p>
+
+            <h3>7.1.2. How We Use Google User Data</h3>
+            <p>We use Google user data only to provide the Formdata functionality that you request or authorize. This
+                includes:</p>
+            <ul>
+                <li>Authenticating you through Google Sign-In.</li>
+                <li>Creating and maintaining your Formdata account.</li>
+                <li>Displaying your name, email address, and profile picture within Formdata.</li>
+                <li>Connecting your Formdata account to Google Sheets.</li>
+                <li>Creating, reading, and editing the Google Sheets files required for the integration.</li>
+                <li>Writing form submission data to the Google Sheet you select or configure.</li>
+                <li>Maintaining the authorized connection so future form submissions can continue to be delivered to the
+                    configured spreadsheet.</li>
+            </ul>
+
+            <p>Formdata does not use Google user data for targeted advertising, personalized advertising, selling to
+                data
+                brokers or information resellers, creditworthiness or lending determinations, or training generalized or
+                non-personalized artificial intelligence or machine-learning models.</p>
+
+            <h3>7.1.3. How We Store and Protect Google User Data</h3>
+            <p>Formdata may store information received from Google, including the Google account information needed for
+                authentication and the authorization credentials or tokens needed to maintain an authorized connection
+                to Google services.</p>
+
+            <p>Google-related information and authorization credentials are protected using reasonable technical and
+                organizational safeguards designed to prevent unauthorized access, alteration, disclosure, or
+                destruction.
+                These safeguards may include encryption in transit, access controls, authentication mechanisms, logging,
+                monitoring, infrastructure security controls, and backup and recovery mechanisms.</p>
+
+            <p>Access to Google-related information is limited to authorized Formdata systems and personnel who require
+                access to operate, maintain, troubleshoot, or secure the service. We do not intentionally expose Google
+                authorization credentials or tokens to other Formdata users.</p>
+
+            <h3>7.1.4. Sharing, Transfer, and Disclosure of Google User Data</h3>
+            <p>Formdata does not sell, rent, or transfer Google user data to advertising platforms, data brokers, or
+                information resellers.</p>
+
+            <p>Google user data may be processed by trusted service providers that help us operate Formdata, including
+                providers for cloud hosting, databases, security, monitoring, or other infrastructure. Such providers
+                receive only information reasonably necessary to provide their services and are expected to protect that
+                information appropriately.</p>
+
+            <p>When you enable the Google Sheets integration, Formdata sends the form submission information you have
+                configured to the Google Sheet selected or configured by you. This transfer is performed to provide the
+                Google Sheets functionality you explicitly enabled.</p>
+
+            <p>Formdata does not disclose Google user data to third parties for purposes unrelated to providing or
+                improving
+                Formdata functionality, except where disclosure is required by law, necessary to protect the rights or
+                safety of Formdata or others, or otherwise permitted by applicable law.</p>
+
+            <h3>7.1.5. Google Data Retention and Deletion</h3>
+            <p>Formdata retains Google user data only for as long as reasonably necessary to provide the authorized
+                Google functionality, maintain your Formdata account and Google integration, satisfy legal obligations,
+                maintain security, prevent abuse or fraud, or resolve disputes.</p>
+
+            <p>When you disconnect your Google Account from Formdata or remove the Google Sheets integration, Formdata
+                will stop using the associated Google authorization and will delete or disable stored Google
+                authorization
+                credentials and tokens in accordance with our data-retention and security processes, except where
+                retention
+                is required or permitted by law or reasonably necessary for security, fraud prevention, backup,
+                recovery,
+                or legal compliance.</p>
+
+            <p>Data that has already been written to a Google Sheet is not automatically deleted when you disconnect the
+                integration. That data remains under the control of the applicable Google Account and is subject to
+                Google's terms and privacy practices.</p>
+
+            <h3>7.1.6. Disconnecting or Revoking Google Access</h3>
+            <p>You may disconnect the Google integration through Formdata where that functionality is available. You may
+                also revoke Formdata's access through your Google Account security settings. Once authorization has been
+                revoked, Formdata will no longer use the revoked authorization to access Google services.</p>
+
+            <h3>7.1.7. Google API Services User Data Policy and Limited Use</h3>
+            <p>Formdata's use and transfer of information received from Google APIs to any other app will adhere to the
+                <a href="https://developers.google.com/terms/api-services-user-data-policy"
+                    class="text-blue-600 hover:text-blue-800 font-medium transition-colors" target="_blank"
+                    rel="noopener noreferrer">Google API Services User Data Policy</a>,
+                including its <strong>Limited Use</strong> requirements.
+            </p>
 
             <hr class="section-divider" />
 
