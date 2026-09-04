@@ -69,6 +69,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_db
+from app.core.settings import settings
 from app.models.user import RateLimitBucket
 
 
@@ -82,6 +83,9 @@ def rate_limit(limit: int, window_seconds: int = 60, key_prefix: str = "global")
     async def dependency(
         request: Request, db: Annotated[AsyncSession, Depends(get_db)]
     ) -> None:
+        if not settings.RATE_LIMIT_ENABLED:
+            return
+
         client_ip = request.client.host if request.client else "unknown"
         bucket_key = f"{key_prefix}:{client_ip}"
         now = datetime.now(UTC)
@@ -101,17 +105,24 @@ def rate_limit(limit: int, window_seconds: int = 60, key_prefix: str = "global")
             )
             .returning(RateLimitBucket.request_count)
         )
-        result = await db.execute(stmt)
-        await db.commit()
-        count = result.scalar_one()
+        try:
+            result = await db.execute(stmt)
+            await db.commit()
+            count = result.scalar_one()
 
-        if count > limit:
-            retry_after = window_seconds - (int(now.timestamp()) % window_seconds)
-            raise HTTPException(
-                status_code=429,
-                detail="Rate limit exceeded. Try again later.",
-                headers={"Retry-After": str(retry_after)},
-            )
+            if count > limit:
+                retry_after = window_seconds - (int(now.timestamp()) % window_seconds)
+                raise HTTPException(
+                    status_code=429,
+                    detail="Rate limit exceeded. Try again later.",
+                    headers={"Retry-After": str(retry_after)},
+                )
+        except HTTPException:
+            raise
+        except Exception:
+            if settings.ENV == "development":
+                return
+            raise
 
     return dependency
 

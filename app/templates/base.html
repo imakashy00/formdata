@@ -8,22 +8,7 @@
     <title>{% block title %}Formdata{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', path='/css/output.css') }}">
 
-    <script>
-        // Ensure window.fetch is writable and configurable in sandboxed environments
-        try {
-            if (typeof window !== 'undefined' && typeof window.fetch === 'function') {
-                const nativeFetch = window.fetch.bind(window);
-                try {
-                    Object.defineProperty(window, 'fetch', {
-                        value: nativeFetch,
-                        writable: true,
-                        configurable: true,
-                        enumerable: true
-                    });
-                } catch (_) {}
-            }
-        } catch (_) {}
-    </script>
+    {% include 'partials/head_shim.html' %}
     <script defer src="{{ url_for('static', path='/js/htmx.js') }}"></script>
     <script defer src="{{ url_for('static', path='/js/alpine.js' )}}"></script>
 

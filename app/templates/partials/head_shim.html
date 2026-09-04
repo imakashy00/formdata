@@ -1,0 +1,27 @@
+<script>
+    (function() {
+        try {
+            var target = typeof window !== 'undefined' ? window : this;
+            if (!target) return;
+            var currentFetch = target.fetch;
+            function defineAccessor(obj) {
+                try {
+                    Object.defineProperty(obj, 'fetch', {
+                        get: function() {
+                            return currentFetch;
+                        },
+                        set: function(fn) {
+                            currentFetch = fn;
+                        },
+                        configurable: true,
+                        enumerable: true
+                    });
+                } catch (_) {}
+            }
+            defineAccessor(target);
+            if (target.Window && target.Window.prototype) {
+                defineAccessor(target.Window.prototype);
+            }
+        } catch (_) {}
+    })();
+</script>

@@ -58,7 +58,8 @@ async def verify_services() -> None:
         log.info("✅ Postgres is reachable.")
     except Exception as exc:
         log.error(f"❌ Postgres is not reachable: {exc}")
-        raise
+        if settings.ENV != "development":
+            raise
 
 
 @asynccontextmanager
