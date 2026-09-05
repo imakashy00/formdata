@@ -21,18 +21,18 @@
         <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 pb-4 border-b border-gray-100">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-sm border border-emerald-100">
+                    <div class="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-sm border border-emerald-100 shrink-0">
                         <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14H6v-2h6v2zm0-4H6v-2h6v2zm0-4H6V7h6v2zm6 8h-4v-2h4v2zm0-4h-4v-2h4v2zm0-4h-4V7h4v2z" />
                         </svg>
                     </div>
                     <div>
                         <h4 class="text-sm font-semibold text-gray-900">Google Sheets</h4>
-                        <p class="text-xs text-gray-500">Append submissions directly to a Google Spreadsheet via Google OAuth 2.0.</p>
+                        <p class="text-xs text-gray-500">Append form submissions to a Google Spreadsheet using Google OAuth 2.0.</p>
                     </div>
                 </div>
                 <div class="flex items-center gap-2">
-                    {% if google_sheet_cfg.sheet_url and (google_sheet_cfg.access_token or google_sheet_cfg.has_refresh_token) and google_sheet_cfg.enabled != false %}
+                    {% if google_sheet_cfg.sheet_url and (google_sheet_cfg.access_token or google_sheet_cfg.has_refresh_token or google_sheet_cfg.has_google_account) and google_sheet_cfg.enabled != false %}
                     <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
                         <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                         Connected & Active
@@ -40,7 +40,7 @@
                     {% elif google_sheet_cfg.has_google_account or google_sheet_cfg.access_token %}
                     <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
                         <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                        Drive Scope Authorized
+                        Google Account Connected
                     </span>
                     {% else %}
                     <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-gray-50 text-gray-500 border border-gray-200">
@@ -50,111 +50,164 @@
                 </div>
             </div>
 
-            <div class="mb-5 bg-gray-50 border border-gray-100 rounded-lg p-3.5 text-xs text-gray-600 space-y-1.5">
-                <div class="flex items-center gap-2 font-medium text-gray-800">
-                    <svg class="w-4 h-4 text-emerald-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                    </svg>
-                    <span>Secure Scope (<code>drive.file</code>) with Offline Access</span>
+            {% if not (google_sheet_cfg.has_google_account or google_sheet_cfg.access_token) %}
+            <!-- State 1: Not Connected -->
+            <div class="space-y-4">
+                <p class="text-xs text-gray-600 leading-relaxed">
+                    Connect your Google account to grant Formdata permission to sync form submissions into your spreadsheet.
+                </p>
+                <div>
+                    <a href="/projects/{{ form.project_id }}/forms/{{ form.id }}/integrations/google_sheets/connect"
+                        class="inline-flex items-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors shadow-xs">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24">
+                            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+                        </svg>
+                        Connect Google Account
+                    </a>
                 </div>
-                <p class="text-[11px] text-gray-500 leading-relaxed">
-                    Uses the recommended <strong>drive.file</strong> OAuth 2.0 scope. This gives Formdata access only to spreadsheets created or explicitly opened by Formdata, without granting full access to the rest of your Google Drive.
+                <p class="text-[11px] text-gray-400">
+                    Uses the secure <code class="text-gray-600 font-mono">drive.file</code> scope. Formdata only accesses files created or explicitly linked with it.
                 </p>
             </div>
 
-            <!-- Connect / Action Bar -->
-            <div class="flex flex-wrap items-center gap-3 mb-6">
-                <a href="/projects/{{ form.project_id }}/forms/{{ form.id }}/integrations/google_sheets/connect"
-                    class="inline-flex items-center gap-2 px-4 py-2 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors shadow-xs">
-                    <svg class="w-4 h-4" viewBox="0 0 24 24">
-                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
-                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
-                    </svg>
-                    {% if google_sheet_cfg.has_google_account or google_sheet_cfg.access_token %}
-                    Reconnect Google Account
-                    {% else %}
-                    Connect Google Account
-                    {% endif %}
-                </a>
+            {% elif google_sheet_cfg.sheet_url %}
+            <!-- State 2: One Active Spreadsheet Linked -->
+            <div class="space-y-4">
+                <div class="p-4 bg-emerald-50/50 border border-emerald-100 rounded-xl space-y-3">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div class="flex items-start gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 mt-0.5">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h5 class="text-xs font-semibold text-gray-900">
+                                    {{ google_sheet_cfg.sheet_title or "Google Spreadsheet Linked" }}
+                                </h5>
+                                <a href="{{ google_sheet_cfg.sheet_url }}" target="_blank" rel="noopener noreferrer"
+                                    class="text-xs text-brand hover:underline font-mono inline-flex items-center gap-1 mt-0.5 max-w-md truncate">
+                                    <span>{{ google_sheet_cfg.sheet_url }}</span>
+                                    <svg class="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                    </svg>
+                                </a>
+                                <div class="text-[11px] text-gray-500 mt-1">
+                                    Syncing to worksheet tab: <span class="font-medium text-gray-700">{{ google_sheet_cfg.worksheet_name or 'Submissions' }}</span>
+                                </div>
+                            </div>
+                        </div>
 
-                {% if google_sheet_cfg.has_google_account or google_sheet_cfg.access_token %}
-                <button type="button"
-                    hx-post="/projects/{{ form.project_id }}/forms/{{ form.id }}/integrations/google_sheets/create_sheet"
-                    hx-target="#tab-content"
-                    hx-swap="outerHTML"
-                    class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors cursor-pointer">
-                    <svg class="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                    </svg>
-                    Create New Sheet in Drive
-                </button>
-                {% endif %}
+                        <div class="flex items-center gap-2 self-end sm:self-center">
+                            <a href="{{ google_sheet_cfg.sheet_url }}" target="_blank" rel="noopener noreferrer"
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-700 bg-white border border-emerald-200 rounded-lg hover:bg-emerald-50 transition-colors shadow-2xs">
+                                Open in Sheets
+                                <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                </svg>
+                            </a>
+                            <button type="button"
+                                hx-post="/projects/{{ form.project_id }}/forms/{{ form.id }}/integrations/google_sheets/disconnect"
+                                hx-target="#tab-content"
+                                hx-swap="outerHTML"
+                                hx-confirm="Are you sure you want to disconnect Google Sheets for this form?"
+                                class="px-2.5 py-1.5 text-xs font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors cursor-pointer">
+                                Disconnect
+                            </button>
+                        </div>
+                    </div>
+                </div>
 
-                {% if google_sheet_cfg.sheet_url %}
-                <a href="{{ google_sheet_cfg.sheet_url }}" target="_blank" rel="noopener noreferrer"
-                    class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-gray-600 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors">
-                    <svg class="w-3.5 h-3.5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                    </svg>
-                    Open Spreadsheet
-                </a>
-                {% endif %}
-
-                {% if google_sheet_cfg.sheet_url or google_sheet_cfg.access_token %}
-                <button type="button"
-                    hx-post="/projects/{{ form.project_id }}/forms/{{ form.id }}/integrations/google_sheets/disconnect"
-                    hx-target="#tab-content"
-                    hx-swap="outerHTML"
-                    hx-confirm="Are you sure you want to disconnect Google Sheets for this form?"
-                    class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors cursor-pointer ml-auto">
-                    Disconnect
-                </button>
-                {% endif %}
+                <!-- Simple Link Editor to update link if needed -->
+                <details class="group text-xs">
+                    <summary class="cursor-pointer text-gray-500 hover:text-gray-700 font-medium select-none py-1 inline-flex items-center gap-1.5">
+                        <svg class="w-3.5 h-3.5 transition-transform group-open:rotate-90 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                        </svg>
+                        Change Spreadsheet Link or Tab Name
+                    </summary>
+                    <form hx-post="/projects/{{ form.project_id }}/forms/{{ form.id }}/integrations/google_sheets"
+                        hx-target="#tab-content" hx-swap="outerHTML" class="space-y-3 mt-3 pt-3 border-t border-gray-100">
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Google Spreadsheet Link</label>
+                            <input type="url" name="sheet_url" value="{{ google_sheet_cfg.sheet_url or '' }}" required
+                                placeholder="https://docs.google.com/spreadsheets/d/.../edit"
+                                class="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs font-mono focus:outline-none focus:border-brand transition-colors">
+                        </div>
+                        <div class="w-48">
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Worksheet Tab Name</label>
+                            <input type="text" name="worksheet_name" value="{{ google_sheet_cfg.worksheet_name or 'Submissions' }}"
+                                class="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand transition-colors">
+                        </div>
+                        <button type="submit"
+                            class="px-3.5 py-1.5 text-xs font-medium text-white bg-brand hover:bg-brand-dark rounded-lg transition-colors cursor-pointer shadow-xs">
+                            Update Spreadsheet Link
+                        </button>
+                    </form>
+                </details>
             </div>
 
-            <!-- Form Configuration -->
-            <form hx-post="/projects/{{ form.project_id }}/forms/{{ form.id }}/integrations/google_sheets"
-                hx-target="#tab-content" hx-swap="outerHTML" class="space-y-4 pt-2 border-t border-gray-100">
-                <div>
-                    <label class="block text-xs font-semibold text-gray-700 mb-1.5">Spreadsheet URL</label>
-                    <input type="url" name="sheet_url" value="{{ google_sheet_cfg.sheet_url or '' }}"
-                        placeholder="https://docs.google.com/spreadsheets/d/1a2b3c4d5e.../edit" required
-                        class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand transition-colors font-mono text-xs">
-                    <p class="text-[11px] text-gray-400 mt-1">Full URL to the target Google Spreadsheet.</p>
+            {% else %}
+            <!-- State 3: Consent Given, Prompting for Spreadsheet Link -->
+            <div class="space-y-4">
+                <div class="flex items-center justify-between p-3 bg-blue-50/60 border border-blue-100 rounded-lg text-xs text-blue-800">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-4 h-4 text-blue-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span>Google Account authorized! Paste the link to your Google Spreadsheet below.</span>
+                    </div>
+                    <a href="/projects/{{ form.project_id }}/forms/{{ form.id }}/integrations/google_sheets/connect"
+                        class="text-[11px] text-blue-600 hover:underline font-medium ml-2">
+                        Reconnect
+                    </a>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <form hx-post="/projects/{{ form.project_id }}/forms/{{ form.id }}/integrations/google_sheets"
+                    hx-target="#tab-content" hx-swap="outerHTML" class="space-y-4">
                     <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1.5">Google Spreadsheet Link</label>
+                        <input type="url" name="sheet_url" value="" required autofocus
+                            placeholder="https://docs.google.com/spreadsheets/d/.../edit"
+                            class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-xs font-mono focus:outline-none focus:border-brand transition-colors">
+                        <p class="text-[11px] text-gray-400 mt-1">Paste the full URL of your Google Spreadsheet.</p>
+                    </div>
+
+                    <div class="w-full sm:w-64">
                         <label class="block text-xs font-semibold text-gray-700 mb-1.5">Worksheet Tab Name</label>
-                        <input type="text" name="worksheet_name"
-                            value="{{ google_sheet_cfg.worksheet_name or 'Submissions' }}" placeholder="Submissions"
-                            class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand transition-colors">
-                        <p class="text-[11px] text-gray-400 mt-1">Tab where rows will be appended (default: Submissions).</p>
+                        <input type="text" name="worksheet_name" value="Submissions" placeholder="Submissions"
+                            class="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand transition-colors">
+                        <p class="text-[11px] text-gray-400 mt-1">Worksheet tab where rows will be added (default: Submissions).</p>
                     </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1.5">
-                            OAuth Token
-                            {% if google_sheet_cfg.has_refresh_token or google_sheet_cfg.has_google_account %}
-                            <span class="text-[10px] text-emerald-600 font-normal ml-1">✓ Managed via OAuth Refresh Token</span>
-                            {% endif %}
-                        </label>
-                        <input type="password" name="google_token"
-                            value="{{ google_sheet_cfg.access_token or '' }}"
-                            placeholder="Managed automatically via OAuth"
-                            class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand transition-colors font-mono text-xs">
-                        <p class="text-[11px] text-gray-400 mt-1">Auto-managed when connected with Google OAuth above.</p>
-                    </div>
-                </div>
 
-                <div class="pt-2">
-                    <button type="submit"
-                        class="py-2 px-4 text-xs font-medium text-white bg-brand hover:bg-brand-dark rounded-lg transition-colors cursor-pointer shadow-xs">
-                        Save Google Sheets Configuration
-                    </button>
-                </div>
-            </form>
+                    <div class="flex flex-wrap items-center gap-3 pt-1">
+                        <button type="submit"
+                            class="px-4 py-2 text-xs font-medium text-white bg-brand hover:bg-brand-dark rounded-lg transition-colors cursor-pointer shadow-xs">
+                            Save Spreadsheet
+                        </button>
+
+                        <button type="button"
+                            hx-post="/projects/{{ form.project_id }}/forms/{{ form.id }}/integrations/google_sheets/create_sheet"
+                            hx-target="#tab-content"
+                            hx-swap="outerHTML"
+                            class="text-xs text-brand hover:underline font-medium cursor-pointer ml-1">
+                            or auto-create a new sheet in Drive →
+                        </button>
+
+                        <button type="button"
+                            hx-post="/projects/{{ form.project_id }}/forms/{{ form.id }}/integrations/google_sheets/disconnect"
+                            hx-target="#tab-content"
+                            hx-swap="outerHTML"
+                            class="text-xs text-gray-400 hover:text-red-600 transition-colors cursor-pointer ml-auto">
+                            Disconnect
+                        </button>
+                    </div>
+                </form>
+            </div>
+            {% endif %}
         </div>
 
         <!-- Notion Card -->

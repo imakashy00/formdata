@@ -52,16 +52,39 @@ async def process_google_sheets_callback(
     state_data = _decode_oauth_state(state_param)
     if not state_data and "google_sheets_state" in request.session:
         state_data = request.session.pop("google_sheets_state", {})
+    else:
+        request.session.pop("google_sheets_state", None)
+
+    code = request.query_params.get("code")
+    redirect_uri = str(request.url_for("auth_callback"))
+    if str(settings.BASE_URL).startswith("https:") or request.headers.get("x-forwarded-proto") == "https":
+        redirect_uri = redirect_uri.replace("http://", "https://", 1)
 
     token = None
     try:
         token = await oauth.google_sheets.authorize_access_token(request)
     except Exception as exc:
-        log.warning(f"Failed authorize_access_token on google_sheets client: {exc}. Trying google client...")
-        try:
-            token = await oauth.google.authorize_access_token(request)
-        except Exception as exc2:
-            log.error(f"Failed authorize_access_token on google client: {exc2}")
+        log.warning(f"Failed authorize_access_token on google_sheets client: {exc}. Trying direct code exchange...")
+        if code:
+            try:
+                async with httpx.AsyncClient(timeout=15.0) as client:
+                    resp = await client.post(
+                        "https://oauth2.googleapis.com/token",
+                        data={
+                            "code": code,
+                            "client_id": settings.GOOGLE_CLIENT_ID,
+                            "client_secret": settings.GOOGLE_CLIENT_SECRET,
+                            "redirect_uri": redirect_uri,
+                            "grant_type": "authorization_code",
+                        },
+                    )
+                    if resp.status_code == 200:
+                        token = resp.json()
+                        log.info("Direct Google token exchange succeeded.")
+                    else:
+                        log.error(f"Direct token exchange failed ({resp.status_code}): {resp.text}")
+            except Exception as direct_exc:
+                log.error(f"Direct exchange error: {direct_exc}")
 
     project_id = state_data.get("project_id")
     form_id = state_data.get("form_id")
@@ -123,43 +146,20 @@ async def process_google_sheets_callback(
         if form:
             current_map = await form_repo.get_integration_map(form_id, project_id)
             gs_cfg = current_map.get("google_sheets", {})
-            sheet_url = gs_cfg.get("sheet_url")
-            spreadsheet_id = gs_cfg.get("spreadsheet_id")
+            sheet_url = gs_cfg.get("sheet_url") or ""
+            spreadsheet_id = gs_cfg.get("spreadsheet_id") or ""
             worksheet_name = gs_cfg.get("worksheet_name") or "Submissions"
 
-            # If no spreadsheet configured yet, auto-create one in Google Drive under drive.file!
-            if not sheet_url or not spreadsheet_id:
-                try:
-                    async with httpx.AsyncClient(timeout=15.0) as client:
-                        create_res = await client.post(
-                            "https://sheets.googleapis.com/v4/spreadsheets",
-                            headers={"Authorization": f"Bearer {access_token}"},
-                            json={
-                                "properties": {"title": f"{form.name} Submissions (Formdata)"},
-                                "sheets": [{"properties": {"title": worksheet_name}}],
-                            },
-                        )
-                        if create_res.status_code == 200:
-                            created_data = create_res.json()
-                            spreadsheet_id = created_data.get("spreadsheetId")
-                            sheet_url = f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}/edit"
-                            # Initialize standard headers
-                            await client.post(
-                                f"https://sheets.googleapis.com/v4/spreadsheets/{spreadsheet_id}/values/{worksheet_name}!A1:append?valueInputOption=USER_ENTERED",
-                                headers={"Authorization": f"Bearer {access_token}"},
-                                json={"values": [["Submitted At", "Country"]]},
-                            )
-                except Exception as exc:
-                    log.warning(f"Could not auto-create Google Spreadsheet: {exc}")
-
             new_config = {
-                "sheet_url": sheet_url or "",
-                "spreadsheet_id": spreadsheet_id or "",
+                "sheet_url": sheet_url,
+                "spreadsheet_id": spreadsheet_id,
                 "worksheet_name": worksheet_name,
                 "access_token": access_token,
             }
             if refresh_token:
                 new_config["refresh_token"] = refresh_token
+            elif gs_cfg.get("refresh_token"):
+                new_config["refresh_token"] = gs_cfg["refresh_token"]
 
             await form_repo.upsert_form_integration(
                 form_id,

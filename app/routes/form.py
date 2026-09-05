@@ -490,7 +490,7 @@ async def handle_connect_google_sheets(
     state_str = base64.urlsafe_b64encode(json.dumps(state_data).encode()).decode()
     request.session["google_sheets_state"] = state_data
 
-    redirect_uri = str(request.url_for("google_sheets_callback"))
+    redirect_uri = str(request.url_for("auth_callback"))
     if request.headers.get("x-forwarded-proto") == "https" or str(settings.BASE_URL).startswith("https:"):
         redirect_uri = redirect_uri.replace("http://", "https://", 1)
 
@@ -558,6 +558,29 @@ async def handle_create_google_sheet(
 
     integ_map = await FormRepository(db).get_integration_map(form_id, project_id)
     gs_cfg = integ_map.get("google_sheets", {})
+
+    # Ensure only ONE sheet is created. If one already exists, do not create another.
+    if gs_cfg.get("sheet_url"):
+        return temp.TemplateResponse(
+            request,
+            "form_integrations.html",
+            {
+                "request": request,
+                "form": form,
+                "active_tab": "integrations",
+                "active_tab_template": TAB_TEMPLATES[FormTab.integrations],
+                "tab_labels": TAB_LABELS,
+                "user": user,
+                "page": "projects",
+                "integration_map": integ_map,
+            },
+            headers=hx_toast_headers(
+                "A spreadsheet is already linked to this form.",
+                type_=ToastType.INFO,
+            ),
+            status_code=status.HTTP_200_OK,
+        )
+
     access_token = gs_cfg.get("access_token")
     refresh_token = gs_cfg.get("refresh_token")
 
@@ -738,9 +761,38 @@ async def handle_save_form_integration(
             integ_map = await FormRepository(db).get_integration_map(form_id, project_id)
             existing_gs = integ_map.get("google_sheets", {})
             effective_token = (google_token or "").strip() or existing_gs.get("access_token")
+            if not effective_token and existing_gs.get("refresh_token"):
+                effective_token = await _refresh_google_token(existing_gs["refresh_token"])
+            if not effective_token and not existing_gs.get("has_google_account"):
+                raise ValueError("Please connect your Google account first.")
+
             config = validate_google_sheets_config(sheet_url, worksheet_name, effective_token)
             if existing_gs.get("refresh_token"):
                 config["refresh_token"] = existing_gs["refresh_token"]
+
+            # Try to fetch spreadsheet title from Google API to confirm access
+            if effective_token:
+                try:
+                    spreadsheet_id = config["spreadsheet_id"]
+                    async with httpx.AsyncClient(timeout=10.0) as client:
+                        sheet_res = await client.get(
+                            f"https://sheets.googleapis.com/v4/spreadsheets/{spreadsheet_id}",
+                            headers={"Authorization": f"Bearer {effective_token}"},
+                        )
+                        if sheet_res.status_code == 401 and existing_gs.get("refresh_token"):
+                            effective_token = await _refresh_google_token(existing_gs["refresh_token"])
+                            if effective_token:
+                                config["access_token"] = effective_token
+                                sheet_res = await client.get(
+                                    f"https://sheets.googleapis.com/v4/spreadsheets/{spreadsheet_id}",
+                                    headers={"Authorization": f"Bearer {effective_token}"},
+                                )
+                        if sheet_res.status_code == 200:
+                            data = sheet_res.json()
+                            config["sheet_title"] = data.get("properties", {}).get("title") or "Google Spreadsheet"
+                except Exception as check_err:
+                    log.warning(f"Could not fetch spreadsheet title: {check_err}")
+
             await FormRepository(db).upsert_form_integration(
                 form_id,
                 project_id,
