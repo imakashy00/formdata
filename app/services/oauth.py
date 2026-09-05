@@ -2,6 +2,12 @@ from authlib.integrations.starlette_client import OAuth
 
 from app.core.settings import settings
 
+
+def google_sheets_redirect_uri() -> str:
+    """Return the one Google Sheets callback registered with Google OAuth."""
+    return f"{str(settings.BASE_URL).rstrip('/')}/auth/google_sheets/callback"
+
+
 oauth = OAuth()
 oauth.register(
     name="google",

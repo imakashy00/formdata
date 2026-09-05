@@ -15,6 +15,7 @@
     {% set integration_map = integration_map or {} %}
     {% set google_sheet_cfg = integration_map.google_sheets or {} %}
     {% set notion_cfg = integration_map.notion or {} %}
+    {% set integration_error = request.query_params.get('error') %}
 
     <div class="space-y-6 max-w-4xl">
         <!-- Google Sheets Card -->
@@ -116,91 +117,26 @@
                     </div>
                 </div>
 
-                <!-- Simple Link Editor to update link if needed -->
-                <details class="group text-xs">
-                    <summary class="cursor-pointer text-gray-500 hover:text-gray-700 font-medium select-none py-1 inline-flex items-center gap-1.5">
-                        <svg class="w-3.5 h-3.5 transition-transform group-open:rotate-90 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                        </svg>
-                        Change Spreadsheet Link or Tab Name
-                    </summary>
-                    <form hx-post="/projects/{{ form.project_id }}/forms/{{ form.id }}/integrations/google_sheets"
-                        hx-target="#tab-content" hx-swap="outerHTML" class="space-y-3 mt-3 pt-3 border-t border-gray-100">
-                        <div>
-                            <label class="block text-xs font-semibold text-gray-700 mb-1">Google Spreadsheet Link</label>
-                            <input type="url" name="sheet_url" value="{{ google_sheet_cfg.sheet_url or '' }}" required
-                                placeholder="https://docs.google.com/spreadsheets/d/.../edit"
-                                class="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs font-mono focus:outline-none focus:border-brand transition-colors">
-                        </div>
-                        <div class="w-48">
-                            <label class="block text-xs font-semibold text-gray-700 mb-1">Worksheet Tab Name</label>
-                            <input type="text" name="worksheet_name" value="{{ google_sheet_cfg.worksheet_name or 'Submissions' }}"
-                                class="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand transition-colors">
-                        </div>
-                        <button type="submit"
-                            class="px-3.5 py-1.5 text-xs font-medium text-white bg-brand hover:bg-brand-dark rounded-lg transition-colors cursor-pointer shadow-xs">
-                            Update Spreadsheet Link
-                        </button>
-                    </form>
-                </details>
             </div>
 
             {% else %}
-            <!-- State 3: Consent Given, Prompting for Spreadsheet Link -->
+            <!-- A connected account without a sheet can only happen if creation failed. -->
             <div class="space-y-4">
-                <div class="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-700">
-                    <div class="flex items-center gap-2">
-                        <svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <span>This form is not connected to Drive or Sheets. Paste a spreadsheet link below or auto-create one to connect.</span>
-                    </div>
+                <p class="text-xs text-gray-600 leading-relaxed">
+                    {% if integration_error == 'drive_api_disabled' %}
+                    Enable the Google Drive API for this OAuth project, then retry. It is used to find an existing Formdata spreadsheet before creating one.
+                    {% elif integration_error == 'sheet_save_failed' %}
+                    The spreadsheet was created, but Formdata could not save its connection. Retry safely to reuse that sheet.
+                    {% else %}
+                    We could not finish creating this form's spreadsheet. Retry the connection to create it with your current Google account.
+                    {% endif %}
+                </p>
+                <div>
                     <a href="/projects/{{ form.project_id }}/forms/{{ form.id }}/integrations/google_sheets/connect"
-                        class="text-[11px] text-brand hover:underline font-medium ml-2">
-                        Switch Account
+                        class="inline-flex items-center px-3 py-2 text-xs font-semibold text-white bg-brand hover:bg-brand-dark rounded-lg transition-colors">
+                        Retry Google Sheets connection
                     </a>
                 </div>
-
-                <form hx-post="/projects/{{ form.project_id }}/forms/{{ form.id }}/integrations/google_sheets"
-                    hx-target="#tab-content" hx-swap="outerHTML" class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1.5">Google Spreadsheet Link</label>
-                        <input type="url" name="sheet_url" value="" required autofocus
-                            placeholder="https://docs.google.com/spreadsheets/d/.../edit"
-                            class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-xs font-mono focus:outline-none focus:border-brand transition-colors">
-                        <p class="text-[11px] text-gray-400 mt-1">Paste the full URL of your Google Spreadsheet.</p>
-                    </div>
-
-                    <div class="w-full sm:w-64">
-                        <label class="block text-xs font-semibold text-gray-700 mb-1.5">Worksheet Tab Name</label>
-                        <input type="text" name="worksheet_name" value="Submissions" placeholder="Submissions"
-                            class="w-full px-3 py-2 border border-gray-200 rounded-lg text-xs focus:outline-none focus:border-brand transition-colors">
-                        <p class="text-[11px] text-gray-400 mt-1">Worksheet tab where rows will be added (default: Submissions).</p>
-                    </div>
-
-                    <div class="flex flex-wrap items-center gap-3 pt-1">
-                        <button type="submit"
-                            class="px-4 py-2 text-xs font-medium text-white bg-brand hover:bg-brand-dark rounded-lg transition-colors cursor-pointer shadow-xs">
-                            Save Spreadsheet
-                        </button>
-
-                        <button type="button"
-                            hx-post="/projects/{{ form.project_id }}/forms/{{ form.id }}/integrations/google_sheets/create_sheet"
-                            hx-target="#tab-content"
-                            hx-swap="outerHTML"
-                            class="text-xs text-brand hover:underline font-medium cursor-pointer ml-1">
-                            or auto-create a new sheet in Drive →
-                        </button>
-
-                        <button type="button"
-                            hx-post="/projects/{{ form.project_id }}/forms/{{ form.id }}/integrations/google_sheets/disconnect"
-                            hx-target="#tab-content"
-                            hx-swap="outerHTML"
-                            class="text-xs text-gray-400 hover:text-red-600 transition-colors cursor-pointer ml-auto">
-                            Disconnect
-                        </button>
-                    </div>
-                </form>
             </div>
             {% endif %}
         </div>

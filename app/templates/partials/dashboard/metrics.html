@@ -1,0 +1,22 @@
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="bg-white rounded-xl border border-gray-200/60 shadow-sm p-5">
+        <p class="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Projects</p>
+        <p class="text-2xl font-black text-gray-900 leading-none">{{ projects_count }}</p>
+        <p class="text-xs text-gray-400 mt-1.5">Workspaces</p>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-200/60 shadow-sm p-5">
+        <p class="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Forms created</p>
+        <p class="text-2xl font-black text-gray-900 leading-none">{{ forms_count }}</p>
+        <p class="text-xs text-gray-500 mt-1.5"><span class="text-emerald-600 font-medium">{{ active_forms }} active</span> · {{ paused_forms }} paused</p>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-200/60 shadow-sm p-5">
+        <p class="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Submissions</p>
+        <p class="text-2xl font-black text-gray-900 leading-none">{{ submissions_count }}</p>
+        <p class="text-xs text-gray-400 mt-1.5">All time</p>
+    </div>
+    <div class="bg-white rounded-xl border border-gray-200/60 shadow-sm p-5">
+        <p class="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">Last 24 hours</p>
+        <p class="text-2xl font-black text-gray-900 leading-none">{{ submissions_last_24h }}</p>
+        <p class="text-xs text-amber-600 font-medium mt-1.5">New entries received</p>
+    </div>
+</div>

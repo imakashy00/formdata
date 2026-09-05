@@ -99,7 +99,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
                         </svg>
-                        Export as Sheet
+                        Export CSV
                     </button>
 
                 </div>
@@ -131,7 +131,7 @@
                     const url = window.URL.createObjectURL(blob);
                     const link = document.createElement('a');
                     link.href = url;
-                    link.download = `form_${formId}_export_${this.status || 'all'}.xlsx`;
+                    link.download = `form_${formId}_export_${this.status || 'all'}.csv`;
 
                     document.body.appendChild(link);
                     link.click();

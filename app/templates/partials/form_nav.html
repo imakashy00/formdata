@@ -10,8 +10,7 @@
         {% for tab_id in ['submissions', 'setup', 'templates', 'settings', 'integrations'] %}
         <button type="button" hx-indicator="#form-loader"
             hx-get="/projects/{{form.project_id}}/forms/{{ form.id }}/{{ tab_id }}" hx-target="#tab-content"
-            hx-push-url="true" @click="activeTab = '{{ tab_id }}'" x-cloak
-            :disabled="activeTab === '{{ tab_id }}'"
+            hx-push-url="true" @click="activeTab = '{{ tab_id }}'" x-cloak :disabled="activeTab === '{{ tab_id }}'"
             :class="activeTab === '{{ tab_id }}' ? 'border-brand text-brand' : 'border-transparent text-gray-500 hover:text-gray-700 cursor-pointer'"
             class="py-4 px-1 border-b-2 text-sm transition-all">
             {{ tab_labels[tab_id] if tab_labels and tab_id in tab_labels else tab_id | capitalize }}

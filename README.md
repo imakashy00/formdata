@@ -72,6 +72,18 @@ uv run uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
 Add more variables in `.env` as necessary (see `.env` file for full list).
 
+### Google Sheets OAuth callback
+
+In Google Cloud Console, add the exact Google Sheets callback URI to the OAuth
+client's **Authorized redirect URIs**. For a local server this is
+`http://localhost:8000/auth/google_sheets/callback`; for production it is
+`https://<your-domain>/auth/google_sheets/callback`. The scheme, domain, path,
+and port must match exactly.
+
+Enable both **Google Sheets API** and **Google Drive API** for the same Google
+Cloud project. Formdata uses the Drive API only to locate an already-created
+Formdata spreadsheet before retrying, preventing duplicate sheets.
+
 ## Viewing Logs
 
 - Follow container logs:
@@ -161,4 +173,3 @@ my_project/
 │   └── schemas/         # 7. Data Validation (Pydantic)
 ├── templates/           # HTML templates (HTMX partials)
 └── main.py              # App entry point
-

@@ -1,19 +1,20 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Form, Request, status
+from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
 from fastapi.responses import HTMLResponse
-from loguru import logger as log
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_db
 from app.core.errors import NotFoundError, ToastType
 from app.core.htmx import hx_toast_headers, is_htmx_dep
+from app.core.settings import settings
 from app.core.templates import temp
 from app.models.user import User
 from app.repositories.form_repository import FormRepository
 from app.schemas.form import TAB_LABELS, TAB_TEMPLATES, FormSettingsPayload, FormTab
+from app.schemas.user import SubscriptionStatus
 from app.services.dependencies import current_user
-from app.services.form import update_form_settings
+from app.services.form import _get_owned_form, update_form_settings
 
 form_settings_router = APIRouter(
     prefix="/projects/{project_id}/forms/{form_id}/settings"
@@ -48,6 +49,12 @@ async def handle_get_project_form_setttings(
         "tab_labels": TAB_LABELS,
         "user": user,
         "page": "projects",
+        "is_studio": bool(
+            user.subscription
+            and user.subscription.status == SubscriptionStatus.ACTIVE.value
+            and user.subscription.has_access
+            and user.subscription.price_id == settings.PADDLE_PRICE_ID_STUDIO
+        ),
     }
     return temp.TemplateResponse(request, template, context)
 
@@ -67,17 +74,29 @@ async def handle_update_form_setting(
     payload: Annotated[FormSettingsPayload, Form()],
 ):
 
-    db_form = await FormRepository(db).get_by_id_and_project(form_id, project_id) 
+    db_form = await FormRepository(db).get_by_id_and_project(form_id, project_id)
     if not db_form:
         raise NotFoundError("Form not found")
-    # 3. Parse comma-separated accepted domains into a list
+
+    owner_form = await _get_owned_form(db, user, form_id)
+    if owner_form.id != db_form.id:
+        raise NotFoundError("Form not found")
+    is_studio = bool(
+        user.subscription
+        and user.subscription.status == SubscriptionStatus.ACTIVE.value
+        and user.subscription.has_access
+        and user.subscription.price_id == settings.PADDLE_PRICE_ID_STUDIO
+    )
+    if payload.autoresponse and not is_studio:
+        raise HTTPException(403, "Customer autoresponders require the Studio plan.")
+
     await update_form_settings(payload, db_form, db)
 
     # 6. Return success template response or swap element
     return temp.TemplateResponse(
         request,
         "form_settings.html",  # Change to your success partial
-        {"request": request, "form": db_form},
+        {"request": request, "form": db_form, "is_studio": is_studio},
         headers=hx_toast_headers(
             "Settings updated successfully!", type_=ToastType.SUCCESS
         ),

@@ -87,6 +87,7 @@ class SubscriptionWebhook:
     current_period_end: datetime | None
     cancel_at: datetime | None
     canceled_at: datetime | None
+    scheduled_change_present: bool = False
 
     @staticmethod
     def _parse_datetime(value: str | None) -> datetime | None:
@@ -94,7 +95,7 @@ class SubscriptionWebhook:
         if not value:
             return None
         try:
-            return datetime.fromisoformat(value.replace("Z", "+00:00"))
+            return datetime.fromisoformat(value)
         except (TypeError, ValueError):
             return None
 
@@ -110,6 +111,7 @@ class SubscriptionWebhook:
         custom_data = payload.get("custom_data") or {}
         billing_cycle = payload.get("billing_cycle") or {}
         billing_period = payload.get("current_billing_period") or {}
+        scheduled_change_present = "scheduled_change" in payload
         scheduled_change = payload.get("scheduled_change") or {}
 
         return cls(
@@ -123,6 +125,7 @@ class SubscriptionWebhook:
             current_period_end=cls._parse_datetime(billing_period.get("ends_at")),
             cancel_at=cls._parse_datetime(scheduled_change.get("effective_at")),
             canceled_at=cls._parse_datetime(payload.get("canceled_at")),
+            scheduled_change_present=scheduled_change_present,
         )
 
 
@@ -181,9 +184,9 @@ async def resolve_subscription_context(
 
     if data.subscription_id:
         result = await db.execute(
-            select(Subscription).where(
-                Subscription.subscription_id == data.subscription_id
-            )
+            select(Subscription)
+            .where(Subscription.subscription_id == data.subscription_id)
+            .with_for_update()
         )
         subscription = result.scalar_one_or_none()
 
@@ -245,9 +248,8 @@ def update_subscription(
     subscription.current_period_end = (
         data.current_period_end or subscription.current_period_end
     )
-    # Only update cancel_at if explicitly present in the payload
-    subscription.cancel_at = data.cancel_at
-    # In subscription.updated it will always be None, so preserve existing value
+    if data.scheduled_change_present:
+        subscription.cancel_at = data.cancel_at
     subscription.canceled_at = data.canceled_at or subscription.canceled_at
     subscription.updated_at = ctx.now
 

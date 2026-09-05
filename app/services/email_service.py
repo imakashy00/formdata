@@ -5,6 +5,7 @@ from typing import Any
 
 import markdown
 import resend  # Official SDK
+from pydantic import EmailStr, TypeAdapter, ValidationError
 
 from app.core.settings import settings
 
@@ -69,17 +70,18 @@ class EmailService:
         return parsed_subject, html_body
 
     async def _send_via_resend(
-        self, to_email: str, subject: str, html_content: str, reply_to: str
+        self,
+        to_email: str,
+        subject: str,
+        html_content: str,
+        reply_to: str | None = None,
     ):
         """Asynchronous HTTP call transport wrapper using the Resend REST API wrapper."""
-        # If sending to an admin, set reply_to to the customer's email address
-        reply_to_address = reply_to if reply_to else None
         # Ensure all local values match standard types to eliminate "Unknown" inference
         from_address: str = self.from_addr
         recipient_list: list[str] = [to_email]
         email_subject: str = subject
         email_html: str = html_content
-        reply_to_address: str | None = reply_to if reply_to else None
 
         # Construct the exact TypedDict shape matching Resend's architecture
         params: resend.Emails.SendParams = {
@@ -87,8 +89,9 @@ class EmailService:
             "to": recipient_list,
             "subject": email_subject,
             "html": email_html,
-            "reply_to": reply_to_address if reply_to_address else "",
         }
+        if reply_to:
+            params["reply_to"] = reply_to
 
         try:
             # Native async execution using the official Resend SDK wrapper
@@ -139,5 +142,31 @@ class EmailService:
             to_email=customer_email,
             subject=subject,
             html_content=html_content,
-            reply_to="sdfjsldjfal",
         )
+
+
+async def deliver_customer_autoresponder(
+    payload: dict,
+    recipient_key: str,
+    form_name: str,
+    subject: str,
+    body: str,
+) -> None:
+    """Validate the persisted submission value before sending a confirmation."""
+    value = payload.get(recipient_key)
+    if isinstance(value, list):
+        log.warning("Skipping autoresponder: recipient field has repeated values")
+        return
+    if not isinstance(value, str) or not value.strip():
+        log.warning("Skipping autoresponder: recipient field is missing or non-string")
+        return
+    recipient = value.strip()
+    try:
+        recipient = str(TypeAdapter(EmailStr).validate_python(recipient))
+    except ValidationError:
+        log.warning("Skipping autoresponder: recipient field is not a valid email")
+        return
+
+    await EmailService().send_customer_autoresponder(
+        recipient, form_name, subject, body, payload
+    )

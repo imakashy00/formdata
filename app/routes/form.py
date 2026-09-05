@@ -1,16 +1,17 @@
 import base64
-import io
+import csv
 import json
 import uuid
+from io import StringIO
 from typing import Annotated
 
 import httpx
-import openpyxl
 from fastapi import (
     APIRouter,
     BackgroundTasks,
     Depends,
     Form,
+    HTTPException,
     Path,
     Query,
     Request,
@@ -19,6 +20,7 @@ from fastapi import (
 )
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from loguru import logger as log
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_db
@@ -27,7 +29,6 @@ from app.core.errors import (
     NotFoundError,
     ToastType,
     TypeCoversionError,
-    WorkbookFailed,
 )
 from app.core.htmx import hx_toast_headers, is_htmx_dep
 from app.core.settings import settings
@@ -40,14 +41,14 @@ from app.schemas.form import (
     FormTab,
     NewForm,
 )
+from app.schemas.user import SubscriptionStatus
 from app.services.dependencies import current_user
 from app.services.form import (
     _get_form_analytics,
     _get_owned_form,
-    generate_workbook_sheet,
     get_form_analytics,
 )
-from app.services.oauth import oauth
+from app.services.oauth import google_sheets_redirect_uri, oauth
 from app.services.submission_sync import (
     _refresh_google_token,
     build_pending_sync_status,
@@ -59,8 +60,20 @@ from app.services.submission_sync import (
 form_router = APIRouter(prefix="/projects")
 
 
+def _is_studio(user: User) -> bool:
+    subscription = user.subscription
+    return bool(
+        subscription
+        and subscription.status == SubscriptionStatus.ACTIVE.value
+        and subscription.has_access
+        and subscription.price_id == settings.PADDLE_PRICE_ID_STUDIO
+    )
+
+
 @form_router.get("/test-widget", response_class=HTMLResponse)
 async def test_widget(request: Request):
+    if settings.ENV != "development":
+        raise HTTPException(status_code=404, detail="Not found")
     return temp.TemplateResponse(request, "test.html", {"request": request})
 
 
@@ -223,6 +236,58 @@ async def handle_get_form_submission_by_id(
 
     return temp.TemplateResponse(
         request, "partials/submission_details_card.html", context
+    )
+
+
+@form_router.post(
+    "/{project_id}/forms/{form_id}/submissions/{submission_id}/note",
+    response_class=HTMLResponse,
+)
+async def handle_update_form_submission_note(
+    request: Request,
+    form_id: str,
+    project_id: str,
+    submission_id: str,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(current_user)],
+    note: str = Form(""),
+):
+    try:
+        submission_uuid = uuid.UUID(submission_id)
+    except ValueError:
+        raise TypeCoversionError("Invalid submission ID")
+
+    repository = FormRepository(db)
+    submission = await repository.get_submission(form_id, str(submission_uuid))
+    if not submission:
+        raise NotFoundError("Submission not found.")
+
+    note = note.strip()
+    if len(note) > 500:
+        raise HTTPException(
+            status_code=422, detail="Notes must be 500 characters or fewer."
+        )
+
+    submission.note = note or None
+    await db.commit()
+    await db.refresh(submission)
+    form = await repository.get_by_id_and_project(form_id, project_id)
+
+    return temp.TemplateResponse(
+        request,
+        "partials/submission_details_card.html",
+        {
+            "request": request,
+            "project_id": project_id,
+            "form_id": form_id,
+            "form": form,
+            "user": user,
+            "active_tab": "submissions",
+            "active_tab_template": TAB_TEMPLATES[FormTab.submissions],
+            "tab_labels": TAB_LABELS,
+            "submission": submission,
+        },
+        headers=hx_toast_headers("Submission note saved.", type_=ToastType.SUCCESS),
     )
 
 
@@ -419,6 +484,7 @@ async def handle_get_project_form_setup(
         "tab_labels": TAB_LABELS,
         "user": user,
         "page": "projects",
+        "is_studio": _is_studio(user),
     }
     return temp.TemplateResponse(request, template, context)
 
@@ -490,15 +556,17 @@ async def handle_connect_google_sheets(
     state_str = base64.urlsafe_b64encode(json.dumps(state_data).encode()).decode()
     request.session["google_sheets_state"] = state_data
 
-    redirect_uri = str(request.url_for("auth_callback"))
-    if request.headers.get("x-forwarded-proto") == "https" or str(settings.BASE_URL).startswith("https:"):
-        redirect_uri = redirect_uri.replace("http://", "https://", 1)
+    # Google Sheets has its own callback so its redirect URI can be registered
+    # independently from Formdata sign-in in Google Cloud.
+    redirect_uri = google_sheets_redirect_uri()
 
     return await oauth.google_sheets.authorize_redirect(
         request,
         redirect_uri,
         state=state_str,
         access_type="offline",
+        # Show Google's approval screen while retaining the user's active
+        # Google session. We intentionally do not request select_account.
         prompt="consent",
     )
 
@@ -536,7 +604,9 @@ async def handle_disconnect_google_sheets(
             "page": "projects",
             "integration_map": integration_map,
         },
-        headers=hx_toast_headers("Google Sheets integration disconnected.", type_=ToastType.SUCCESS),
+        headers=hx_toast_headers(
+            "Google Sheets integration disconnected.", type_=ToastType.SUCCESS
+        ),
         status_code=status.HTTP_200_OK,
     )
 
@@ -614,7 +684,9 @@ async def handle_create_google_sheet(
                 "https://sheets.googleapis.com/v4/spreadsheets",
                 headers={"Authorization": f"Bearer {access_token}"},
                 json={
-                    "properties": {"title": f"{form.name} Submissions (Formdata)"},
+                    "properties": {
+                        "title": f"{form.name}_{form.public_id}_submissions"
+                    },
                     "sheets": [{"properties": {"title": "Submissions"}}],
                 },
             )
@@ -625,13 +697,17 @@ async def handle_create_google_sheet(
                         "https://sheets.googleapis.com/v4/spreadsheets",
                         headers={"Authorization": f"Bearer {access_token}"},
                         json={
-                            "properties": {"title": f"{form.name} Submissions (Formdata)"},
+                            "properties": {
+                                "title": f"{form.name}_{form.public_id}_submissions"
+                            },
                             "sheets": [{"properties": {"title": "Submissions"}}],
                         },
                     )
 
             if resp.status_code >= 400:
-                raise ValueError(f"Could not create Google Sheet ({resp.status_code}): {resp.text}")
+                raise ValueError(
+                    f"Could not create Google Sheet ({resp.status_code}): {resp.text}"
+                )
 
             data = resp.json()
             spreadsheet_id = data.get("spreadsheetId")
@@ -648,6 +724,7 @@ async def handle_create_google_sheet(
         new_config = {
             "sheet_url": sheet_url,
             "spreadsheet_id": spreadsheet_id,
+            "sheet_title": f"{form.name}_{form.public_id}_submissions",
             "worksheet_name": worksheet_name,
             "access_token": access_token,
         }
@@ -655,9 +732,13 @@ async def handle_create_google_sheet(
             new_config["refresh_token"] = refresh_token
 
         await FormRepository(db).upsert_form_integration(
-            form_id, project_id, IntegrationProvider.GOOGLE_SHEETS, new_config, enabled=True
+            form_id,
+            project_id,
+            IntegrationProvider.GOOGLE_SHEETS,
+            new_config,
+            enabled=True,
         )
-    except Exception as exc:
+    except (httpx.HTTPError, SQLAlchemyError, ValueError, KeyError, TypeError) as exc:
         return temp.TemplateResponse(
             request,
             "form_integrations.html",
@@ -669,7 +750,9 @@ async def handle_create_google_sheet(
                 "tab_labels": TAB_LABELS,
                 "user": user,
                 "page": "projects",
-                "integration_map": await FormRepository(db).get_integration_map(form_id, project_id),
+                "integration_map": await FormRepository(db).get_integration_map(
+                    form_id, project_id
+                ),
             },
             headers=hx_toast_headers(str(exc), type_=ToastType.ERROR),
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -686,7 +769,9 @@ async def handle_create_google_sheet(
             "tab_labels": TAB_LABELS,
             "user": user,
             "page": "projects",
-            "integration_map": await FormRepository(db).get_integration_map(form_id, project_id),
+            "integration_map": await FormRepository(db).get_integration_map(
+                form_id, project_id
+            ),
         },
         headers=hx_toast_headers(
             "Google Spreadsheet created and linked successfully!",
@@ -729,7 +814,9 @@ async def handle_disconnect_notion(
             "page": "projects",
             "integration_map": integration_map,
         },
-        headers=hx_toast_headers("Notion integration disconnected.", type_=ToastType.SUCCESS),
+        headers=hx_toast_headers(
+            "Notion integration disconnected.", type_=ToastType.SUCCESS
+        ),
         status_code=status.HTTP_200_OK,
     )
 
@@ -758,15 +845,23 @@ async def handle_save_form_integration(
     provider_name = provider.lower().strip()
     try:
         if provider_name == "google_sheets":
-            integ_map = await FormRepository(db).get_integration_map(form_id, project_id)
+            integ_map = await FormRepository(db).get_integration_map(
+                form_id, project_id
+            )
             existing_gs = integ_map.get("google_sheets", {})
-            effective_token = (google_token or "").strip() or existing_gs.get("access_token")
+            effective_token = (google_token or "").strip() or existing_gs.get(
+                "access_token"
+            )
             if not effective_token and existing_gs.get("refresh_token"):
-                effective_token = await _refresh_google_token(existing_gs["refresh_token"])
+                effective_token = await _refresh_google_token(
+                    existing_gs["refresh_token"]
+                )
             if not effective_token and not existing_gs.get("has_google_account"):
                 raise ValueError("Please connect your Google account first.")
 
-            config = validate_google_sheets_config(sheet_url, worksheet_name, effective_token)
+            config = validate_google_sheets_config(
+                sheet_url, worksheet_name, effective_token
+            )
             if existing_gs.get("refresh_token"):
                 config["refresh_token"] = existing_gs["refresh_token"]
 
@@ -779,18 +874,27 @@ async def handle_save_form_integration(
                             f"https://sheets.googleapis.com/v4/spreadsheets/{spreadsheet_id}",
                             headers={"Authorization": f"Bearer {effective_token}"},
                         )
-                        if sheet_res.status_code == 401 and existing_gs.get("refresh_token"):
-                            effective_token = await _refresh_google_token(existing_gs["refresh_token"])
+                        if sheet_res.status_code == 401 and existing_gs.get(
+                            "refresh_token"
+                        ):
+                            effective_token = await _refresh_google_token(
+                                existing_gs["refresh_token"]
+                            )
                             if effective_token:
                                 config["access_token"] = effective_token
                                 sheet_res = await client.get(
                                     f"https://sheets.googleapis.com/v4/spreadsheets/{spreadsheet_id}",
-                                    headers={"Authorization": f"Bearer {effective_token}"},
+                                    headers={
+                                        "Authorization": f"Bearer {effective_token}"
+                                    },
                                 )
                         if sheet_res.status_code == 200:
                             data = sheet_res.json()
-                            config["sheet_title"] = data.get("properties", {}).get("title") or "Google Spreadsheet"
-                except Exception as check_err:
+                            config["sheet_title"] = (
+                                data.get("properties", {}).get("title")
+                                or "Google Spreadsheet"
+                            )
+                except (httpx.HTTPError, ValueError, KeyError, TypeError) as check_err:
                     log.warning(f"Could not fetch spreadsheet title: {check_err}")
 
             await FormRepository(db).upsert_form_integration(
@@ -801,9 +905,13 @@ async def handle_save_form_integration(
                 enabled=True,
             )
         elif provider_name == "notion":
-            integ_map = await FormRepository(db).get_integration_map(form_id, project_id)
+            integ_map = await FormRepository(db).get_integration_map(
+                form_id, project_id
+            )
             existing_notion = integ_map.get("notion", {})
-            effective_token = (notion_token or "").strip() or existing_notion.get("notion_token")
+            effective_token = (notion_token or "").strip() or existing_notion.get(
+                "notion_token"
+            )
             config = validate_notion_config(database_id, effective_token)
 
             # Introspect database via Notion API to verify permissions and get database title
@@ -829,7 +937,9 @@ async def handle_save_form_integration(
                         "Notion authorization failed. Check your Notion Integration Token and make sure it has access to the target database."
                     )
                 else:
-                    log.warning(f"Notion API check returned {notion_res.status_code}: {notion_res.text}")
+                    log.warning(
+                        f"Notion API check returned {notion_res.status_code}: {notion_res.text}"
+                    )
 
             await FormRepository(db).upsert_form_integration(
                 form_id,
@@ -977,6 +1087,7 @@ async def handle_get_project_form_template(
         "tab_labels": TAB_LABELS,
         "user": user,
         "page": "projects",
+        "is_studio": _is_studio(user),
     }
     return temp.TemplateResponse(request, template, context)
 
@@ -997,6 +1108,11 @@ async def handle_update_form_template(
     if not form:
         raise NotFoundError("Form not found")
 
+    if not _is_studio(user):
+        raise HTTPException(
+            status_code=403, detail="Upgrade to Studio to edit templates."
+        )
+
     form = await FormRepository(db).update_template(form_id, project_id, subject, body)
     if htmx_req:
         template = "form_template.html"
@@ -1016,7 +1132,7 @@ async def handle_update_form_template(
 
 
 @form_router.get("/{project_id}/forms/{form_id}/export")
-async def export_form_submission_excel(
+async def export_form_submission_csv(
     db: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(current_user)],
     form_id: str = Path(..., description="The UUID string of the parent form"),
@@ -1026,23 +1142,37 @@ async def export_form_submission_excel(
 ):
     submissions = await FormRepository(db).list_submissions(form_id, status or None)
 
-    wb = openpyxl.Workbook()
-    ws = wb.active
-
-    if ws is None:
-        log.critical("Failed to Initialize Workbook.")
-        raise WorkbookFailed("Failed to initialize an active worksheet.")
-
-    ws.title = "Submissions Export"
     if not submissions:
-        # Prevent crash if there are no items in the database table
         raise NotFoundError("No submission found")
-    output = await generate_workbook_sheet(submissions, ws, wb)
 
-    filename = f"form_{form_id}_{status if status else 'all'}.xlsx"
+    dynamic_keys = list((submissions[0].payload or {}).keys())
+    output = StringIO(newline="")
+    writer = csv.writer(output)
+    writer.writerow(
+        ["ID", "Status", "Opened", "Country", "Note", "Created At", *dynamic_keys]
+    )
+    for submission in submissions:
+        payload = submission.payload or {}
+        writer.writerow(
+            [
+                str(submission.id),
+                submission.status.value
+                if hasattr(submission.status, "value")
+                else str(submission.status),
+                "Yes" if submission.opened else "No",
+                submission.country or "Unknown",
+                submission.note or "",
+                submission.created_at.strftime("%Y-%m-%d %H:%M:%S %Z")
+                if submission.created_at
+                else "",
+                *(payload.get(key, "") for key in dynamic_keys),
+            ]
+        )
+
+    filename = f"form_{form_id}_{status if status else 'all'}.csv"
 
     return StreamingResponse(
-        io.BytesIO(output.getvalue()),
-        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        iter([output.getvalue()]),
+        media_type="text/csv; charset=utf-8",
         headers={"Content-Disposition": f"attachment; filename={filename}"},
     )

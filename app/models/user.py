@@ -120,7 +120,7 @@ class Subscription(Base):
 
     trial_end: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        default=lambda: datetime.now(UTC) + timedelta(days=15),
+        default=lambda: datetime.now(UTC) + timedelta(days=14),
     )
 
     # Billing period windows (from Paddle)
@@ -263,6 +263,9 @@ class Form(Base):
     redirect_url: Mapped[str | None] = mapped_column(String(2083), nullable=True)
     notification_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
     autoresponse: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    autoresponse_recipient_key: Mapped[str | None] = mapped_column(
+        String(100), nullable=True
+    )
     duplicate_allowed: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=True
     )
@@ -360,7 +363,7 @@ class Submission(Base):
         index=True,
     )
     opened: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
-    note: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    note: Mapped[str | None] = mapped_column(String(500), nullable=True)
     country: Mapped[str | None] = mapped_column(String(100), nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC)

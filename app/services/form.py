@@ -1,4 +1,3 @@
-import io
 import re
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
@@ -252,6 +251,8 @@ async def update_form_settings(
     db_form.name = payload.name.strip()
     db_form.honeypot = payload.honeypot
     db_form.notification_email = payload.notification_email
+    db_form.autoresponse = payload.autoresponse
+    db_form.autoresponse_recipient_key = payload.autoresponse_recipient_key
     db_form.allowed_domains = accepted_domains_list
 
     # Feature Toggle Column Assignments
@@ -371,38 +372,3 @@ async def get_form_analytics(
         "page": "projects",
     }
     return context
-
-
-async def generate_workbook_sheet(submissions: list[Submission], ws, wb):
-    # We look at the first record's payload dictionary keys to create dynamic columns
-    sample_payload = submissions[0].payload or {}
-    dynamic_keys = list(sample_payload.keys())
-
-    # Combine standard fixed model columns + your custom dynamic JSON keys
-    base_headers = ["ID", "Status", "Opened", "Country", "Note", "Created At"]
-    ws.append(base_headers + dynamic_keys)
-
-    # 5. Populate Rows
-    for sub in submissions:
-        # Flatten fixed model row data values
-        row_data = [
-            str(sub.id),
-            sub.status.value if hasattr(sub.status, "value") else str(sub.status),
-            "Yes" if sub.opened else "No",
-            sub.country or "Unknown",
-            sub.note or "",
-            sub.created_at.strftime("%Y-%m-%d %H:%M:%S %Z") if sub.created_at else "",
-        ]
-
-        # Safely extract matching JSONB payload fields for this row
-        payload_data = sub.payload or {}
-        for key in dynamic_keys:
-            row_data.append(payload_data.get(key, ""))
-
-        ws.append(row_data)
-
-    # 6. Stream file binary payload directly to Alpine's fetch method without reloading page
-    output = io.BytesIO()
-    wb.save(output)
-    output.seek(0)
-    return output

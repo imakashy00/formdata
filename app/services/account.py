@@ -1,7 +1,6 @@
 from datetime import UTC, datetime
 
 import httpx
-from fastapi import HTTPException
 from loguru import logger as log
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,7 +10,7 @@ from app.models.user import Form as FormDB
 from app.models.user import Project, Submission, Subscription
 from app.routes.subscription import _plan_from_price_id
 from app.schemas.user import SubscriptionStatus
-from app.services.bill_calculation import PLAN_LIMITS
+from app.services.bill_calculation import PLAN_LIMITS, TRIAL_SUBMISSION_LIMIT
 
 
 def _format_date(value: datetime | None) -> str | None:
@@ -99,13 +98,12 @@ async def get_customer_portal_links(customer_id: str, subscription_id: str) -> d
                     "update_subscription_payment_method"
                 ],
             }
-    except HTTPException as e:
-        log.error(f"Error fetching customer payment management links{e}")
-        return {
-            "overview_url": "#",
-            "cancel_url": "#",
-            "update_payment_url": "#",
-        }
+    except (httpx.HTTPError, KeyError, TypeError, ValueError) as exc:
+        log.error(
+            f"Error fetching customer payment management links for subscription "
+            f"{subscription_id}: {exc}"
+        )
+        return {}
 
 
 async def get_subscription_portal_links(
@@ -140,7 +138,7 @@ def get_plan_limits(subscription: Subscription | None) -> dict:
     return PLAN_LIMITS.get(
         subscription.price_id or "",
         {
-            "submissions": 1000,
+            "submissions": TRIAL_SUBMISSION_LIMIT,
             "storage_gb": 0,
         },
     )
@@ -254,10 +252,10 @@ async def get_account_billing_data(
 
     plan_data = get_plan_limits(subscription)
 
-    submission_usage = await get_monthly_submission_usage(
-        db,
-        user.id,
-        month_start,
+    submission_usage = (
+        subscription.submissions_used
+        if subscription and subscription.current_period_start
+        else await get_monthly_submission_usage(db, user.id, month_start)
     )
 
     submission_quota = calculate_submission_quota(

@@ -6,6 +6,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Terms of Service · Formdata</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/output.css') }}">
     <style>
         /* ── Reset & base ── */
         *,
@@ -43,13 +44,14 @@
             background: var(--bg-page);
             color: var(--text-primary);
             line-height: 1.7;
-            padding: 2rem 1.5rem 4rem;
+            padding: 0 0 4rem;
             -webkit-font-smoothing: antialiased;
         }
 
-        .container {
+        .legal-container {
             max-width: var(--max-width);
             margin: 0 auto;
+            padding: 2rem 1.5rem 0;
         }
 
         /* ── Card ── */
@@ -63,12 +65,16 @@
 
         @media (max-width: 600px) {
             body {
-                padding: 1rem 1rem 3rem;
+                padding-bottom: 3rem;
             }
 
             .tos-card {
                 padding: 1.5rem 1.25rem 1.25rem;
                 border-radius: 10px;
+            }
+
+            .legal-container {
+                padding: 1rem 1rem 0;
             }
         }
 
@@ -395,7 +401,9 @@
 
 <body>
 
-    <div class="container">
+    {% include 'partials/navbar.html' %}
+
+    <div class="legal-container">
 
         <div class="tos-card">
 
@@ -826,6 +834,8 @@
 
     </div>
     <!-- /container -->
+
+    {% include 'partials/footer.html' %}
 
 </body>
 

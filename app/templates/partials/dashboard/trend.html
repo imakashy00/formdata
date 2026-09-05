@@ -1,0 +1,14 @@
+<section class="bg-white rounded-xl border border-gray-200/60 shadow-sm p-5">
+    <h3 class="text-sm font-bold text-gray-900 mb-4">Submission trend — last 7 days</h3>
+    <svg viewBox="0 0 640 220" class="w-full h-64" role="img" aria-label="Seven day submission trend">
+        <line x1="28" y1="184" x2="626" y2="184" stroke="#e5e7eb" stroke-width="1" />
+        {% if trend_area_path %}
+        <path d="{{ trend_area_path }}" fill="#eef2ff" />
+        <polyline points="{{ trend_line_points }}" fill="none" stroke="#4f46e5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+        {% for point in trend_points %}
+        <circle cx="{{ point.x }}" cy="{{ point.y }}" r="4" fill="#4f46e5"><title>{{ point.label }}: {{ point.value }} submissions</title></circle>
+        <text x="{{ point.x }}" y="208" text-anchor="middle" fill="#9ca3af" font-size="11">{{ point.label }}</text>
+        {% endfor %}
+        {% endif %}
+    </svg>
+</section>

@@ -306,14 +306,16 @@
                             <li class="flex gap-3"><span class="text-emerald-500 font-bold">✓</span>Email notifications
                             </li>
                             <li class="flex gap-3"><span class="text-emerald-500 font-bold">✓</span>Spam filtering</li>
-                            <li class="flex gap-3"><span class="text-emerald-500 font-bold">✓</span>Lead status tracking
+                            <li class="flex gap-3"><span class="text-emerald-500 font-bold">✓</span>CSV/Sheet export
                             </li>
                             <li class="flex gap-3"><span class="text-emerald-500 font-bold">✓</span>No Formdata branding
                             </li>
                             <li class="flex gap-3"><span class="text-emerald-500 font-bold">✓</span>Works with every
                                 framework</li>
-                            <li class="flex gap-3 text-gray-400"><span>✕</span>File uploads</li>
-                            <!-- <li class="flex gap-3 text-gray-400"><span>✕</span>Slack, Zapier & Webhooks</li> -->
+                            <li class="border-t border-gray-100 pt-4 text-gray-400">✕ Google Sheets integration</li>
+                            <li class="text-gray-400">✕ Notion integration</li>
+                            <li class="text-gray-400">✕ File uploads</li>
+                            <li class="text-gray-400">✕ Customer confirmation emails</li>
                         </ul>
                     </div>
                     <div class="px-8 pb-8">
@@ -374,20 +376,21 @@
                             <li class="flex gap-3"><span class="text-emerald-500 font-bold">✓</span>Email notifications
                             </li>
                             <li class="flex gap-3"><span class="text-emerald-500 font-bold">✓</span>Spam filtering</li>
-                            <li class="flex gap-3"><span class="text-emerald-500 font-bold">✓</span>Lead status tracking
+                            <li class="flex gap-3"><span class="text-emerald-500 font-bold">✓</span>CSV/Sheet export
                             </li>
                             <li class="flex gap-3"><span class="text-emerald-500 font-bold">✓</span>No Formdata branding
                             </li>
                             <li class="flex gap-3"><span class="text-emerald-500 font-bold">✓</span>Works with every
                                 framework</li>
-                            <li class="flex gap-3">
+                            <li class="border-t border-gray-100 pt-4"><span
+                                    class="text-emerald-500 font-bold">✓</span>Google Sheets integration</li>
+                            <li><span class="text-emerald-500 font-bold">✓</span>Notion integration</li>
+                            <li>
                                 <span class="text-emerald-500 font-bold">✓</span>
-                                <div>
-                                    <p class="font-medium">File uploads</p>
-                                    <p class="text-xs text-gray-500">2GB included • $1/GB/month extra</p>
-                                </div>
+                                <span class="font-medium">File uploads</span>
+                                <span class="block pl-5 text-xs text-gray-500">2GB included • $1/GB/month extra</span>
                             </li>
-                            <!-- <li class="flex gap-3"><span class="text-emerald-500 font-bold">✓</span>Slack • Zapier • Sheets • Webhooks</li> -->
+                            <li><span class="text-emerald-500 font-bold">✓</span>Customer confirmation emails</li>
                         </ul>
                     </div>
                     <div class="px-8 pb-8">
@@ -476,7 +479,7 @@
                 };
                 document.head.appendChild(s);
             }
-        } catch (_) {}
+        } catch (_) { }
     })();
 </script>
 <script>

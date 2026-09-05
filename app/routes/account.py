@@ -25,7 +25,6 @@ async def handle_get_account_details(
         db=db,
         user=user,
     )
-    print("Hello buddy.....")
     return temp.TemplateResponse(
         request,
         "account.html",

@@ -3,7 +3,8 @@
     <div class="max-w-2xl bg-white rounded-xl border border-gray-100 shadow-sm p-6">
         <h3 class="text-sm font-semibold text-gray-900 mb-1">Customer Auto-Responder</h3>
         <p class="text-xs text-gray-400 mb-5">Configure the automatic confirmation email sent directly to clients after
-            submitting this form.</p>
+            submitting this form. Enable Customer Confirmations in Settings and enter the submission field containing
+            their email address, such as <code>email</code> or <code>_replyto</code>.</p>
 
         <form hx-post="/projects/{{form.project_id}}/forms/{{form.id}}/template" hx-target="#template-container"
             hx-swap="outerHTML">
@@ -32,10 +33,17 @@
             </div>
 
             <div class="flex justify-end">
+                {% if not is_studio | default(false) %}
+                <a href="/account"
+                    class="px-4 py-2 text-xs font-medium text-white bg-brand hover:bg-brand-dark rounded-lg shadow-sm transition-colors">
+                    Upgrade to Studio
+                </a>
+                {% else %}
                 <button type="submit"
                     class="px-4 py-2 text-xs font-medium text-white bg-brand hover:bg-brand-dark rounded-lg shadow-sm transition-colors">
                     Save Customer Template
                 </button>
+                {% endif %}
             </div>
         </form>
     </div>

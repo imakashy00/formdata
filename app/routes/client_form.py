@@ -25,8 +25,10 @@ from app.core.errors import NotFoundError
 from app.core.settings import settings
 from app.core.templates import temp
 from app.models.user import Form as FormDB
-from app.models.user import Project, Submission, ThankYouToken, User
+from app.models.user import Project, Submission, Subscription, ThankYouToken, User
 from app.repositories.client_form_repository import ClientFormRepository
+from app.schemas.user import SubscriptionStatus
+from app.services.bill_calculation import TRIAL_SUBMISSION_LIMIT
 from app.services.client_form import (
     _build_submission_payload,
     _finish,
@@ -36,6 +38,7 @@ from app.services.client_form import (
     parse_request_data,
     process_and_upload_files,
 )
+from app.services.email_service import deliver_customer_autoresponder
 from app.services.file_upload import (
     delete_submission_file,
 )
@@ -85,6 +88,8 @@ async def handle_form_submit(
         # Maybe redirect to a formdata page with message
         raise HTTPException(403, "Form Owner is not subscribed.")
 
+    subscription = form_owner.subscription
+
     form = await ClientFormRepository(db).get_form_with_public_id(form_id)
     if not form:
         raise HTTPException(
@@ -118,7 +123,9 @@ async def handle_form_submit(
             {"error": f"missing fields: {sorted(missing)}"}, status_code=400
         )
 
-    check_dangerous_file_type(files)
+    dangerous_file_error = check_dangerous_file_type(files)
+    if isinstance(dangerous_file_error, JSONResponse):
+        return dangerous_file_error
     if form.turnstile_enabled:
         await handle_bot_verification(form_data, files, request, form, db)
 
@@ -152,11 +159,32 @@ async def handle_form_submit(
     uploaded: dict[str, list[dict]] = {}
     log.info(f"Files{files}")
     if files:
-        await process_and_upload_files(files, form_id, submission_payload)
+        upload_result = await process_and_upload_files(
+            files, form_id, submission_payload
+        )
+        if isinstance(upload_result, JSONResponse):
+            return upload_result
     enabled_integrations = await ClientFormRepository(db).get_enabled_integrations(
         str(form.id)
     )
     try:
+        locked_subscription = await db.scalar(
+            select(Subscription)
+            .where(Subscription.user_id == form_owner.id)
+            .with_for_update()
+        )
+        if locked_subscription:
+            subscription = locked_subscription
+            if (
+                subscription.status == SubscriptionStatus.TRIAL.value
+                and subscription.submissions_used >= TRIAL_SUBMISSION_LIMIT
+            ):
+                await db.rollback()
+                raise HTTPException(
+                    403,
+                    "Your 1,000 free trial submissions have been used. Upgrade to keep collecting submissions.",
+                )
+
         submission = Submission(
             form_id=form.id, payload=submission_payload, country=country_name
         )
@@ -165,6 +193,8 @@ async def handle_form_submit(
                 enabled_integrations
             )
         db.add(submission)
+        if subscription:
+            subscription.submissions_used += 1
         await db.flush()
         raw_token, token_hash = create_token(submission.id)
         db.add(
@@ -204,6 +234,15 @@ async def handle_form_submit(
 
     if enabled_integrations:
         background_task.add_task(sync_submission_integrations, str(submission.id))
+    if form.autoresponse and form.autoresponse_recipient_key:
+        background_task.add_task(
+            deliver_customer_autoresponder,
+            submission_payload,
+            form.autoresponse_recipient_key,
+            form.name,
+            form.customer_subject,
+            form.customer_body,
+        )
 
     return _finish(
         request,

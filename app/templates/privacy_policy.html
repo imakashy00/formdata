@@ -189,19 +189,7 @@
 
 <body>
 
-    <!-- ====== NAV ====== -->
-    <header class="bg-white border-b border-slate-200/80 sticky top-0 z-30 shadow-sm">
-        <div class="max-w-4xl mx-auto px-5 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
-            <a href="#" class="flex items-center gap-2 text-slate-800 font-bold text-lg tracking-tight">
-                <span
-                    class="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center text-white text-xs font-mono font-bold">F</span>
-                <span>Formdata</span>
-            </a>
-            <a href="#" class="text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors">
-                <i class="fa-regular fa-file-lines mr-1.5"></i>Privacy
-            </a>
-        </div>
-    </header>
+    {% include 'partials/navbar.html' %}
 
     <!-- ====== MAIN ====== -->
     <main class="max-w-4xl mx-auto px-5 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
@@ -679,18 +667,7 @@
 
     </main>
 
-    <!-- ====== FOOTER ====== -->
-    <footer class="border-t border-slate-200/80 bg-white mt-6">
-        <div
-            class="max-w-4xl mx-auto px-5 sm:px-6 lg:px-8 py-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-slate-500">
-            <span>&copy; 2026 Formdata. All rights reserved.</span>
-            <span class="flex items-center gap-4">
-                <a href="#" class="hover:text-blue-600 transition-colors">Privacy</a>
-                <a href="#" class="hover:text-blue-600 transition-colors">Terms</a>
-                <a href="#" class="hover:text-blue-600 transition-colors">Contact</a>
-            </span>
-        </div>
-    </footer>
+    {% include 'partials/footer.html' %}
 
 </body>
 

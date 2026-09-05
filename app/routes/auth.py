@@ -12,6 +12,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_db
+from app.core.settings import settings
 from app.models.user import Integration, IntegrationProvider, User
 from app.repositories.form_repository import FormRepository
 from app.schemas.error import AuthenticationError, TokenGenerationError
@@ -26,7 +27,7 @@ from app.services.dependencies import (
     _validate_userinfo,
     current_user,
 )
-from app.services.oauth import oauth
+from app.services.oauth import google_sheets_redirect_uri, oauth
 
 auth_router = APIRouter(tags=["auth"])
 
@@ -56,15 +57,17 @@ async def process_google_sheets_callback(
         request.session.pop("google_sheets_state", None)
 
     code = request.query_params.get("code")
-    redirect_uri = str(request.url_for("auth_callback"))
-    if str(settings.BASE_URL).startswith("https:") or request.headers.get("x-forwarded-proto") == "https":
-        redirect_uri = redirect_uri.replace("http://", "https://", 1)
+    # This must match both the URI used to start OAuth and the URI registered
+    # in the Google Cloud OAuth client exactly.
+    redirect_uri = google_sheets_redirect_uri()
 
     token = None
     try:
         token = await oauth.google_sheets.authorize_access_token(request)
     except Exception as exc:
-        log.warning(f"Failed authorize_access_token on google_sheets client: {exc}. Trying direct code exchange...")
+        log.warning(
+            f"Failed authorize_access_token on google_sheets client: {exc}. Trying direct code exchange..."
+        )
         if code:
             try:
                 async with httpx.AsyncClient(timeout=15.0) as client:
@@ -82,7 +85,9 @@ async def process_google_sheets_callback(
                         token = resp.json()
                         log.info("Direct Google token exchange succeeded.")
                     else:
-                        log.error(f"Direct token exchange failed ({resp.status_code}): {resp.text}")
+                        log.error(
+                            f"Direct token exchange failed ({resp.status_code}): {resp.text}"
+                        )
             except Exception as direct_exc:
                 log.error(f"Direct exchange error: {direct_exc}")
 
@@ -91,9 +96,11 @@ async def process_google_sheets_callback(
     user_id = state_data.get("user_id")
 
     if not token or not token.get("access_token"):
-        log.error("Failed to retrieve access token from Google OAuth for Google Sheets.")
+        log.error(
+            "Failed to retrieve access token from Google OAuth for Google Sheets."
+        )
         fallback_url = (
-            f"/projects/{project_id}/forms/{form_id}?tab=integrations&error=auth_failed"
+            f"/projects/{project_id}/forms/{form_id}/integrations?error=auth_failed"
             if (project_id and form_id)
             else "/"
         )
@@ -123,7 +130,9 @@ async def process_google_sheets_callback(
                     provider=IntegrationProvider.GOOGLE_SHEETS,
                     access_token=access_token,
                     refresh_token=refresh_token,
-                    integration_metadata={"scope": "https://www.googleapis.com/auth/drive.file"},
+                    integration_metadata={
+                        "scope": "https://www.googleapis.com/auth/drive.file"
+                    },
                     enabled=True,
                 )
                 db.add(user_integ)
@@ -146,13 +155,87 @@ async def process_google_sheets_callback(
         if form:
             current_map = await form_repo.get_integration_map(form_id, project_id)
             gs_cfg = current_map.get("google_sheets", {})
+            # Connecting an account is the only setup step. Create one spreadsheet
+            # for this form immediately after consent, unless it already has one.
             sheet_url = gs_cfg.get("sheet_url") or ""
             spreadsheet_id = gs_cfg.get("spreadsheet_id") or ""
             worksheet_name = gs_cfg.get("worksheet_name") or "Submissions"
+            sheet_title = gs_cfg.get("sheet_title") or ""
+
+            if not sheet_url:
+                title = f"{form.name}_{form.public_id}_submissions"
+                try:
+                    async with httpx.AsyncClient(timeout=15.0) as client:
+                        # A prior callback can create the file but fail before
+                        # PostgreSQL is updated. Look for our deterministic
+                        # filename first so retrying never creates duplicates.
+                        escaped_title = title.replace("'", "\\'")
+                        lookup = await client.get(
+                            "https://www.googleapis.com/drive/v3/files",
+                            headers={"Authorization": f"Bearer {access_token}"},
+                            params={
+                                "q": (
+                                    f"name = '{escaped_title}' and "
+                                    "mimeType = 'application/vnd.google-apps.spreadsheet' "
+                                    "and trashed = false"
+                                ),
+                                "fields": "files(id,name,webViewLink)",
+                            },
+                        )
+                        if lookup.status_code == 403 and "SERVICE_DISABLED" in lookup.text:
+                            log.error(
+                                "Google Drive API is disabled; it is required to reuse "
+                                "an existing Formdata spreadsheet."
+                            )
+                            return RedirectResponse(
+                                url=f"/projects/{project_id}/forms/{form_id}/integrations?error=drive_api_disabled",
+                                status_code=303,
+                            )
+                        lookup.raise_for_status()
+
+                        matches = lookup.json().get("files", [])
+                        if matches:
+                            spreadsheet_id = matches[0]["id"]
+                            sheet_url = matches[0].get("webViewLink") or (
+                                f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}/edit"
+                            )
+                        else:
+                            response = await client.post(
+                                "https://sheets.googleapis.com/v4/spreadsheets",
+                                headers={"Authorization": f"Bearer {access_token}"},
+                                json={
+                                    "properties": {"title": title},
+                                    "sheets": [{"properties": {"title": worksheet_name}}],
+                                },
+                            )
+                            response.raise_for_status()
+                            spreadsheet_id = response.json()["spreadsheetId"]
+                            sheet_url = (
+                                f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}/edit"
+                            )
+                    sheet_title = title
+                except httpx.HTTPStatusError as exc:
+                    log.error(
+                        "Failed to create Google Sheet after OAuth consent "
+                        f"({exc.response.status_code}): {exc.response.text}"
+                    )
+                    return RedirectResponse(
+                        url=f"/projects/{project_id}/forms/{form_id}/integrations?error=sheet_creation_failed",
+                        status_code=303,
+                    )
+                except (httpx.HTTPError, KeyError, ValueError) as exc:
+                    log.error(
+                        f"Failed to create Google Sheet after OAuth consent: {exc}"
+                    )
+                    return RedirectResponse(
+                        url=f"/projects/{project_id}/forms/{form_id}/integrations?error=sheet_creation_failed",
+                        status_code=303,
+                    )
 
             new_config = {
                 "sheet_url": sheet_url,
                 "spreadsheet_id": spreadsheet_id,
+                "sheet_title": sheet_title,
                 "worksheet_name": worksheet_name,
                 "access_token": access_token,
             }
@@ -161,17 +244,25 @@ async def process_google_sheets_callback(
             elif gs_cfg.get("refresh_token"):
                 new_config["refresh_token"] = gs_cfg["refresh_token"]
 
-            await form_repo.upsert_form_integration(
-                form_id,
-                project_id,
-                IntegrationProvider.GOOGLE_SHEETS,
-                new_config,
-                enabled=bool(sheet_url),
-            )
-            await db.commit()
+            try:
+                await form_repo.upsert_form_integration(
+                    form_id,
+                    project_id,
+                    IntegrationProvider.GOOGLE_SHEETS,
+                    new_config,
+                    enabled=True,
+                )
+                await db.commit()
+            except Exception as exc:
+                await db.rollback()
+                log.exception(f"Failed to save Google Sheets form connection: {exc}")
+                return RedirectResponse(
+                    url=f"/projects/{project_id}/forms/{form_id}/integrations?error=sheet_save_failed",
+                    status_code=303,
+                )
 
         return RedirectResponse(
-            url=f"/projects/{project_id}/forms/{form_id}?tab=integrations&connected=google_sheets",
+            url=f"/projects/{project_id}/forms/{form_id}/integrations?connected=google_sheets",
             status_code=303,
         )
 
@@ -196,7 +287,10 @@ async def auth_callback(request: Request, db: Annotated[AsyncSession, Depends(ge
     # Check if this callback was for Google Sheets integration
     state_param = request.query_params.get("state")
     state_data = _decode_oauth_state(state_param)
-    if state_data.get("type") == "google_sheets" or "google_sheets_state" in request.session:
+    if (
+        state_data.get("type") == "google_sheets"
+        or "google_sheets_state" in request.session
+    ):
         return await process_google_sheets_callback(request, db)
 
     # 1. Token Exchange and User Info Validation

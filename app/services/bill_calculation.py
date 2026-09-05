@@ -17,6 +17,7 @@ BYTES_PER_GB = 1024**3
 SUBMISSION_BLOCK = 200
 OVERAGE_UNIT_AMOUNT_CENTS = "100"  # $1 per submission-block, $1 per extra GB
 OVERAGE_CURRENCY = "USD"
+TRIAL_SUBMISSION_LIMIT = 100
 
 # Monthly submission allowances per plan (mirrors the copy on the pricing
 # cards in account.html: "1,000 submissions / month" / "2,000 / month").

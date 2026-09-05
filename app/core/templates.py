@@ -1,10 +1,12 @@
 import json
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import Request
 from fastapi.templating import Jinja2Templates
 from starlette.templating import _TemplateResponse
+
+from app.core.settings import settings
 
 
 def strftime_filter(value, fmt="%B %d, %Y"):
@@ -12,7 +14,7 @@ def strftime_filter(value, fmt="%B %d, %Y"):
         return ""
     # handle unix timestamps stored as int/float
     if isinstance(value, (int, float)):
-        value = datetime.fromtimestamp(value)
+        value = datetime.fromtimestamp(value, tz=UTC)
     # handle ISO strings coming from JSON/DB drivers that don't auto-parse
     if isinstance(value, str):
         value = datetime.fromisoformat(value)
@@ -20,6 +22,7 @@ def strftime_filter(value, fmt="%B %d, %Y"):
 
 
 temp = Jinja2Templates(directory="app/templates")
+temp.env.globals["studio_price_id"] = settings.PADDLE_PRICE_ID_STUDIO
 temp.env.filters["tojson"] = json.dumps
 temp.env.filters["strftime"] = strftime_filter
 

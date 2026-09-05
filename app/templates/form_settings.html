@@ -30,6 +30,8 @@
             turnstileSecret: {{ (form.turnstile_secret) | tojson }},
             redirectEnabled: {{ (form.redirect) | tojson }},
             redirectUrl: {{ (form.redirect_url)| tojson }},
+            autoresponseEnabled: {{ (form.autoresponse if is_studio | default(false) else false) | tojson }},
+            autoresponseRecipientKey: {{ (form.autoresponse_recipient_key | default('', true)) | tojson }},
             subMessage: {{ (form.sub_message | default('Submission successful!', true)) | tojson }},
             bgColor: {{ (form.sub_bg_color  if form.sub_bg_color else 'FFFFFF') | tojson }},
             txtColor: {{ (form.sub_txt_color  if form.sub_txt_color else '111111') | tojson }},
@@ -38,6 +40,7 @@
             if (!redirectEnabled) redirectUrl = '';
             if (!botProtectionEnabled) turnstileSecret = '';
             if (!duplicateBlocked) duplicateCheckInput = '';
+            if (!autoresponseEnabled) autoresponseRecipientKey = '';
         " class="space-y-6">
 
         <!-- ============ CARD 1: GENERAL ============ -->
@@ -115,8 +118,7 @@
                     <label class="block text-xs font-semibold text-gray-700 mb-1.5">Honeypot Field Name</label>
                     <div class="relative flex items-center max-w-xs">
                         <span class="absolute left-3 text-sm font-semibold text-gray-400 select-none">_</span>
-                        <input type="text" name="honeypot" value="{{ form.honeypot }}" required
-                            placeholder="gotcha"
+                        <input type="text" name="honeypot" value="{{ form.honeypot }}" required placeholder="gotcha"
                             class="w-full pl-6 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand transition-colors font-mono">
                     </div>
                     <p class="text-[11px] text-gray-400 mt-1.5">A hidden trap field real visitors never see. Bots
@@ -196,6 +198,54 @@
                 {{ toggle_switch('duplicateBlocked') }}
             </div>
         </div>
+
+        {% if is_studio | default(false) %}
+        <!-- ============ CUSTOMER CONFIRMATIONS ============ -->
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+            <div class="px-5 py-4 border-b border-gray-50 flex items-center gap-2.5">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                    stroke-linejoin="round" class="w-4 h-4 text-gray-400 shrink-0">
+                    <path d="M4 6h16v12H4z"></path>
+                    <path d="m4 7 8 6 8-6"></path>
+                </svg>
+                <div>
+                    <p class="text-sm font-semibold text-gray-900">Customer Confirmations</p>
+                    <p class="text-xs text-gray-400 mt-0.5">Send the submitter a copy of your confirmation template.</p>
+                </div>
+            </div>
+            <div class="p-5 flex items-start justify-between gap-6">
+                <div class="flex-1">
+                    <p class="text-sm font-medium text-gray-800">Email a confirmation to the submitter</p>
+                    <p class="text-xs text-gray-400 mt-0.5">Studio only. The field must contain one valid email address.
+                    </p>
+                    <div x-show="autoresponseEnabled" x-cloak x-transition class="mt-3 max-w-sm">
+                        <input type="text" name="autoresponse_recipient_key" x-model="autoresponseRecipientKey"
+                            :required="autoresponseEnabled" placeholder="e.g., email or _replyto"
+                            class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand transition-colors font-mono">
+                        <p class="text-[11px] text-gray-400 mt-1">Enter the exact submission payload field name.</p>
+                    </div>
+                </div>
+                <input type="hidden" name="autoresponse" :value="autoresponseEnabled ? 'true' : 'false'">
+                {{ toggle_switch('autoresponseEnabled') }}
+            </div>
+        </div>
+        {% else %}
+        <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+            <div class="px-5 py-4 border-b border-gray-50 flex items-center gap-2.5">
+                <div>
+                    <p class="text-sm font-semibold text-gray-900">Customer Confirmations</p>
+                    <p class="text-xs text-gray-400 mt-0.5">Send automatic confirmation emails with the Studio plan.</p>
+                </div>
+            </div>
+            <div class="p-5 flex items-center justify-between gap-6">
+                <p class="text-xs text-gray-500">Upgrade to Studio to enable the autoresponder for your form.</p>
+                <a href="/account"
+                    class="shrink-0 px-4 py-2 text-xs font-semibold text-white bg-brand hover:bg-brand-dark rounded-lg transition-colors">
+                    Upgrade to Studio
+                </a>
+            </div>
+        </div>
+        {% endif %}
 
         <!-- ============ CARD 4: AFTER SUBMISSION ============ -->
         <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">

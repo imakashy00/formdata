@@ -46,6 +46,8 @@ class FormSettingsPayload(BaseModel):
     name: str
     honeypot: str
     notification_email: EmailStr
+    autoresponse: bool = False
+    autoresponse_recipient_key: str | None = None
     redirect: bool
     redirect_url: str | None = None
     allowed_domains: str
@@ -95,6 +97,21 @@ class FormSettingsPayload(BaseModel):
             self.turnstile_secret = secret_val
         else:
             self.turnstile_secret = None
+
+        # 4. Validate customer autoresponder
+        if self.autoresponse:
+            recipient_key = (
+                self.autoresponse_recipient_key.strip()
+                if self.autoresponse_recipient_key
+                else ""
+            )
+            if not recipient_key:
+                raise ValueError(
+                    "A recipient field name is required when the autoresponder is enabled."
+                )
+            self.autoresponse_recipient_key = recipient_key
+        else:
+            self.autoresponse_recipient_key = None
 
         return self
 
