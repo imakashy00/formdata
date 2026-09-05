@@ -33,7 +33,11 @@ class SubmissionStatus(str, PyEnum):
     REJECTED = "rejected"
 
 
-UUID_PRIMARY_KEY = {"primary_key": True, "server_default": text("gen_random_uuid()")}
+UUID_PRIMARY_KEY = {
+    "primary_key": True,
+    "default": uuid.uuid4,
+    "server_default": text("gen_random_uuid()"),
+}
 
 
 def generate_short_id() -> str:

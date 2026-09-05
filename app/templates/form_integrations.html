@@ -32,15 +32,10 @@
                     </div>
                 </div>
                 <div class="flex items-center gap-2">
-                    {% if google_sheet_cfg.sheet_url and (google_sheet_cfg.access_token or google_sheet_cfg.has_refresh_token or google_sheet_cfg.has_google_account) and google_sheet_cfg.enabled != false %}
+                    {% if google_sheet_cfg.sheet_url and google_sheet_cfg.enabled and (google_sheet_cfg.access_token or google_sheet_cfg.has_refresh_token or google_sheet_cfg.has_google_account) %}
                     <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
                         <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                         Connected & Active
-                    </span>
-                    {% elif google_sheet_cfg.has_google_account or google_sheet_cfg.access_token %}
-                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
-                        <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                        Google Account Connected
                     </span>
                     {% else %}
                     <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-gray-50 text-gray-500 border border-gray-200">
@@ -73,7 +68,7 @@
                 </p>
             </div>
 
-            {% elif google_sheet_cfg.sheet_url %}
+            {% elif google_sheet_cfg.sheet_url and google_sheet_cfg.enabled %}
             <!-- State 2: One Active Spreadsheet Linked -->
             <div class="space-y-4">
                 <div class="p-4 bg-emerald-50/50 border border-emerald-100 rounded-xl space-y-3">
@@ -153,16 +148,16 @@
             {% else %}
             <!-- State 3: Consent Given, Prompting for Spreadsheet Link -->
             <div class="space-y-4">
-                <div class="flex items-center justify-between p-3 bg-blue-50/60 border border-blue-100 rounded-lg text-xs text-blue-800">
+                <div class="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-700">
                     <div class="flex items-center gap-2">
-                        <svg class="w-4 h-4 text-blue-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        <svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
-                        <span>Google Account authorized! Paste the link to your Google Spreadsheet below.</span>
+                        <span>This form is not connected to Drive or Sheets. Paste a spreadsheet link below or auto-create one to connect.</span>
                     </div>
                     <a href="/projects/{{ form.project_id }}/forms/{{ form.id }}/integrations/google_sheets/connect"
-                        class="text-[11px] text-blue-600 hover:underline font-medium ml-2">
-                        Reconnect
+                        class="text-[11px] text-brand hover:underline font-medium ml-2">
+                        Switch Account
                     </a>
                 </div>
 

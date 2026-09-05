@@ -96,18 +96,26 @@ class FormRepository:
             )
             user_integ = user_integ_res.scalar_one_or_none()
             if user_integ:
-                current_gs = integration_map.get("google_sheets", {})
-                current_gs["has_google_account"] = bool(user_integ.access_token or user_integ.refresh_token)
-                if user_integ.refresh_token:
-                    current_gs["has_refresh_token"] = True
-                    current_gs["refresh_token"] = user_integ.refresh_token
-                if user_integ.access_token and not current_gs.get("access_token"):
-                    current_gs["access_token"] = user_integ.access_token
-                if not current_gs.get("sheet_url") and user_integ.integration_metadata:
-                    current_gs["sheet_url"] = user_integ.integration_metadata.get("sheet_url", "")
-                if not current_gs.get("worksheet_name") and user_integ.integration_metadata:
-                    current_gs["worksheet_name"] = user_integ.integration_metadata.get("worksheet_name", "Sheet1")
-                integration_map["google_sheets"] = current_gs
+                current_gs = integration_map.get("google_sheets")
+                if current_gs is not None:
+                    current_gs["has_google_account"] = bool(user_integ.access_token or user_integ.refresh_token)
+                    if user_integ.refresh_token and not current_gs.get("refresh_token"):
+                        current_gs["has_refresh_token"] = True
+                        current_gs["refresh_token"] = user_integ.refresh_token
+                    if user_integ.access_token and not current_gs.get("access_token"):
+                        current_gs["access_token"] = user_integ.access_token
+                else:
+                    # Form does not have google_sheets integration configured yet.
+                    # By default, a form is NOT connected to Drive / Google Sheets!
+                    integration_map["google_sheets"] = {
+                        "enabled": False,
+                        "has_google_account": bool(user_integ.access_token or user_integ.refresh_token),
+                        "has_refresh_token": bool(user_integ.refresh_token),
+                        "access_token": user_integ.access_token,
+                        "refresh_token": user_integ.refresh_token,
+                        "sheet_url": "",
+                        "worksheet_name": "Submissions",
+                    }
 
         return integration_map
 
@@ -212,14 +220,13 @@ class FormRepository:
 
         if provider == IntegrationProvider.NOTION and config.get("notion_token"):
             integration.access_token = config["notion_token"]
+            integration.integration_metadata = {"scope": "notion"}
         elif provider == IntegrationProvider.GOOGLE_SHEETS:
             if config.get("access_token"):
                 integration.access_token = config["access_token"]
-            integration.integration_metadata = {
-                "sheet_url": config.get("sheet_url"),
-                "worksheet_name": config.get("worksheet_name") or "Sheet1",
-                "spreadsheet_id": config.get("spreadsheet_id"),
-            }
+            if config.get("refresh_token"):
+                integration.refresh_token = config["refresh_token"]
+            integration.integration_metadata = {"scope": "https://www.googleapis.com/auth/drive.file"}
         else:
             integration.integration_metadata = dict(config or {})
         integration.enabled = enabled

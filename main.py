@@ -52,7 +52,7 @@ def start_cleanup_task():
 
 
 async def verify_services() -> None:
-    """Verify Postgres connection and ensure tables exist."""
+    """Verify database connection and ensure tables exist."""
     try:
         async with engine.connect() as connection:
             await connection.execute(text("SELECT 1"))
@@ -61,7 +61,7 @@ async def verify_services() -> None:
         # Ensure all tables (including auth_tokens) exist in the database
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
-        log.info("✅ Database schema initialized/verified.")
+        log.info("✅ Postgres schema initialized/verified.")
     except Exception as exc:
         log.error(f"❌ Postgres is not reachable: {exc}")
         if settings.ENV != "development":

@@ -166,7 +166,7 @@ async def process_google_sheets_callback(
                 project_id,
                 IntegrationProvider.GOOGLE_SHEETS,
                 new_config,
-                enabled=True,
+                enabled=bool(sheet_url),
             )
             await db.commit()
 
