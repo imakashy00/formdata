@@ -250,7 +250,6 @@ async def update_form_settings(
 
     # 3. Apply Clean Payload Parameters directly to your SQLAlchemy Model instance
     db_form.name = payload.name.strip()
-    db_form.heading = payload.heading.strip() if payload.heading else None
     db_form.honeypot = payload.honeypot
     db_form.notification_email = payload.notification_email
     db_form.allowed_domains = accepted_domains_list

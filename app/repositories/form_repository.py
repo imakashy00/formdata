@@ -61,45 +61,79 @@ class FormRepository:
         query = (
             select(
                 FormIntegration.config,
+                FormIntegration.enabled,
                 Integration.provider,
                 Integration.access_token,
+                Integration.refresh_token,
+                Integration.integration_metadata,
             )
             .join(Integration, Integration.id == FormIntegration.integration_id)
             .where(FormIntegration.form_id == form.id)
         )
         result = await self.db.execute(query)
         integration_map: dict[str, dict] = {}
-        for config, provider, access_token in result.all():
+        for config, form_enabled, provider, access_token, refresh_token, metadata in result.all():
             cfg = dict(config or {})
-            if access_token:
-                if provider == IntegrationProvider.GOOGLE_SHEETS and "access_token" not in cfg:
-                    cfg["access_token"] = access_token
-                elif provider == IntegrationProvider.NOTION and "notion_token" not in cfg:
-                    cfg["notion_token"] = access_token
+            cfg["enabled"] = bool(form_enabled)
+            if access_token and "access_token" not in cfg:
+                cfg["access_token"] = access_token
+            if refresh_token:
+                cfg["refresh_token"] = refresh_token
+                cfg["has_refresh_token"] = True
+            if metadata:
+                cfg["metadata"] = dict(metadata)
             integration_map[provider.value] = cfg
 
-        if "google_sheets" not in integration_map or not integration_map["google_sheets"].get("access_token"):
-            p_uuid = UUID(str(project_id)) if not isinstance(project_id, UUID) else project_id
-            project = await self.db.get(Project, p_uuid)
-            if project:
-                user_integ_res = await self.db.execute(
-                    select(Integration).where(
-                        Integration.user_id == project.user_id,
-                        Integration.provider == IntegrationProvider.GOOGLE_SHEETS,
-                        Integration.enabled.is_(True),
-                    )
+        p_uuid = UUID(str(project_id)) if not isinstance(project_id, UUID) else project_id
+        project = await self.db.get(Project, p_uuid)
+        if project:
+            user_integ_res = await self.db.execute(
+                select(Integration).where(
+                    Integration.user_id == project.user_id,
+                    Integration.provider == IntegrationProvider.GOOGLE_SHEETS,
+                    Integration.enabled.is_(True),
                 )
-                user_integ = user_integ_res.scalar_one_or_none()
-                if user_integ and user_integ.access_token:
-                    current_gs = integration_map.get("google_sheets", {})
+            )
+            user_integ = user_integ_res.scalar_one_or_none()
+            if user_integ:
+                current_gs = integration_map.get("google_sheets", {})
+                current_gs["has_google_account"] = bool(user_integ.access_token or user_integ.refresh_token)
+                if user_integ.refresh_token:
+                    current_gs["has_refresh_token"] = True
+                    current_gs["refresh_token"] = user_integ.refresh_token
+                if user_integ.access_token and not current_gs.get("access_token"):
                     current_gs["access_token"] = user_integ.access_token
-                    if "sheet_url" not in current_gs and user_integ.integration_metadata:
-                        current_gs["sheet_url"] = user_integ.integration_metadata.get("sheet_url", "")
-                    if "worksheet_name" not in current_gs and user_integ.integration_metadata:
-                        current_gs["worksheet_name"] = user_integ.integration_metadata.get("worksheet_name", "Sheet1")
-                    integration_map["google_sheets"] = current_gs
+                if not current_gs.get("sheet_url") and user_integ.integration_metadata:
+                    current_gs["sheet_url"] = user_integ.integration_metadata.get("sheet_url", "")
+                if not current_gs.get("worksheet_name") and user_integ.integration_metadata:
+                    current_gs["worksheet_name"] = user_integ.integration_metadata.get("worksheet_name", "Sheet1")
+                integration_map["google_sheets"] = current_gs
 
         return integration_map
+
+    async def remove_form_integration(
+        self,
+        form_id: str | UUID,
+        project_id: str | UUID,
+        provider: IntegrationProvider,
+    ) -> bool:
+        form = await self.get_by_id_and_project(form_id, project_id)
+        if not form:
+            return False
+        result = await self.db.execute(
+            select(FormIntegration)
+            .join(Integration, Integration.id == FormIntegration.integration_id)
+            .where(
+                FormIntegration.form_id == form.id,
+                Integration.provider == provider,
+            )
+        )
+        form_integ = result.scalar_one_or_none()
+        if form_integ:
+            await self.db.delete(form_integ)
+            await self.db.commit()
+            return True
+        return False
 
     async def get_enabled_integrations(self, form_id: str | UUID) -> list[dict]:
         form_uuid = UUID(str(form_id)) if not isinstance(form_id, UUID) else form_id

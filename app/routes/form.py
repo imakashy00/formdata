@@ -1,7 +1,10 @@
+import base64
 import io
+import json
 import uuid
 from typing import Annotated
 
+import httpx
 import openpyxl
 from fastapi import (
     APIRouter,
@@ -14,7 +17,7 @@ from fastapi import (
     Response,
     status,
 )
-from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from loguru import logger as log
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -27,6 +30,7 @@ from app.core.errors import (
     WorkbookFailed,
 )
 from app.core.htmx import hx_toast_headers, is_htmx_dep
+from app.core.settings import settings
 from app.core.templates import temp
 from app.models.user import IntegrationProvider, SubmissionStatus, User
 from app.repositories.form_repository import FormRepository
@@ -43,7 +47,9 @@ from app.services.form import (
     generate_workbook_sheet,
     get_form_analytics,
 )
+from app.services.oauth import oauth
 from app.services.submission_sync import (
+    _refresh_google_token,
     build_pending_sync_status,
     sync_submission_integrations,
     validate_google_sheets_config,
@@ -459,6 +465,252 @@ async def handle_get_project_form_integrations(
     )
 
 
+@form_router.get(
+    "/{project_id}/forms/{form_id}/integrations/google_sheets/connect",
+)
+async def handle_connect_google_sheets(
+    request: Request,
+    project_id: str,
+    form_id: str,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(current_user)],
+):
+    if not user:
+        return RedirectResponse(url="/", status_code=303)
+    form = await FormRepository(db).get_by_id_and_project(form_id, project_id)
+    if not form:
+        raise NotFoundError("Form not found")
+
+    state_data = {
+        "type": "google_sheets",
+        "user_id": str(user.id),
+        "project_id": str(project_id),
+        "form_id": str(form_id),
+    }
+    state_str = base64.urlsafe_b64encode(json.dumps(state_data).encode()).decode()
+    request.session["google_sheets_state"] = state_data
+
+    redirect_uri = str(request.url_for("google_sheets_callback"))
+    if request.headers.get("x-forwarded-proto") == "https" or str(settings.BASE_URL).startswith("https:"):
+        redirect_uri = redirect_uri.replace("http://", "https://", 1)
+
+    return await oauth.google_sheets.authorize_redirect(
+        request,
+        redirect_uri,
+        state=state_str,
+        access_type="offline",
+        prompt="consent",
+    )
+
+
+@form_router.post(
+    "/{project_id}/forms/{form_id}/integrations/google_sheets/disconnect",
+    response_class=HTMLResponse,
+)
+async def handle_disconnect_google_sheets(
+    request: Request,
+    project_id: str,
+    form_id: str,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(current_user)],
+):
+    form = await FormRepository(db).get_by_id_and_project(form_id, project_id)
+    if not form:
+        raise NotFoundError("Form not found")
+
+    await FormRepository(db).remove_form_integration(
+        form_id, project_id, IntegrationProvider.GOOGLE_SHEETS
+    )
+
+    integration_map = await FormRepository(db).get_integration_map(form_id, project_id)
+    return temp.TemplateResponse(
+        request,
+        "form_integrations.html",
+        {
+            "request": request,
+            "form": form,
+            "active_tab": "integrations",
+            "active_tab_template": TAB_TEMPLATES[FormTab.integrations],
+            "tab_labels": TAB_LABELS,
+            "user": user,
+            "page": "projects",
+            "integration_map": integration_map,
+        },
+        headers=hx_toast_headers("Google Sheets integration disconnected.", type_=ToastType.SUCCESS),
+        status_code=status.HTTP_200_OK,
+    )
+
+
+@form_router.post(
+    "/{project_id}/forms/{form_id}/integrations/google_sheets/create_sheet",
+    response_class=HTMLResponse,
+)
+async def handle_create_google_sheet(
+    request: Request,
+    project_id: str,
+    form_id: str,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(current_user)],
+):
+    form = await FormRepository(db).get_by_id_and_project(form_id, project_id)
+    if not form:
+        raise NotFoundError("Form not found")
+
+    integ_map = await FormRepository(db).get_integration_map(form_id, project_id)
+    gs_cfg = integ_map.get("google_sheets", {})
+    access_token = gs_cfg.get("access_token")
+    refresh_token = gs_cfg.get("refresh_token")
+
+    if not access_token and refresh_token:
+        access_token = await _refresh_google_token(refresh_token)
+
+    if not access_token:
+        return temp.TemplateResponse(
+            request,
+            "form_integrations.html",
+            {
+                "request": request,
+                "form": form,
+                "active_tab": "integrations",
+                "active_tab_template": TAB_TEMPLATES[FormTab.integrations],
+                "tab_labels": TAB_LABELS,
+                "user": user,
+                "page": "projects",
+                "integration_map": integ_map,
+            },
+            headers=hx_toast_headers(
+                "Please connect your Google account with the drive.file consent screen first.",
+                type_=ToastType.WARNING,
+            ),
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.post(
+                "https://sheets.googleapis.com/v4/spreadsheets",
+                headers={"Authorization": f"Bearer {access_token}"},
+                json={
+                    "properties": {"title": f"{form.name} Submissions (Formdata)"},
+                    "sheets": [{"properties": {"title": "Submissions"}}],
+                },
+            )
+            if resp.status_code == 401 and refresh_token:
+                access_token = await _refresh_google_token(refresh_token)
+                if access_token:
+                    resp = await client.post(
+                        "https://sheets.googleapis.com/v4/spreadsheets",
+                        headers={"Authorization": f"Bearer {access_token}"},
+                        json={
+                            "properties": {"title": f"{form.name} Submissions (Formdata)"},
+                            "sheets": [{"properties": {"title": "Submissions"}}],
+                        },
+                    )
+
+            if resp.status_code >= 400:
+                raise ValueError(f"Could not create Google Sheet ({resp.status_code}): {resp.text}")
+
+            data = resp.json()
+            spreadsheet_id = data.get("spreadsheetId")
+            sheet_url = f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}/edit"
+            worksheet_name = "Submissions"
+
+            # Add header row
+            await client.post(
+                f"https://sheets.googleapis.com/v4/spreadsheets/{spreadsheet_id}/values/{worksheet_name}!A1:append?valueInputOption=USER_ENTERED",
+                headers={"Authorization": f"Bearer {access_token}"},
+                json={"values": [["Submitted At", "Country"]]},
+            )
+
+        new_config = {
+            "sheet_url": sheet_url,
+            "spreadsheet_id": spreadsheet_id,
+            "worksheet_name": worksheet_name,
+            "access_token": access_token,
+        }
+        if refresh_token:
+            new_config["refresh_token"] = refresh_token
+
+        await FormRepository(db).upsert_form_integration(
+            form_id, project_id, IntegrationProvider.GOOGLE_SHEETS, new_config, enabled=True
+        )
+    except Exception as exc:
+        return temp.TemplateResponse(
+            request,
+            "form_integrations.html",
+            {
+                "request": request,
+                "form": form,
+                "active_tab": "integrations",
+                "active_tab_template": TAB_TEMPLATES[FormTab.integrations],
+                "tab_labels": TAB_LABELS,
+                "user": user,
+                "page": "projects",
+                "integration_map": await FormRepository(db).get_integration_map(form_id, project_id),
+            },
+            headers=hx_toast_headers(str(exc), type_=ToastType.ERROR),
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+
+    return temp.TemplateResponse(
+        request,
+        "form_integrations.html",
+        {
+            "request": request,
+            "form": form,
+            "active_tab": "integrations",
+            "active_tab_template": TAB_TEMPLATES[FormTab.integrations],
+            "tab_labels": TAB_LABELS,
+            "user": user,
+            "page": "projects",
+            "integration_map": await FormRepository(db).get_integration_map(form_id, project_id),
+        },
+        headers=hx_toast_headers(
+            "Google Spreadsheet created and linked successfully!",
+            type_=ToastType.SUCCESS,
+        ),
+        status_code=status.HTTP_200_OK,
+    )
+
+
+@form_router.post(
+    "/{project_id}/forms/{form_id}/integrations/notion/disconnect",
+    response_class=HTMLResponse,
+)
+async def handle_disconnect_notion(
+    request: Request,
+    project_id: str,
+    form_id: str,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(current_user)],
+):
+    form = await FormRepository(db).get_by_id_and_project(form_id, project_id)
+    if not form:
+        raise NotFoundError("Form not found")
+
+    await FormRepository(db).remove_form_integration(
+        form_id, project_id, IntegrationProvider.NOTION
+    )
+
+    integration_map = await FormRepository(db).get_integration_map(form_id, project_id)
+    return temp.TemplateResponse(
+        request,
+        "form_integrations.html",
+        {
+            "request": request,
+            "form": form,
+            "active_tab": "integrations",
+            "active_tab_template": TAB_TEMPLATES[FormTab.integrations],
+            "tab_labels": TAB_LABELS,
+            "user": user,
+            "page": "projects",
+            "integration_map": integration_map,
+        },
+        headers=hx_toast_headers("Notion integration disconnected.", type_=ToastType.SUCCESS),
+        status_code=status.HTTP_200_OK,
+    )
+
+
 @form_router.post(
     "/{project_id}/forms/{form_id}/integrations/{provider}",
     response_class=HTMLResponse,
@@ -483,7 +735,12 @@ async def handle_save_form_integration(
     provider_name = provider.lower().strip()
     try:
         if provider_name == "google_sheets":
-            config = validate_google_sheets_config(sheet_url, worksheet_name, google_token)
+            integ_map = await FormRepository(db).get_integration_map(form_id, project_id)
+            existing_gs = integ_map.get("google_sheets", {})
+            effective_token = (google_token or "").strip() or existing_gs.get("access_token")
+            config = validate_google_sheets_config(sheet_url, worksheet_name, effective_token)
+            if existing_gs.get("refresh_token"):
+                config["refresh_token"] = existing_gs["refresh_token"]
             await FormRepository(db).upsert_form_integration(
                 form_id,
                 project_id,
@@ -492,7 +749,36 @@ async def handle_save_form_integration(
                 enabled=True,
             )
         elif provider_name == "notion":
-            config = validate_notion_config(database_id, notion_token)
+            integ_map = await FormRepository(db).get_integration_map(form_id, project_id)
+            existing_notion = integ_map.get("notion", {})
+            effective_token = (notion_token or "").strip() or existing_notion.get("notion_token")
+            config = validate_notion_config(database_id, effective_token)
+
+            # Introspect database via Notion API to verify permissions and get database title
+            async with httpx.AsyncClient(timeout=12.0) as client:
+                notion_res = await client.get(
+                    f"https://api.notion.com/v1/databases/{config['database_id']}",
+                    headers={
+                        "Authorization": f"Bearer {config['notion_token']}",
+                        "Notion-Version": "2022-06-28",
+                    },
+                )
+                if notion_res.status_code == 200:
+                    data = notion_res.json()
+                    titles = data.get("title", [])
+                    db_title = "".join(t.get("plain_text", "") for t in titles).strip()
+                    config["database_title"] = db_title or "Notion Database"
+                elif notion_res.status_code == 404:
+                    raise ValueError(
+                        "Notion database not found. Ensure the Database ID or link is correct and you have shared the database with your Notion integration (click '...' -> 'Add connections' in Notion)."
+                    )
+                elif notion_res.status_code in (401, 403):
+                    raise ValueError(
+                        "Notion authorization failed. Check your Notion Integration Token and make sure it has access to the target database."
+                    )
+                else:
+                    log.warning(f"Notion API check returned {notion_res.status_code}: {notion_res.text}")
+
             await FormRepository(db).upsert_form_integration(
                 form_id,
                 project_id,

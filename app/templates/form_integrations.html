@@ -1,14 +1,14 @@
-<div x-show="activeTab === 'integrations'" class="p-5 md:p-7" x-cloak>
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-5">
+<div id="tab-content" x-show="activeTab === 'integrations'" class="p-5 md:p-7" x-cloak>
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6">
         <div>
             <h3 class="text-base font-semibold text-gray-900">Form Integrations</h3>
-            <p class="text-sm text-gray-500">Automatically export approved form submissions to external platforms.</p>
+            <p class="text-sm text-gray-500">Automatically sync approved form submissions to external platforms.</p>
         </div>
         <div class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 text-xs font-medium border border-blue-100">
             <svg class="w-4 h-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            Exports only approved submissions
+            Syncs on submission approval
         </div>
     </div>
 
@@ -16,118 +16,235 @@
     {% set google_sheet_cfg = integration_map.google_sheets or {} %}
     {% set notion_cfg = integration_map.notion or {} %}
 
-    <div class="space-y-6">
+    <div class="space-y-6 max-w-4xl">
         <!-- Google Sheets Card -->
-        <div class="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
-            <div class="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-gray-50">
+        <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 pb-4 border-b border-gray-100">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center text-green-600 font-bold text-xs">
-                        GS
+                    <div class="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-sm border border-emerald-100">
+                        <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14H6v-2h6v2zm0-4H6v-2h6v2zm0-4H6V7h6v2zm6 8h-4v-2h4v2zm0-4h-4v-2h4v2zm0-4h-4V7h4v2z" />
+                        </svg>
                     </div>
                     <div>
                         <h4 class="text-sm font-semibold text-gray-900">Google Sheets</h4>
-                        <p class="text-xs text-gray-500">Append approved submission rows to a Google Spreadsheet tab.</p>
+                        <p class="text-xs text-gray-500">Append submissions directly to a Google Spreadsheet via Google OAuth 2.0.</p>
                     </div>
                 </div>
-                <div>
-                    {% if google_sheet_cfg.sheet_url and google_sheet_cfg.access_token %}
-                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
-                        <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                        Connected
+                <div class="flex items-center gap-2">
+                    {% if google_sheet_cfg.sheet_url and (google_sheet_cfg.access_token or google_sheet_cfg.has_refresh_token) and google_sheet_cfg.enabled != false %}
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                        Connected & Active
                     </span>
-                    {% elif google_sheet_cfg.sheet_url %}
-                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
-                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                        Token Required
+                    {% elif google_sheet_cfg.has_google_account or google_sheet_cfg.access_token %}
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                        Drive Scope Authorized
                     </span>
                     {% else %}
-                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-50 text-gray-500 border border-gray-200">
-                        Not Configured
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-gray-50 text-gray-500 border border-gray-200">
+                        Not Connected
                     </span>
                     {% endif %}
                 </div>
             </div>
 
-            <form hx-post="/projects/{{form.project_id}}/forms/{{form.id}}/integrations/google_sheets"
-                hx-target="#tab-content" hx-swap="outerHTML" class="space-y-3">
+            <div class="mb-5 bg-gray-50 border border-gray-100 rounded-lg p-3.5 text-xs text-gray-600 space-y-1.5">
+                <div class="flex items-center gap-2 font-medium text-gray-800">
+                    <svg class="w-4 h-4 text-emerald-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                    <span>Secure Scope (<code>drive.file</code>) with Offline Access</span>
+                </div>
+                <p class="text-[11px] text-gray-500 leading-relaxed">
+                    Uses the recommended <strong>drive.file</strong> OAuth 2.0 scope. This gives Formdata access only to spreadsheets created or explicitly opened by Formdata, without granting full access to the rest of your Google Drive.
+                </p>
+            </div>
+
+            <!-- Connect / Action Bar -->
+            <div class="flex flex-wrap items-center gap-3 mb-6">
+                <a href="/projects/{{ form.project_id }}/forms/{{ form.id }}/integrations/google_sheets/connect"
+                    class="inline-flex items-center gap-2 px-4 py-2 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors shadow-xs">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24">
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+                    </svg>
+                    {% if google_sheet_cfg.has_google_account or google_sheet_cfg.access_token %}
+                    Reconnect Google Account
+                    {% else %}
+                    Connect Google Account
+                    {% endif %}
+                </a>
+
+                {% if google_sheet_cfg.has_google_account or google_sheet_cfg.access_token %}
+                <button type="button"
+                    hx-post="/projects/{{ form.project_id }}/forms/{{ form.id }}/integrations/google_sheets/create_sheet"
+                    hx-target="#tab-content"
+                    hx-swap="outerHTML"
+                    class="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors cursor-pointer">
+                    <svg class="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Create New Sheet in Drive
+                </button>
+                {% endif %}
+
+                {% if google_sheet_cfg.sheet_url %}
+                <a href="{{ google_sheet_cfg.sheet_url }}" target="_blank" rel="noopener noreferrer"
+                    class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-gray-600 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors">
+                    <svg class="w-3.5 h-3.5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                    Open Spreadsheet
+                </a>
+                {% endif %}
+
+                {% if google_sheet_cfg.sheet_url or google_sheet_cfg.access_token %}
+                <button type="button"
+                    hx-post="/projects/{{ form.project_id }}/forms/{{ form.id }}/integrations/google_sheets/disconnect"
+                    hx-target="#tab-content"
+                    hx-swap="outerHTML"
+                    hx-confirm="Are you sure you want to disconnect Google Sheets for this form?"
+                    class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors cursor-pointer ml-auto">
+                    Disconnect
+                </button>
+                {% endif %}
+            </div>
+
+            <!-- Form Configuration -->
+            <form hx-post="/projects/{{ form.project_id }}/forms/{{ form.id }}/integrations/google_sheets"
+                hx-target="#tab-content" hx-swap="outerHTML" class="space-y-4 pt-2 border-t border-gray-100">
                 <div>
                     <label class="block text-xs font-semibold text-gray-700 mb-1.5">Spreadsheet URL</label>
                     <input type="url" name="sheet_url" value="{{ google_sheet_cfg.sheet_url or '' }}"
                         placeholder="https://docs.google.com/spreadsheets/d/1a2b3c4d5e.../edit" required
-                        class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand transition-colors">
-                    <p class="text-[11px] text-gray-400 mt-1">Full URL to the Google Spreadsheet.</p>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-gray-700 mb-1.5">Worksheet Tab Name</label>
-                    <input type="text" name="worksheet_name"
-                        value="{{ google_sheet_cfg.worksheet_name or 'Sheet1' }}" placeholder="Sheet1"
-                        class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand transition-colors">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-gray-700 mb-1.5">Google Access Token / OAuth Bearer Token</label>
-                    <input type="password" name="google_token"
-                        value="{{ google_sheet_cfg.access_token or '' }}"
-                        placeholder="ya29.a0..."
                         class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand transition-colors font-mono text-xs">
-                    <p class="text-[11px] text-gray-500 mt-1">
-                        <span class="font-semibold text-gray-700">Write Permission Required:</span> Must have <code>https://www.googleapis.com/auth/spreadsheets</code> write scope. Ensure your Google account has <span class="font-medium text-gray-700">Editor</span> permissions on the target sheet.
-                    </p>
+                    <p class="text-[11px] text-gray-400 mt-1">Full URL to the target Google Spreadsheet.</p>
                 </div>
-                <button type="submit"
-                    class="w-full py-2 text-xs font-medium text-white bg-brand hover:bg-brand-dark rounded-lg transition-colors cursor-pointer">
-                    Save Google Sheets Integration
-                </button>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1.5">Worksheet Tab Name</label>
+                        <input type="text" name="worksheet_name"
+                            value="{{ google_sheet_cfg.worksheet_name or 'Submissions' }}" placeholder="Submissions"
+                            class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand transition-colors">
+                        <p class="text-[11px] text-gray-400 mt-1">Tab where rows will be appended (default: Submissions).</p>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1.5">
+                            OAuth Token
+                            {% if google_sheet_cfg.has_refresh_token or google_sheet_cfg.has_google_account %}
+                            <span class="text-[10px] text-emerald-600 font-normal ml-1">✓ Managed via OAuth Refresh Token</span>
+                            {% endif %}
+                        </label>
+                        <input type="password" name="google_token"
+                            value="{{ google_sheet_cfg.access_token or '' }}"
+                            placeholder="Managed automatically via OAuth"
+                            class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand transition-colors font-mono text-xs">
+                        <p class="text-[11px] text-gray-400 mt-1">Auto-managed when connected with Google OAuth above.</p>
+                    </div>
+                </div>
+
+                <div class="pt-2">
+                    <button type="submit"
+                        class="py-2 px-4 text-xs font-medium text-white bg-brand hover:bg-brand-dark rounded-lg transition-colors cursor-pointer shadow-xs">
+                        Save Google Sheets Configuration
+                    </button>
+                </div>
             </form>
         </div>
 
         <!-- Notion Card -->
-        <div class="bg-white rounded-xl border border-gray-100 p-5 shadow-sm">
-            <div class="flex items-center justify-between gap-3 mb-4 pb-3 border-b border-gray-50">
+        <div class="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 pb-4 border-b border-gray-100">
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-lg bg-gray-900 flex items-center justify-center text-white font-bold text-xs">
+                    <div class="w-10 h-10 rounded-lg bg-gray-900 text-white flex items-center justify-center font-bold text-sm">
                         N
                     </div>
                     <div>
                         <h4 class="text-sm font-semibold text-gray-900">Notion</h4>
-                        <p class="text-xs text-gray-500">Create entries in your Notion database for approved submissions.</p>
+                        <p class="text-xs text-gray-500">Sync approved form submissions into a Notion Database.</p>
                     </div>
                 </div>
-                <div>
-                    {% if notion_cfg.database_id and notion_cfg.notion_token %}
-                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
-                        <span class="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                        Connected
+                <div class="flex items-center gap-2">
+                    {% if notion_cfg.database_id and notion_cfg.notion_token and notion_cfg.enabled != false %}
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                        Connected & Active
                     </span>
                     {% else %}
-                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-50 text-gray-500 border border-gray-200">
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-gray-50 text-gray-500 border border-gray-200">
                         Not Configured
                     </span>
                     {% endif %}
                 </div>
             </div>
 
-            <form hx-post="/projects/{{form.project_id}}/forms/{{form.id}}/integrations/notion" hx-target="#tab-content"
-                hx-swap="outerHTML" class="space-y-3">
+            <!-- Notion Step-by-Step Guide -->
+            <div class="mb-5 bg-gray-50 border border-gray-100 rounded-lg p-3.5 text-xs text-gray-600 space-y-2">
+                <p class="font-medium text-gray-800">How to connect Notion:</p>
+                <ol class="list-decimal list-inside space-y-1 text-gray-600 text-[11px] leading-relaxed">
+                    <li>Create an internal integration at <a href="https://www.notion.so/profile/integrations" target="_blank" rel="noopener noreferrer" class="text-brand hover:underline font-medium">notion.so/profile/integrations</a> and copy the <strong>Internal Integration Secret</strong>.</li>
+                    <li>Open your Notion database, click <strong>••• (top-right) → Connections → Add connection</strong> and select your integration.</li>
+                    <li>Copy the Notion Database link or 32-character ID and paste below.</li>
+                </ol>
+            </div>
+
+            {% if notion_cfg.database_title %}
+            <div class="mb-4 p-3 bg-emerald-50/60 border border-emerald-100 rounded-lg flex items-center justify-between text-xs">
+                <div class="flex items-center gap-2 text-emerald-900">
+                    <svg class="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span>Linked Database: <strong class="font-semibold">{{ notion_cfg.database_title }}</strong></span>
+                </div>
+                {% if notion_cfg.database_id and notion_cfg.notion_token %}
+                <button type="button"
+                    hx-post="/projects/{{ form.project_id }}/forms/{{ form.id }}/integrations/notion/disconnect"
+                    hx-target="#tab-content"
+                    hx-swap="outerHTML"
+                    hx-confirm="Are you sure you want to disconnect Notion for this form?"
+                    class="text-xs text-red-600 hover:text-red-700 font-medium cursor-pointer">
+                    Disconnect
+                </button>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <form hx-post="/projects/{{ form.project_id }}/forms/{{ form.id }}/integrations/notion"
+                hx-target="#tab-content" hx-swap="outerHTML" class="space-y-4">
                 <div>
                     <label class="block text-xs font-semibold text-gray-700 mb-1.5">Notion Database ID or URL</label>
                     <input type="text" name="database_id" value="{{ notion_cfg.database_id or '' }}"
                         placeholder="Paste Notion database URL or 32-character ID" required
-                        class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand transition-colors">
-                    <p class="text-[11px] text-gray-400 mt-1">Accepts either the full Notion database URL or the 32-character database ID.</p>
+                        class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand transition-colors font-mono text-xs">
+                    <p class="text-[11px] text-gray-400 mt-1">Accepts either the full Notion database share URL or the 32-character database ID.</p>
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-gray-700 mb-1.5">Notion Integration Token</label>
+                    <label class="block text-xs font-semibold text-gray-700 mb-1.5">Notion Integration Token (Secret)</label>
                     <input type="password" name="notion_token" value="{{ notion_cfg.notion_token or '' }}"
                         placeholder="secret_..." required
                         class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-brand transition-colors font-mono text-xs">
-                    <p class="text-[11px] text-gray-500 mt-1">
-                        <span class="font-semibold text-gray-700">Write Permission Required:</span> Must enable <span class="font-medium text-gray-700">"Insert content"</span> write capability in your Notion integration settings and share the database with your integration.
-                    </p>
+                    <p class="text-[11px] text-gray-400 mt-1">Found in your Notion integration settings under Internal Integration Secret.</p>
                 </div>
-                <button type="submit"
-                    class="w-full py-2 text-xs font-medium text-white bg-brand hover:bg-brand-dark rounded-lg transition-colors cursor-pointer">
-                    Save Notion Integration
-                </button>
+                <div class="flex items-center gap-3 pt-2">
+                    <button type="submit"
+                        class="py-2 px-4 text-xs font-medium text-white bg-brand hover:bg-brand-dark rounded-lg transition-colors cursor-pointer shadow-xs">
+                        Save Notion Integration
+                    </button>
+                    {% if notion_cfg.database_id and not notion_cfg.database_title %}
+                    <button type="button"
+                        hx-post="/projects/{{ form.project_id }}/forms/{{ form.id }}/integrations/notion/disconnect"
+                        hx-target="#tab-content"
+                        hx-swap="outerHTML"
+                        class="py-2 px-3 text-xs font-medium text-gray-500 hover:text-red-600 transition-colors cursor-pointer">
+                        Disconnect
+                    </button>
+                    {% endif %}
+                </div>
             </form>
         </div>
     </div>

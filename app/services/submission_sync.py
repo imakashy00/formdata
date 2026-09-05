@@ -407,7 +407,7 @@ async def _sync_to_google_sheets(
             )
         if header_resp.status_code == 403:
             raise ValueError(
-                "Google Sheets write permission denied (403). Ensure your OAuth token has write permissions ('https://www.googleapis.com/auth/spreadsheets' scope) and the spreadsheet is shared with Editor (write) access."
+                "Google Sheets write permission denied (403). Ensure the spreadsheet was created by Formdata or is accessible under the 'https://www.googleapis.com/auth/drive.file' scope with Editor permissions."
             )
         if header_resp.status_code >= 400:
             raise ValueError(f"Google Sheets access error ({header_resp.status_code}): {header_resp.text}")
@@ -482,7 +482,7 @@ async def _sync_to_google_sheets(
 
         if append_res.status_code == 403:
             raise ValueError(
-                "Google Sheets write permission denied (403). Ensure your OAuth token has write permissions ('https://www.googleapis.com/auth/spreadsheets' scope) and your account has Editor/Write access on the spreadsheet."
+                "Google Sheets write permission denied (403). Ensure the spreadsheet was created by Formdata or is accessible under the 'https://www.googleapis.com/auth/drive.file' scope with Editor permissions."
             )
         if append_res.status_code >= 400:
             raise ValueError(f"Google Sheets sync failed ({append_res.status_code}): {append_res.text}")
