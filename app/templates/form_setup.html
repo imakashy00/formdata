@@ -6,15 +6,17 @@
             display: none !important;
         }
 
-        /* Syntax-highlight palette, derived from the brand theme (--color-brand*)
-           instead of a stock highlight.js theme, so the code blocks stay on-brand. */
+        /* Small, local syntax palette. Token spans are created by the script below;
+           no highlighting library is loaded. */
         .setup-panel {
             --code-comment: #64748b;
             --code-string: #86efac;
             --code-number: #fbbf24;
-            --code-tag: var(--color-brand-mid);
-            --code-attr: color-mix(in srgb, var(--color-brand) 35%, #94a3b8);
-            --code-keyword: color-mix(in srgb, var(--color-brand) 60%, white);
+            --code-tag: #7dd3fc;
+            --code-component: #f9a8d4;
+            --code-attr: #c4b5fd;
+            --code-directive: #fcd34d;
+            --code-keyword: #c4b5fd;
         }
 
         .tok-comment {
@@ -31,8 +33,17 @@
             font-weight: 600;
         }
 
+        .tok-component {
+            color: var(--code-component);
+            font-weight: 600;
+        }
+
         .tok-attr {
             color: var(--code-attr);
+        }
+
+        .tok-directive {
+            color: var(--code-directive);
         }
 
         .tok-keyword {
@@ -144,7 +155,7 @@
 
         <div class="p-5 sm:p-7">
             <!-- HTML -->
-            <section x-show="framework==='html'" x-cloak>
+            <section x-show="framework==='html'" x-cloak data-language="html">
                 {{ framework_header('HTML') }}
                 <div x-show="mode==='basic'">
                     {{ code_card('&quot;&lt;form action=\&quot;https://formdata.cloud/f/' ~ form.public_id ~ '\&quot; method=\&quot;POST\&quot;&gt;\n  &lt;input type=\&quot;email\&quot; name=\&quot;email\&quot; placeholder=\&quot;Email\&quot; required /&gt;\n  &lt;textarea name=\&quot;message\&quot; placeholder=\&quot;Message\&quot; required&gt;&lt;/textarea&gt;\n\n  &lt;!-- Optional honeypot generated for this form --&gt;\n  &lt;input type=\&quot;text\&quot; name=\&quot;' ~ form.honeypot ~ '\&quot; tabindex=\&quot;-1\&quot;\n         autocomplete=\&quot;off\&quot; aria-hidden=\&quot;true\&quot;\n         style=\&quot;position:absolute;left:-9999px\&quot; /&gt;\n\n  &lt;button type=\&quot;submit\&quot;&gt;Send message&lt;/button&gt;\n&lt;/form&gt;&quot;') }}
@@ -155,7 +166,7 @@
             </section>
 
             <!-- React -->
-            <section x-show="framework==='react'" x-cloak>
+            <section x-show="framework==='react'" x-cloak data-language="react">
                 {{ framework_header('React') }}
                 {{ recommended_pkg('@marsidev/react-turnstile') }}
                 <div x-show="mode==='basic'">
@@ -167,7 +178,7 @@
             </section>
 
             <!-- Vue 3 -->
-            <section x-show="framework==='vue'" x-cloak>
+            <section x-show="framework==='vue'" x-cloak data-language="vue">
                 {{ framework_header('Vue 3') }}
                 {{ recommended_pkg('vue-turnstile') }}
                 <div x-show="mode==='basic'">
@@ -179,7 +190,7 @@
             </section>
 
             <!-- Svelte -->
-            <section x-show="framework==='svelte'" x-cloak>
+            <section x-show="framework==='svelte'" x-cloak data-language="svelte">
                 {{ framework_header('Svelte') }}
                 {{ recommended_pkg('svelte-turnstile') }}
                 <div x-show="mode==='basic'">
@@ -191,7 +202,7 @@
             </section>
 
             <!-- Angular -->
-            <section x-show="framework==='angular'" x-cloak>
+            <section x-show="framework==='angular'" x-cloak data-language="angular">
                 {{ framework_header('Angular') }}
                 {{ recommended_pkg('ngx-turnstile') }}
                 <div x-show="mode==='basic'">
@@ -203,7 +214,7 @@
             </section>
 
             <!-- WordPress -->
-            <section x-show="framework==='wordpress'" x-cloak>
+            <section x-show="framework==='wordpress'" x-cloak data-language="wordpress">
                 {{ framework_header('WordPress') }}
                 <div x-show="mode==='basic'">
                     {{ code_card('&quot;&lt;!-- Paste into a WordPress Custom HTML block --&gt;\n&lt;form action=\&quot;https://formdata.cloud/f/' ~ form.public_id ~ '\&quot; method=\&quot;POST\&quot;&gt;\n  &lt;p&gt;&lt;input type=\&quot;email\&quot; name=\&quot;email\&quot; placeholder=\&quot;Email\&quot; required /&gt;&lt;/p&gt;\n  &lt;p&gt;&lt;textarea name=\&quot;message\&quot; placeholder=\&quot;Message\&quot; required&gt;&lt;/textarea&gt;&lt;/p&gt;\n  &lt;p&gt;&lt;button type=\&quot;submit\&quot;&gt;Send message&lt;/button&gt;&lt;/p&gt;\n&lt;/form&gt;&quot;') }}
@@ -214,7 +225,7 @@
             </section>
 
             <!-- Next.js -->
-            <section x-show="framework==='next'" x-cloak>
+            <section x-show="framework==='next'" x-cloak data-language="nextjs">
                 {{ framework_header('Next.js') }}
                 {{ recommended_pkg('@marsidev/react-turnstile') }}
                 <div x-show="mode==='basic'">
@@ -266,10 +277,12 @@
                 /\/\/[^\n]*/,                                           // 3 line comment
                 /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`/, // 4 string
                 /@[A-Za-z_]\w*/,                                        // 5 decorator (e.g. @Component)
-                /<\/?[A-Za-z][\w.-]*/,                                  // 6 tag open + name
-                /\b[a-zA-Z_:][\w:.-]*(?=[\]\)]?\s*=(?!=))/,             // 7 attribute / bound prop name
-                /\b(?:import|export|from|default|function|return|const|let|var|class|extends|implements|interface|type|new|this|async|await|if|else|for|of|in|while|npm|install|public|private|readonly|standalone|selector|templateUrl|imports|string|number|boolean|void|null|undefined|any)\b/, // 8 keyword
-                /\b\d+(?:\.\d+)?\b/                                     // 9 number
+                /<\/?[A-Z][\w.-]*/,                                     // 6 JSX/Vue/Svelte component
+                /<\/?[a-z][\w.-]*/,                                     // 7 HTML tag
+                /(?:v-[\w-]+|:[\w-]+|@[\w-]+|bind:[\w-]+|on:[\w-]+|\[\(?[\w-]+\)?\])(?=\s*=|\s|>)/, // 8 framework binding
+                /\b[a-zA-Z_][\w:.-]*(?=[\]\)]?\s*=(?!=))/,             // 9 attribute / prop name
+                /\b(?:import|export|from|default|function|return|const|let|var|class|extends|implements|interface|type|new|this|async|await|if|else|for|of|in|while|npm|install|public|private|readonly|standalone|selector|templateUrl|imports|string|number|boolean|void|null|undefined|any)\b/, // 10 keyword
+                /\b\d+(?:\.\d+)?\b/                                    // 11 number
             ].map((r) => `(${r.source})`).join('|'), 'g');
 
             let out = '';
@@ -284,10 +297,12 @@
                 if (match[1] || match[2] || match[3]) cls = 'tok-comment';
                 else if (match[4]) cls = 'tok-string';
                 else if (match[5]) cls = 'tok-keyword';
-                else if (match[6]) cls = 'tok-tag';
-                else if (match[7]) cls = 'tok-attr';
-                else if (match[8]) cls = 'tok-keyword';
-                else if (match[9]) cls = 'tok-number';
+                else if (match[6]) cls = 'tok-component';
+                else if (match[7]) cls = 'tok-tag';
+                else if (match[8]) cls = 'tok-directive';
+                else if (match[9]) cls = 'tok-attr';
+                else if (match[10]) cls = 'tok-keyword';
+                else if (match[11]) cls = 'tok-number';
 
                 out += cls ? `<span class="${cls}">${escapeHtml(full)}</span>` : escapeHtml(full);
                 last = match.index + full.length;
@@ -310,6 +325,7 @@
 
                 init() {
                     const raw = this.decodeCode(this.$el.dataset.code || '');
+                    this.$el.dataset.language = this.$el.closest('[data-language]')?.dataset.language || 'code';
 
                     // The Jinja-generated value is the original JavaScript
                     // string literal, e.g. &quot;line 1\\nline 2&quot;.
