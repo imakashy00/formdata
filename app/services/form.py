@@ -1,3 +1,5 @@
+import io
+import json
 import re
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
@@ -21,6 +23,53 @@ DISPOSABLE_EMAIL_DOMAINS = {
     "yopmail.com",
     "trashmail.com",
 }  # illustrative only — use a maintained list/service in production
+
+
+async def generate_workbook_sheet(submissions, worksheet, workbook) -> io.BytesIO:
+    """Build an Excel export for submissions with arbitrary JSON payload fields.
+
+    Form payloads are dynamic, so collect every field name before writing rows.  This
+    keeps values in the same columns even when individual submissions differ.
+    """
+    payload_keys: list[str] = []
+    for submission in submissions:
+        for key in (submission.payload or {}):
+            key = str(key)
+            if key not in payload_keys:
+                payload_keys.append(key)
+
+    headers = ["ID", "Created at", "Status", "Country", "Opened", "Note", *payload_keys]
+    worksheet.append(headers)
+    worksheet.freeze_panes = "A2"
+
+    for submission in submissions:
+        payload = submission.payload or {}
+        values = [
+            str(submission.id),
+            submission.created_at.isoformat() if submission.created_at else "",
+            submission.status.value if hasattr(submission.status, "value") else str(submission.status),
+            submission.country or "",
+            submission.opened,
+            submission.note or "",
+        ]
+        for key in payload_keys:
+            value = payload.get(key, "")
+            if isinstance(value, (dict, list)):
+                value = json.dumps(value, ensure_ascii=False, default=str)
+            elif value is None:
+                value = ""
+            elif not isinstance(value, (str, int, float, bool)):
+                value = str(value)
+            values.append(value)
+        worksheet.append(values)
+
+    for cell in worksheet[1]:
+        cell.font = cell.font.copy(bold=True)
+
+    output = io.BytesIO()
+    workbook.save(output)
+    output.seek(0)
+    return output
 
 SPAM_PATTERNS = [
     (re.compile(r"\b(viagra|cialis|casino|crypto\s*airdrop)\b", re.IGNORECASE), 3),
