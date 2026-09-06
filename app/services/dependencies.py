@@ -9,56 +9,22 @@ from sqlalchemy.orm import selectinload
 
 from app.core.db import get_db
 from app.core.settings import settings
-from app.models.user import User
+from app.models.user import Project, User
 from app.schemas.error import AuthenticationError, TokenGenerationError
 from app.services import blacklist
-import httpx
 from app.services.auth import decode
 from app.services.jwt import create_token
 from app.services.oauth import get_oauth_redirect_uri, oauth
 
 
 async def _exchange_google_token(request: Request) -> dict:
-    """Handles the token exchange with Google OAuth, with direct API fallback on state/session issues."""
+    """Exchange an OAuth callback only after Authlib validates its state."""
     try:
         token = await oauth.google.authorize_access_token(request)  # type: ignore
         if token and token.get("access_token"):
             return token
     except Exception as e:
-        log.warning(f"OAuth authorize_access_token exception: {e}. Attempting direct code exchange fallback...")
-
-    code = request.query_params.get("code")
-    redirect_uri = get_oauth_redirect_uri(request, "auth_callback")
-
-    if code:
-        try:
-            async with httpx.AsyncClient(timeout=15.0) as client:
-                resp = await client.post(
-                    "https://oauth2.googleapis.com/token",
-                    data={
-                        "code": code,
-                        "client_id": settings.GOOGLE_CLIENT_ID,
-                        "client_secret": settings.GOOGLE_CLIENT_SECRET,
-                        "redirect_uri": redirect_uri,
-                        "grant_type": "authorization_code",
-                    },
-                )
-                if resp.status_code == 200:
-                    token_data = resp.json()
-                    access_token = token_data.get("access_token")
-                    if access_token:
-                        uinfo_resp = await client.get(
-                            "https://openidconnect.googleapis.com/v1/userinfo",
-                            headers={"Authorization": f"Bearer {access_token}"},
-                        )
-                        if uinfo_resp.status_code == 200:
-                            token_data["userinfo"] = uinfo_resp.json()
-                            log.info("Direct Google token exchange and userinfo retrieval succeeded.")
-                            return token_data
-                else:
-                    log.error(f"Direct token exchange failed ({resp.status_code}): {resp.text}")
-        except Exception as direct_exc:
-            log.error(f"Direct exchange error: {direct_exc}")
+        log.warning(f"OAuth callback rejected: {e}")
 
     raise AuthenticationError("Failed to get token from Google.")
 
@@ -188,3 +154,25 @@ async def current_user(
         raise HTTPException(status_code=401, detail="User not found")
 
     return user
+
+
+async def require_owned_project(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User | None, Depends(current_user)],
+    project_id: str | None = None,
+) -> None:
+    """Require ownership for routes that include a project path parameter."""
+    if project_id is None:
+        return
+    if user is None:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    try:
+        project_uuid = UUID(project_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail="Project not found") from exc
+    project = await db.scalar(
+        select(Project.id).where(Project.id == project_uuid, Project.user_id == user.id)
+    )
+    if project is None:
+        # Deliberately use 404 so project identifiers are not an oracle.
+        raise HTTPException(status_code=404, detail="Project not found")

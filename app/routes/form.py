@@ -40,7 +40,7 @@ from app.schemas.form import (
     FormTab,
     NewForm,
 )
-from app.services.dependencies import current_user
+from app.services.dependencies import current_user, require_owned_project
 from app.services.form import (
     _get_form_analytics,
     _get_owned_form,
@@ -56,7 +56,7 @@ from app.services.submission_sync import (
     validate_notion_config,
 )
 
-form_router = APIRouter(prefix="/projects")
+form_router = APIRouter(prefix="/projects", dependencies=[Depends(require_owned_project)])
 
 
 @form_router.get("/test-widget", response_class=HTMLResponse)
@@ -105,7 +105,7 @@ async def handle_get_forms(
 ):
 
     # Fetch forms belonging to this user. Filter by project if provided.
-    forms = await FormRepository(db).list_for_project(user.id)
+    forms = await FormRepository(db).list_for_project(project_id)
     if not forms:
         raise NotFoundError("No form found")
     return temp.TemplateResponse(
@@ -890,6 +890,7 @@ async def handle_save_form_integration(
 @form_router.get("/{project_id}/forms/{form_id}/analytics")
 async def handle_form_analytics(
     form_id: str,
+    project_id: str,
     request: Request,
     htmx_req: Annotated[bool, Depends(is_htmx_dep)],
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -1024,10 +1025,14 @@ async def export_form_submission_excel(
     db: Annotated[AsyncSession, Depends(get_db)],
     user: Annotated[User, Depends(current_user)],
     form_id: str = Path(..., description="The UUID string of the parent form"),
+    project_id: str = Path(..., description="The UUID string of the parent project"),
     status: str = Query(
         "", description="Filter records by status string matching your Enum values"
     ),
 ):
+    form = await FormRepository(db).get_by_id_and_project(form_id, project_id)
+    if not form:
+        raise NotFoundError("Form not found")
     submissions = await FormRepository(db).list_submissions(form_id, status or None)
 
     wb = openpyxl.Workbook()

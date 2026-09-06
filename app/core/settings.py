@@ -2,7 +2,7 @@ import os
 from datetime import timedelta
 from typing import Literal
 
-from pydantic import AnyHttpUrl, PostgresDsn, SecretStr
+from pydantic import AnyHttpUrl, PostgresDsn, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -87,6 +87,22 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", case_sensitive=False, extra="ignore"
     )
+
+    @model_validator(mode="after")
+    def require_production_secrets(self) -> "Settings":
+        if self.ENV != "production":
+            return self
+        insecure = {
+            "SESSION_SECRET": self.SESSION_SECRET.startswith("default-"),
+            "JWT_SECRET": self.JWT_SECRET.get_secret_value().startswith("default-"),
+            "PADDLE_WEBHOOK_SECRET": self.PADDLE_WEBHOOK_SECRET.endswith("_default"),
+        }
+        missing = [name for name, invalid in insecure.items() if invalid]
+        if missing:
+            raise ValueError(
+                "Production requires non-default values for: " + ", ".join(missing)
+            )
+        return self
 
 
 settings = Settings()  # type: ignore

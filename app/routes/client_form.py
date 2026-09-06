@@ -95,6 +95,8 @@ async def handle_form_submit(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Form Not found"
         )
+    if not form.is_active:
+        raise HTTPException(status_code=status.HTTP_410_GONE, detail="This form is inactive")
 
     # --- fast structural checks ---
     if not check_user_agent(request):
@@ -127,7 +129,9 @@ async def handle_form_submit(
     if isinstance(dangerous_file_error, JSONResponse):
         return dangerous_file_error
     if form.turnstile_enabled:
-        await handle_bot_verification(form_data, files, request, form, db)
+        bot_response = await handle_bot_verification(form_data, files, request, form, db)
+        if bot_response is not None:
+            return bot_response
 
     submission_payload, country_name = _build_submission_payload(
         form_data, form, request
@@ -164,6 +168,7 @@ async def handle_form_submit(
         )
         if isinstance(upload_result, JSONResponse):
             return upload_result
+        _submission_ref, uploaded = upload_result
     enabled_integrations = await ClientFormRepository(db).get_enabled_integrations(
         str(form.id)
     )
@@ -289,18 +294,18 @@ async def handle_form_submit_sucess(
     if not submission:
         raise HTTPException(status_code=404)
 
-    thank_you_token.used_at = datetime.now(UTC)
+    query = select(FormDB).where(FormDB.public_id == form_id)
+    result = await db.execute(query)
+    form = result.scalar_one_or_none()
+    if not form or submission.form_id != form.id:
+        return temp.TemplateResponse(request, name="submission_error.html")
 
+    thank_you_token.used_at = datetime.now(UTC)
     try:
         await db.commit()
     except SQLAlchemyError:
         await db.rollback()
         # Keep moving so the user still gets their template visual even if the database sync fails
-    query = select(FormDB).where(FormDB.public_id == form_id)
-    result = await db.execute(query)
-    form = result.scalar_one_or_none()
-    if not form:
-        return temp.TemplateResponse(request, name="submission_error.html")
     return temp.TemplateResponse(
         request=request,
         name="submission_sucess.html",

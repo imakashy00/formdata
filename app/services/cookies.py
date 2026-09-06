@@ -6,7 +6,7 @@ from app.core.settings import settings
 
 def _cookie_kwargs() -> dict:
     # SameSite=None requires Secure; use Lax on localhost (http)
-    secure = str(settings.SECURE_COOKIES)
+    secure = settings.SECURE_COOKIES
     samesite = "none" if secure else "lax"
     return {
         "httponly": True,

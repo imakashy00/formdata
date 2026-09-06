@@ -104,7 +104,12 @@ register_exception_handlers(app)
 # Add rate limiting
 
 
-app.add_middleware(SessionMiddleware, secret_key=settings.SESSION_SECRET)
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=settings.SESSION_SECRET,
+    https_only=settings.SECURE_COOKIES,
+    same_site="lax",
+)
 
 app.include_router(router=auth_router)
 app.include_router(router=page_router)

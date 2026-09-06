@@ -223,12 +223,13 @@ async def process_and_upload_files(
     files: dict[str, list[UploadFile]],
     form_id: str,
     submission_payload: dict,
-) -> JSONResponse | str:
+) -> JSONResponse | tuple[str, dict[str, list[dict]]]:
     """
     Batches and uploads submission files, then attaches their metadata to the payload.
 
     Returns:
-        The submission_ref (str) if successful, or a JSONResponse on error.
+        The submission reference and uploaded metadata if successful, or a
+        JSONResponse on error.
     """
 
     submission_ref = uuid.uuid4().hex
@@ -257,7 +258,7 @@ async def process_and_upload_files(
     for field_name, metas in uploaded.items():
         submission_payload[field_name] = metas if len(metas) > 1 else metas[0]
 
-    return submission_ref
+    return submission_ref, uploaded
 
 
 async def handle_bot_verification(

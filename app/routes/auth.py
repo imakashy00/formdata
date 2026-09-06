@@ -61,31 +61,11 @@ async def process_google_sheets_callback(
     code = request.query_params.get("code")
     redirect_uri = get_oauth_redirect_uri(request, "auth_callback")
 
-    token = None
     try:
         token = await oauth.google_sheets.authorize_access_token(request)
     except Exception as exc:
-        log.warning(f"Failed authorize_access_token on google_sheets client: {exc}. Trying direct code exchange...")
-        if code:
-            try:
-                async with httpx.AsyncClient(timeout=15.0) as client:
-                    resp = await client.post(
-                        "https://oauth2.googleapis.com/token",
-                        data={
-                            "code": code,
-                            "client_id": settings.GOOGLE_CLIENT_ID,
-                            "client_secret": settings.GOOGLE_CLIENT_SECRET,
-                            "redirect_uri": redirect_uri,
-                            "grant_type": "authorization_code",
-                        },
-                    )
-                    if resp.status_code == 200:
-                        token = resp.json()
-                        log.info("Direct Google token exchange succeeded.")
-                    else:
-                        log.error(f"Direct token exchange failed ({resp.status_code}): {resp.text}")
-            except Exception as direct_exc:
-                log.error(f"Direct exchange error: {direct_exc}")
+        log.warning(f"Google Sheets OAuth callback rejected: {exc}")
+        token = None
 
     project_id = state_data.get("project_id")
     form_id = state_data.get("form_id")

@@ -13,11 +13,12 @@ from app.models.user import User
 from app.repositories.form_repository import FormRepository
 from app.schemas.form import TAB_LABELS, TAB_TEMPLATES, FormSettingsPayload, FormTab
 from app.schemas.user import SubscriptionStatus
-from app.services.dependencies import current_user
+from app.services.dependencies import current_user, require_owned_project
 from app.services.form import _get_owned_form, update_form_settings
 
 form_settings_router = APIRouter(
-    prefix="/projects/{project_id}/forms/{form_id}/settings"
+    prefix="/projects/{project_id}/forms/{form_id}/settings",
+    dependencies=[Depends(require_owned_project)],
 )
 
 
