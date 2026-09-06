@@ -15,6 +15,7 @@ from app.core.db import AsyncSessionLocal
 from app.core.settings import settings
 from app.models.user import Submission, SubmissionStatus
 from app.repositories.form_repository import FormRepository
+from app.services.crypto import decrypt_token, encrypt_token
 
 
 def _now_iso() -> str:
@@ -346,6 +347,9 @@ async def _sync_to_notion(
 async def _refresh_google_token(refresh_token: str) -> str | None:
     if not settings.GOOGLE_CLIENT_ID or not settings.GOOGLE_CLIENT_SECRET:
         return None
+    raw_refresh_token = decrypt_token(refresh_token)
+    if not raw_refresh_token:
+        return None
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
             resp = await client.post(
@@ -353,7 +357,7 @@ async def _refresh_google_token(refresh_token: str) -> str | None:
                 data={
                     "client_id": settings.GOOGLE_CLIENT_ID,
                     "client_secret": settings.GOOGLE_CLIENT_SECRET,
-                    "refresh_token": refresh_token,
+                    "refresh_token": raw_refresh_token,
                     "grant_type": "refresh_token",
                 },
             )
@@ -368,7 +372,8 @@ async def _refresh_google_token(refresh_token: str) -> str | None:
 async def _sync_to_google_sheets(
     submission: Submission, config: dict, integration: dict
 ) -> dict:
-    access_token = config.get("access_token") or integration.get("access_token")
+    raw_token = config.get("access_token") or integration.get("access_token")
+    access_token = decrypt_token(raw_token)
     validated = validate_google_sheets_config(
         config.get("sheet_url"), config.get("worksheet_name"), access_token
     )
@@ -391,8 +396,9 @@ async def _sync_to_google_sheets(
             headers={"Authorization": f"Bearer {access_token}"},
         )
 
-        if header_resp.status_code == 401 and integration.get("refresh_token"):
-            new_token = await _refresh_google_token(integration["refresh_token"])
+        refresh_tok = integration.get("refresh_token") or config.get("refresh_token")
+        if header_resp.status_code == 401 and refresh_tok:
+            new_token = await _refresh_google_token(refresh_tok)
             if new_token:
                 access_token = new_token
                 header_resp = await client.get(

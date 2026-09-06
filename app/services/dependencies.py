@@ -12,23 +12,55 @@ from app.core.settings import settings
 from app.models.user import User
 from app.schemas.error import AuthenticationError, TokenGenerationError
 from app.services import blacklist
+import httpx
 from app.services.auth import decode
 from app.services.jwt import create_token
-from app.services.oauth import oauth
+from app.services.oauth import get_oauth_redirect_uri, oauth
 
 
 async def _exchange_google_token(request: Request) -> dict:
-    """Handles the token exchange with Google OAuth."""
+    """Handles the token exchange with Google OAuth, with direct API fallback on state/session issues."""
     try:
-        # Use an appropriate timeout if the oauth client supports it
         token = await oauth.google.authorize_access_token(request)  # type: ignore
-        return token
+        if token and token.get("access_token"):
+            return token
     except Exception as e:
-        # Catch specific exceptions from the OAuth client if possible
-        # e.g., Authlib's OAuthError for better granularity
-        log.error(f"🚫OAuth Error during token exchange: {e}", exc_info=True)
-        # Re-raise a custom exception for the main function to handle redirection
-        raise AuthenticationError("Failed to get token from Google.")
+        log.warning(f"OAuth authorize_access_token exception: {e}. Attempting direct code exchange fallback...")
+
+    code = request.query_params.get("code")
+    redirect_uri = get_oauth_redirect_uri(request, "auth_callback")
+
+    if code:
+        try:
+            async with httpx.AsyncClient(timeout=15.0) as client:
+                resp = await client.post(
+                    "https://oauth2.googleapis.com/token",
+                    data={
+                        "code": code,
+                        "client_id": settings.GOOGLE_CLIENT_ID,
+                        "client_secret": settings.GOOGLE_CLIENT_SECRET,
+                        "redirect_uri": redirect_uri,
+                        "grant_type": "authorization_code",
+                    },
+                )
+                if resp.status_code == 200:
+                    token_data = resp.json()
+                    access_token = token_data.get("access_token")
+                    if access_token:
+                        uinfo_resp = await client.get(
+                            "https://openidconnect.googleapis.com/v1/userinfo",
+                            headers={"Authorization": f"Bearer {access_token}"},
+                        )
+                        if uinfo_resp.status_code == 200:
+                            token_data["userinfo"] = uinfo_resp.json()
+                            log.info("Direct Google token exchange and userinfo retrieval succeeded.")
+                            return token_data
+                else:
+                    log.error(f"Direct token exchange failed ({resp.status_code}): {resp.text}")
+        except Exception as direct_exc:
+            log.error(f"Direct exchange error: {direct_exc}")
+
+    raise AuthenticationError("Failed to get token from Google.")
 
 
 def _validate_userinfo(token: dict) -> dict:

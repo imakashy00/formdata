@@ -1,0 +1,11 @@
+{
+  "name": "formdata",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "bash ./start_server.sh",
+    "start": "bash ./start_server.sh",
+    "build": "echo 'Built successfully'"
+  },
+  "dependencies": {}
+}
