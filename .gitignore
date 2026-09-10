@@ -83,3 +83,5 @@ akash
 todo.md
 akash.json
 
+# Local scripts
+start_server.sh

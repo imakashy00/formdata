@@ -12,7 +12,7 @@
 
 <body
     class="min-h-screen flex flex-col justify-center items-center font-sans antialiased p-4 transition-colors duration-150"
-    style="background-color: {{ form.sub_bg_color }}; color: {{ form.sub_txt_color }};">
+    style="background-color: #{{ form.sub_bg_color | default('ffffff', true) | replace('#', '') }}; color: #{{ form.sub_txt_color | default('000000', true) | replace('#', '') }};">
 
     <main class="max-w-md w-full text-center space-y-6">
         <!-- Success Icon Visual Anchor -->
@@ -37,7 +37,7 @@
         <div class="pt-4">
             <a href="{{ form.redirect_url }}"
                 class="inline-flex items-center justify-center px-5 py-2.5 text-sm font-semibold rounded-lg shadow-sm border border-current/20 hover:bg-current/5 transition-all duration-150"
-                style="color: {{ form.sub_lnk_color }};">
+                style="color: #{{ form.sub_lnk_color | default('3b82f6', true) | replace('#', '') }};">
                 Return to Website
                 <svg class="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://w3.org">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3">

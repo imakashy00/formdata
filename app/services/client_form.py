@@ -151,10 +151,11 @@ def _build_submission_payload(
     previously this logic (and the country lookup) was duplicated between
     the two, which is how the accepted path ended up never setting
     `country` on the Submission row while the rejected path did."""
+    honeypot_keys = {form.honeypot, f"_{form.honeypot}", form.honeypot.lstrip("_")}
     payload = {
         key: value
         for key, value in form_data.items()
-        if key not in _RESERVED_FIELD_NAMES and key != form.honeypot
+        if key not in _RESERVED_FIELD_NAMES and key not in honeypot_keys
     }
     country_name = _resolved_country(request)
     if country_name:

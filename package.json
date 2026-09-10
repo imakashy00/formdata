@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "bash ./start_server.sh",
     "start": "bash ./start_server.sh",
-    "build": "echo 'Built successfully'"
+    "build": "echo 'Built successfully'",
+    "lint": "uv run python -m py_compile app/models/user.py app/schemas/form.py app/services/form.py app/services/client_form.py alembic/versions/20260910_clean_form_honeypot_and_colors.py"
   },
   "dependencies": {}
 }

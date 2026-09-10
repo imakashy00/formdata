@@ -50,7 +50,7 @@ class FormSettingsPayload(BaseModel):
     autoresponse_recipient_key: str | None = None
     redirect: bool
     redirect_url: str | None = None
-    allowed_domains: str
+    allowed_domains: str = ""
     turnstile_enabled: bool
     turnstile_secret: str | None = None
     duplicate_allowed: bool
@@ -60,6 +60,30 @@ class FormSettingsPayload(BaseModel):
     sub_bg_color: str
     sub_txt_color: str
     sub_lnk_color: str
+
+    @field_validator("honeypot")
+    @classmethod
+    def clean_honeypot(cls, value: str) -> str:
+        cleaned = value.strip().lstrip("_")
+        return cleaned or "gotcha"
+
+    @field_validator("sub_bg_color")
+    @classmethod
+    def clean_bg_color(cls, value: str) -> str:
+        cleaned = value.strip().lstrip("#")
+        return cleaned or "ffffff"
+
+    @field_validator("sub_txt_color")
+    @classmethod
+    def clean_txt_color(cls, value: str) -> str:
+        cleaned = value.strip().lstrip("#")
+        return cleaned or "000000"
+
+    @field_validator("sub_lnk_color")
+    @classmethod
+    def clean_lnk_color(cls, value: str) -> str:
+        cleaned = value.strip().lstrip("#")
+        return cleaned or "3b82f6"
 
     @model_validator(mode="after")
     def validate_conditional_features(self) -> Self:

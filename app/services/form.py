@@ -150,8 +150,13 @@ def check_user_agent(request: Request) -> bool:
 
 def check_honeypot(form_data: dict, field_name: str | None = None) -> bool:
     """True if clean (honeypot empty)."""
-    honeypot_field = field_name or settings.HONEYPOT_FIELD
-    return not form_data.get(honeypot_field)
+    if not field_name:
+        return not form_data.get(settings.HONEYPOT_FIELD)
+    clean_field = field_name.lstrip("_")
+    for candidate in (field_name, f"_{clean_field}", clean_field):
+        if form_data.get(candidate):
+            return False
+    return True
 
 
 async def _count_submissions(
@@ -285,8 +290,8 @@ def _none_if_blank(value: str | None) -> str | None:
 async def update_form_settings(
     payload: FormSettingsPayload, db_form: FormDB, db: AsyncSession
 ):
-    # 1. Parse comma-separated allowed domains into a list.
-    accepted_domains_raw = payload.allowed_domains
+    # 1. Parse comma-separated allowed domains into a list (optional)
+    accepted_domains_raw = payload.allowed_domains or ""
     accepted_domains_list = [
         d.strip() for d in accepted_domains_raw.split(",") if d.strip()
     ]
@@ -301,7 +306,7 @@ async def update_form_settings(
 
     # 3. Apply Clean Payload Parameters directly to your SQLAlchemy Model instance
     db_form.name = payload.name.strip()
-    db_form.honeypot = payload.honeypot
+    db_form.honeypot = payload.honeypot.strip().lstrip("_") or "gotcha"
     db_form.notification_email = payload.notification_email
     db_form.autoresponse = payload.autoresponse
     db_form.autoresponse_recipient_key = payload.autoresponse_recipient_key
@@ -320,9 +325,9 @@ async def update_form_settings(
     # Style and Visibility Settings
     db_form.is_active = payload.is_active
     db_form.sub_message = payload.sub_message
-    db_form.sub_bg_color = payload.sub_bg_color
-    db_form.sub_txt_color = payload.sub_txt_color
-    db_form.sub_lnk_color = payload.sub_lnk_color
+    db_form.sub_bg_color = payload.sub_bg_color.strip().lstrip("#") or "ffffff"
+    db_form.sub_txt_color = payload.sub_txt_color.strip().lstrip("#") or "000000"
+    db_form.sub_lnk_color = payload.sub_lnk_color.strip().lstrip("#") or "3b82f6"
 
     # 4. Save Changes to PostgreSQL
     await db.commit()

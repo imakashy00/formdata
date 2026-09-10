@@ -253,7 +253,7 @@ class Form(Base):
         nullable=False,
         index=True,
     )
-    honeypot: Mapped[str] = mapped_column(String(36), nullable=False, default="_gotcha")
+    honeypot: Mapped[str] = mapped_column(String(36), nullable=False, default="gotcha")
 
     # TODO: Add constraints on the String and arary size of the allowed domains
     allowed_domains: Mapped[list[str]] = mapped_column(
@@ -295,13 +295,13 @@ class Form(Base):
         String(200), nullable=False, server_default="Submission successful!"
     )
     sub_bg_color: Mapped[str] = mapped_column(
-        String(7), nullable=False, server_default="#ffffff"
+        String(6), nullable=False, server_default="ffffff", default="ffffff"
     )
     sub_txt_color: Mapped[str] = mapped_column(
-        String(7), nullable=False, server_default="#000000"
+        String(6), nullable=False, server_default="000000", default="000000"
     )
     sub_lnk_color: Mapped[str] = mapped_column(
-        String(7), nullable=False, server_default="#3b82f6"
+        String(6), nullable=False, server_default="3b82f6", default="3b82f6"
     )
 
     submissions_count: Mapped[int] = column_property(
