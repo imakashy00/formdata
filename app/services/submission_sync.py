@@ -15,7 +15,7 @@ from app.core.db import AsyncSessionLocal
 from app.core.settings import settings
 from app.models.user import Submission, SubmissionStatus
 from app.repositories.form_repository import FormRepository
-from app.services.crypto import decrypt_token, encrypt_token
+from app.services.crypto import decrypt_token
 
 
 def _now_iso() -> str:
@@ -199,11 +199,7 @@ async def _sync_to_notion(
     title_value = config.get("title_value")
     if not title_value:
         title_value = next(
-            (
-                str(value)
-                for value in payload.values()
-                if _stringify_value(value)
-            ),
+            (str(value) for value in payload.values() if _stringify_value(value)),
             f"Submission {str(submission.id)[:8]}",
         )
 
@@ -335,7 +331,9 @@ async def _sync_to_notion(
             "Notion database not found or access denied (404). Ensure the database ID is valid and connected to your Notion integration."
         )
     if response.status_code >= 400:
-        raise ValueError(f"Notion sync failed ({response.status_code}): {response.text}")
+        raise ValueError(
+            f"Notion sync failed ({response.status_code}): {response.text}"
+        )
 
     return _sync_entry(
         "synced",
@@ -416,7 +414,9 @@ async def _sync_to_google_sheets(
                 "Google Sheets write permission denied (403). Ensure the spreadsheet was created by Formdata or is accessible under the 'https://www.googleapis.com/auth/drive.file' scope with Editor permissions."
             )
         if header_resp.status_code >= 400:
-            raise ValueError(f"Google Sheets access error ({header_resp.status_code}): {header_resp.text}")
+            raise ValueError(
+                f"Google Sheets access error ({header_resp.status_code}): {header_resp.text}"
+            )
 
         header_data = header_resp.json()
         existing_rows = header_data.get("values", [])
@@ -462,11 +462,24 @@ async def _sync_to_google_sheets(
 
             # Fill in special columns if present in headers
             for special, special_val in [
-                ("submitted at", submission.created_at.strftime("%Y-%m-%d %H:%M:%S UTC") if submission.created_at else _now_iso()),
-                ("date", submission.created_at.strftime("%Y-%m-%d") if submission.created_at else ""),
+                (
+                    "submitted at",
+                    submission.created_at.strftime("%Y-%m-%d %H:%M:%S UTC")
+                    if submission.created_at
+                    else _now_iso(),
+                ),
+                (
+                    "date",
+                    submission.created_at.strftime("%Y-%m-%d")
+                    if submission.created_at
+                    else "",
+                ),
                 ("country", submission.country or ""),
             ]:
-                if special in lower_headers and lower_headers.index(special) not in row_map:
+                if (
+                    special in lower_headers
+                    and lower_headers.index(special) not in row_map
+                ):
                     row_map[lower_headers.index(special)] = special_val
 
             # Assemble row according to header length
@@ -491,12 +504,16 @@ async def _sync_to_google_sheets(
                 "Google Sheets write permission denied (403). Ensure the spreadsheet was created by Formdata or is accessible under the 'https://www.googleapis.com/auth/drive.file' scope with Editor permissions."
             )
         if append_res.status_code >= 400:
-            raise ValueError(f"Google Sheets sync failed ({append_res.status_code}): {append_res.text}")
+            raise ValueError(
+                f"Google Sheets sync failed ({append_res.status_code}): {append_res.text}"
+            )
 
         return _sync_entry(
             "synced",
             "Synced to Google Sheets",
             details={
-                "updated_range": append_res.json().get("updates", {}).get("updatedRange")
+                "updated_range": append_res.json()
+                .get("updates", {})
+                .get("updatedRange")
             },
         )

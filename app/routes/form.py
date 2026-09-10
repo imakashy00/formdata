@@ -30,7 +30,6 @@ from app.core.errors import (
     WorkbookFailed,
 )
 from app.core.htmx import hx_toast_headers, is_htmx_dep
-from app.core.settings import settings
 from app.core.templates import temp
 from app.models.user import IntegrationProvider, SubmissionStatus, User
 from app.repositories.form_repository import FormRepository
@@ -56,7 +55,9 @@ from app.services.submission_sync import (
     validate_notion_config,
 )
 
-form_router = APIRouter(prefix="/projects", dependencies=[Depends(require_owned_project)])
+form_router = APIRouter(
+    prefix="/projects", dependencies=[Depends(require_owned_project)]
+)
 
 
 @form_router.get("/test-widget", response_class=HTMLResponse)
@@ -540,7 +541,9 @@ async def handle_disconnect_google_sheets(
             "page": "projects",
             "integration_map": integration_map,
         },
-        headers=hx_toast_headers("Google Sheets integration disconnected.", type_=ToastType.SUCCESS),
+        headers=hx_toast_headers(
+            "Google Sheets integration disconnected.", type_=ToastType.SUCCESS
+        ),
         status_code=status.HTTP_200_OK,
     )
 
@@ -629,13 +632,17 @@ async def handle_create_google_sheet(
                         "https://sheets.googleapis.com/v4/spreadsheets",
                         headers={"Authorization": f"Bearer {access_token}"},
                         json={
-                            "properties": {"title": f"{form.name} Submissions (Formdata)"},
+                            "properties": {
+                                "title": f"{form.name} Submissions (Formdata)"
+                            },
                             "sheets": [{"properties": {"title": "Submissions"}}],
                         },
                     )
 
             if resp.status_code >= 400:
-                raise ValueError(f"Could not create Google Sheet ({resp.status_code}): {resp.text}")
+                raise ValueError(
+                    f"Could not create Google Sheet ({resp.status_code}): {resp.text}"
+                )
 
             data = resp.json()
             spreadsheet_id = data.get("spreadsheetId")
@@ -659,7 +666,11 @@ async def handle_create_google_sheet(
             new_config["refresh_token"] = refresh_token
 
         await FormRepository(db).upsert_form_integration(
-            form_id, project_id, IntegrationProvider.GOOGLE_SHEETS, new_config, enabled=True
+            form_id,
+            project_id,
+            IntegrationProvider.GOOGLE_SHEETS,
+            new_config,
+            enabled=True,
         )
     except Exception as exc:
         return temp.TemplateResponse(
@@ -673,7 +684,9 @@ async def handle_create_google_sheet(
                 "tab_labels": TAB_LABELS,
                 "user": user,
                 "page": "projects",
-                "integration_map": await FormRepository(db).get_integration_map(form_id, project_id),
+                "integration_map": await FormRepository(db).get_integration_map(
+                    form_id, project_id
+                ),
             },
             headers=hx_toast_headers(str(exc), type_=ToastType.ERROR),
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -690,7 +703,9 @@ async def handle_create_google_sheet(
             "tab_labels": TAB_LABELS,
             "user": user,
             "page": "projects",
-            "integration_map": await FormRepository(db).get_integration_map(form_id, project_id),
+            "integration_map": await FormRepository(db).get_integration_map(
+                form_id, project_id
+            ),
         },
         headers=hx_toast_headers(
             "Google Spreadsheet created and linked successfully!",
@@ -733,7 +748,9 @@ async def handle_disconnect_notion(
             "page": "projects",
             "integration_map": integration_map,
         },
-        headers=hx_toast_headers("Notion integration disconnected.", type_=ToastType.SUCCESS),
+        headers=hx_toast_headers(
+            "Notion integration disconnected.", type_=ToastType.SUCCESS
+        ),
         status_code=status.HTTP_200_OK,
     )
 
@@ -762,15 +779,23 @@ async def handle_save_form_integration(
     provider_name = provider.lower().strip()
     try:
         if provider_name == "google_sheets":
-            integ_map = await FormRepository(db).get_integration_map(form_id, project_id)
+            integ_map = await FormRepository(db).get_integration_map(
+                form_id, project_id
+            )
             existing_gs = integ_map.get("google_sheets", {})
-            effective_token = (google_token or "").strip() or existing_gs.get("access_token")
+            effective_token = (google_token or "").strip() or existing_gs.get(
+                "access_token"
+            )
             if not effective_token and existing_gs.get("refresh_token"):
-                effective_token = await _refresh_google_token(existing_gs["refresh_token"])
+                effective_token = await _refresh_google_token(
+                    existing_gs["refresh_token"]
+                )
             if not effective_token and not existing_gs.get("has_google_account"):
                 raise ValueError("Please connect your Google account first.")
 
-            config = validate_google_sheets_config(sheet_url, worksheet_name, effective_token)
+            config = validate_google_sheets_config(
+                sheet_url, worksheet_name, effective_token
+            )
             if existing_gs.get("refresh_token"):
                 config["refresh_token"] = existing_gs["refresh_token"]
 
@@ -783,17 +808,26 @@ async def handle_save_form_integration(
                             f"https://sheets.googleapis.com/v4/spreadsheets/{spreadsheet_id}",
                             headers={"Authorization": f"Bearer {effective_token}"},
                         )
-                        if sheet_res.status_code == 401 and existing_gs.get("refresh_token"):
-                            effective_token = await _refresh_google_token(existing_gs["refresh_token"])
+                        if sheet_res.status_code == 401 and existing_gs.get(
+                            "refresh_token"
+                        ):
+                            effective_token = await _refresh_google_token(
+                                existing_gs["refresh_token"]
+                            )
                             if effective_token:
                                 config["access_token"] = effective_token
                                 sheet_res = await client.get(
                                     f"https://sheets.googleapis.com/v4/spreadsheets/{spreadsheet_id}",
-                                    headers={"Authorization": f"Bearer {effective_token}"},
+                                    headers={
+                                        "Authorization": f"Bearer {effective_token}"
+                                    },
                                 )
                         if sheet_res.status_code == 200:
                             data = sheet_res.json()
-                            config["sheet_title"] = data.get("properties", {}).get("title") or "Google Spreadsheet"
+                            config["sheet_title"] = (
+                                data.get("properties", {}).get("title")
+                                or "Google Spreadsheet"
+                            )
                 except Exception as check_err:
                     log.warning(f"Could not fetch spreadsheet title: {check_err}")
 
@@ -805,9 +839,13 @@ async def handle_save_form_integration(
                 enabled=True,
             )
         elif provider_name == "notion":
-            integ_map = await FormRepository(db).get_integration_map(form_id, project_id)
+            integ_map = await FormRepository(db).get_integration_map(
+                form_id, project_id
+            )
             existing_notion = integ_map.get("notion", {})
-            effective_token = (notion_token or "").strip() or existing_notion.get("notion_token")
+            effective_token = (notion_token or "").strip() or existing_notion.get(
+                "notion_token"
+            )
             config = validate_notion_config(database_id, effective_token)
 
             # Introspect database via Notion API to verify permissions and get database title
@@ -833,7 +871,9 @@ async def handle_save_form_integration(
                         "Notion authorization failed. Check your Notion Integration Token and make sure it has access to the target database."
                     )
                 else:
-                    log.warning(f"Notion API check returned {notion_res.status_code}: {notion_res.text}")
+                    log.warning(
+                        f"Notion API check returned {notion_res.status_code}: {notion_res.text}"
+                    )
 
             await FormRepository(db).upsert_form_integration(
                 form_id,

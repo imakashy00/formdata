@@ -33,7 +33,7 @@ async def generate_workbook_sheet(submissions, worksheet, workbook) -> io.BytesI
     """
     payload_keys: list[str] = []
     for submission in submissions:
-        for key in (submission.payload or {}):
+        for key in submission.payload or {}:
             key = str(key)
             if key not in payload_keys:
                 payload_keys.append(key)
@@ -47,7 +47,9 @@ async def generate_workbook_sheet(submissions, worksheet, workbook) -> io.BytesI
         values = [
             str(submission.id),
             submission.created_at.isoformat() if submission.created_at else "",
-            submission.status.value if hasattr(submission.status, "value") else str(submission.status),
+            submission.status.value
+            if hasattr(submission.status, "value")
+            else str(submission.status),
             submission.country or "",
             submission.opened,
             submission.note or "",
@@ -70,6 +72,7 @@ async def generate_workbook_sheet(submissions, worksheet, workbook) -> io.BytesI
     workbook.save(output)
     output.seek(0)
     return output
+
 
 SPAM_PATTERNS = [
     (re.compile(r"\b(viagra|cialis|casino|crypto\s*airdrop)\b", re.IGNORECASE), 3),

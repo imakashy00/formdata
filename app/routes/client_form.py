@@ -96,7 +96,9 @@ async def handle_form_submit(
             status_code=status.HTTP_404_NOT_FOUND, detail="Form Not found"
         )
     if not form.is_active:
-        raise HTTPException(status_code=status.HTTP_410_GONE, detail="This form is inactive")
+        raise HTTPException(
+            status_code=status.HTTP_410_GONE, detail="This form is inactive"
+        )
 
     # --- fast structural checks ---
     if not check_user_agent(request):
@@ -129,7 +131,9 @@ async def handle_form_submit(
     if isinstance(dangerous_file_error, JSONResponse):
         return dangerous_file_error
     if form.turnstile_enabled:
-        bot_response = await handle_bot_verification(form_data, files, request, form, db)
+        bot_response = await handle_bot_verification(
+            form_data, files, request, form, db
+        )
         if bot_response is not None:
             return bot_response
 

@@ -1,12 +1,16 @@
 import base64
 import hashlib
+
 from cryptography.fernet import Fernet
+
 from app.core.settings import settings
 
 
 def _get_fernet() -> Fernet:
     """Derive a deterministic 32-byte URL-safe base64 key from SESSION_SECRET for Fernet encryption."""
-    raw_secret = settings.SESSION_SECRET or "default-session-secret-key-at-least-32-chars!"
+    raw_secret = (
+        settings.SESSION_SECRET or "default-session-secret-key-at-least-32-chars!"
+    )
     key = base64.urlsafe_b64encode(hashlib.sha256(raw_secret.encode()).digest())
     return Fernet(key)
 

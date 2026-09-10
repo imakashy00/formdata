@@ -14,7 +14,7 @@ from app.schemas.error import AuthenticationError, TokenGenerationError
 from app.services import blacklist
 from app.services.auth import decode
 from app.services.jwt import create_token
-from app.services.oauth import get_oauth_redirect_uri, oauth
+from app.services.oauth import oauth
 
 
 async def _exchange_google_token(request: Request) -> dict:

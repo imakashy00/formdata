@@ -6,8 +6,8 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 from starlette.middleware.sessions import SessionMiddleware
 
+import app.models.user
 from app.core.db import AsyncSessionLocal, Base, engine
-import app.models.user  # noqa: F401 - Register models with Base.metadata
 from app.core.logger import setup_logger
 from app.core.middlewares.exception_handlers import register_exception_handlers
 from app.core.middlewares.middleware import register_middlewares

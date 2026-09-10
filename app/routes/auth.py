@@ -12,7 +12,6 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_db
-from app.core.settings import settings
 from app.models.user import Integration, IntegrationProvider, User
 from app.repositories.form_repository import FormRepository
 from app.schemas.error import AuthenticationError, TokenGenerationError
@@ -72,7 +71,9 @@ async def process_google_sheets_callback(
     user_id = state_data.get("user_id")
 
     if not token or not token.get("access_token"):
-        log.error("Failed to retrieve access token from Google OAuth for Google Sheets.")
+        log.error(
+            "Failed to retrieve access token from Google OAuth for Google Sheets."
+        )
         fallback_url = (
             f"/projects/{project_id}/forms/{form_id}?tab=integrations&error=auth_failed"
             if (project_id and form_id)
@@ -107,7 +108,9 @@ async def process_google_sheets_callback(
                     provider=IntegrationProvider.GOOGLE_SHEETS,
                     access_token=encrypted_access_token,
                     refresh_token=encrypted_refresh_token,
-                    integration_metadata={"scope": "https://www.googleapis.com/auth/drive.file"},
+                    integration_metadata={
+                        "scope": "https://www.googleapis.com/auth/drive.file"
+                    },
                     enabled=True,
                 )
                 db.add(user_integ)
@@ -132,7 +135,9 @@ async def process_google_sheets_callback(
             gs_cfg = current_map.get("google_sheets", {})
             sheet_url = gs_cfg.get("sheet_url") or ""
             spreadsheet_id = gs_cfg.get("spreadsheet_id") or ""
-            sheet_title = gs_cfg.get("sheet_title") or f"{form.name}_{form.public_id}_submissions"
+            sheet_title = (
+                gs_cfg.get("sheet_title") or f"{form.name}_{form.public_id}_submissions"
+            )
             worksheet_name = gs_cfg.get("worksheet_name") or "Submissions"
 
             # Automatically create the Google Sheet if not already created
@@ -157,15 +162,23 @@ async def process_google_sheets_callback(
                                 try:
                                     await client.post(
                                         f"https://sheets.googleapis.com/v4/spreadsheets/{spreadsheet_id}/values/{worksheet_name}!A1:append?valueInputOption=USER_ENTERED",
-                                        headers={"Authorization": f"Bearer {access_token}"},
+                                        headers={
+                                            "Authorization": f"Bearer {access_token}"
+                                        },
                                         json={"values": [["Submitted At", "Country"]]},
                                     )
                                 except Exception as header_err:
-                                    log.warning(f"Failed to add initial headers to sheet: {header_err}")
+                                    log.warning(
+                                        f"Failed to add initial headers to sheet: {header_err}"
+                                    )
                         else:
-                            log.error(f"Failed to auto-create Google Sheet ({create_resp.status_code}): {create_resp.text}")
+                            log.error(
+                                f"Failed to auto-create Google Sheet ({create_resp.status_code}): {create_resp.text}"
+                            )
                 except Exception as create_exc:
-                    log.error(f"Exception during automatic Google Sheet creation: {create_exc}")
+                    log.error(
+                        f"Exception during automatic Google Sheet creation: {create_exc}"
+                    )
 
             new_config = {
                 "sheet_url": sheet_url,

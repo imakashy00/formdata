@@ -22,6 +22,4 @@ class SubscriptionStatus(Enum):
     ACTIVE = "active"
     PAUSED = "paused"
     CANCELED = "canceled"
-    PAST_DUE = "past_due"        
-
-
+    PAST_DUE = "past_due"
