@@ -27,7 +27,7 @@ def setup_logger():
     # Docker/systemd/Gunicorn/etc. without filling app.log.
     # ---------------------------------------------------------
 
-    console_level = "DEBUG" if is_development else "WARNING"
+    console_level = "DEBUG" if is_development else "INFO"
 
     logger.add(
         sink=lambda message: print(message, end=""),
