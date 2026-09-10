@@ -1,6 +1,6 @@
 """remove hex color hash prefix and honeypot underscore
 
-Revision ID: 20260910_clean_honeypot_and_colors
+Revision ID: 20260910_clean_form_fields
 Revises: 20260906_submission_note_limit
 Create Date: 2026-09-10
 """
@@ -11,25 +11,37 @@ import sqlalchemy as sa
 
 from alembic import op
 
-revision: str = "20260910_clean_honeypot_and_colors"
+revision: str = "20260910_clean_form_fields"
 down_revision: str | Sequence[str] | None = "20260906_submission_note_limit"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-    # 1. Strip '#' prefix from existing hex color values in database
+    # 1. Clean existing previous values in database to avoid truncation errors
     op.execute(
-        "UPDATE forms SET "
-        "sub_bg_color = LTRIM(sub_bg_color, '#'), "
-        "sub_txt_color = LTRIM(sub_txt_color, '#'), "
-        "sub_lnk_color = LTRIM(sub_lnk_color, '#')"
+        """
+        UPDATE forms SET
+            sub_bg_color = CASE
+                WHEN sub_bg_color IS NULL OR TRIM(sub_bg_color) = '' THEN 'ffffff'
+                ELSE SUBSTRING(LTRIM(TRIM(sub_bg_color), '#') FROM 1 FOR 6)
+            END,
+            sub_txt_color = CASE
+                WHEN sub_txt_color IS NULL OR TRIM(sub_txt_color) = '' THEN '000000'
+                ELSE SUBSTRING(LTRIM(TRIM(sub_txt_color), '#') FROM 1 FOR 6)
+            END,
+            sub_lnk_color = CASE
+                WHEN sub_lnk_color IS NULL OR TRIM(sub_lnk_color) = '' THEN '3b82f6'
+                ELSE SUBSTRING(LTRIM(TRIM(sub_lnk_color), '#') FROM 1 FOR 6)
+            END,
+            honeypot = CASE
+                WHEN honeypot IS NULL OR TRIM(LTRIM(TRIM(honeypot), '_')) = '' THEN 'gotcha'
+                ELSE SUBSTRING(TRIM(LTRIM(TRIM(honeypot), '_')) FROM 1 FOR 36)
+            END
+        """
     )
 
-    # 2. Strip leading '_' from existing honeypot field values in database
-    op.execute("UPDATE forms SET honeypot = LTRIM(honeypot, '_')")
-
-    # 3. Alter columns: update server defaults and lengths
+    # 2. Alter columns: update server defaults and lengths
     op.alter_column(
         "forms",
         "sub_bg_color",
@@ -65,7 +77,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    # 1. Restore column types and server defaults
+    # 1. Restore column types and server defaults first (to allow 7 chars)
     op.alter_column(
         "forms",
         "sub_bg_color",
@@ -99,21 +111,30 @@ def downgrade() -> None:
         existing_nullable=False,
     )
 
-    # 2. Prepend '#' back to hex colors if missing
+    # 2. Prepend '#' back to hex colors and '_' to honeypot
     op.execute(
-        "UPDATE forms SET "
-        "sub_bg_color = '#' || sub_bg_color WHERE sub_bg_color NOT LIKE '#%'"
-    )
-    op.execute(
-        "UPDATE forms SET "
-        "sub_txt_color = '#' || sub_txt_color WHERE sub_txt_color NOT LIKE '#%'"
-    )
-    op.execute(
-        "UPDATE forms SET "
-        "sub_lnk_color = '#' || sub_lnk_color WHERE sub_lnk_color NOT LIKE '#%'"
+        """
+        UPDATE forms SET
+            sub_bg_color = CASE
+                WHEN sub_bg_color IS NULL OR TRIM(sub_bg_color) = '' THEN '#ffffff'
+                WHEN sub_bg_color LIKE '#%' THEN sub_bg_color
+                ELSE '#' || sub_bg_color
+            END,
+            sub_txt_color = CASE
+                WHEN sub_txt_color IS NULL OR TRIM(sub_txt_color) = '' THEN '#000000'
+                WHEN sub_txt_color LIKE '#%' THEN sub_txt_color
+                ELSE '#' || sub_txt_color
+            END,
+            sub_lnk_color = CASE
+                WHEN sub_lnk_color IS NULL OR TRIM(sub_lnk_color) = '' THEN '#3b82f6'
+                WHEN sub_lnk_color LIKE '#%' THEN sub_lnk_color
+                ELSE '#' || sub_lnk_color
+            END,
+            honeypot = CASE
+                WHEN honeypot IS NULL OR TRIM(honeypot) = '' THEN '_gotcha'
+                WHEN honeypot LIKE '_%' THEN honeypot
+                ELSE '_' || honeypot
+            END
+        """
     )
 
-    # 3. Prepend '_' back to honeypot if missing
-    op.execute(
-        "UPDATE forms SET honeypot = '_' || honeypot WHERE honeypot NOT LIKE '_%'"
-    )

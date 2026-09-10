@@ -23,7 +23,7 @@ from sqlalchemy import (
     select,
 )
 from sqlalchemy.dialects.postgresql import ARRAY
-from sqlalchemy.orm import column_property, relationship
+from sqlalchemy.orm import column_property, relationship, validates
 
 from app.schemas.user import SubscriptionStatus
 
@@ -328,6 +328,30 @@ class Form(Base):
         order_by="desc(Submission.created_at)",
         cascade="all, delete-orphan",
     )
+
+    @validates("honeypot")
+    def validate_honeypot(self, key: str, value: str | None) -> str:
+        if value:
+            return value.strip().lstrip("_")[:36] or "gotcha"
+        return "gotcha"
+
+    @validates("sub_bg_color")
+    def validate_sub_bg_color(self, key: str, value: str | None) -> str:
+        if value:
+            return value.strip().lstrip("#")[:6] or "ffffff"
+        return "ffffff"
+
+    @validates("sub_txt_color")
+    def validate_sub_txt_color(self, key: str, value: str | None) -> str:
+        if value:
+            return value.strip().lstrip("#")[:6] or "000000"
+        return "000000"
+
+    @validates("sub_lnk_color")
+    def validate_sub_lnk_color(self, key: str, value: str | None) -> str:
+        if value:
+            return value.strip().lstrip("#")[:6] or "3b82f6"
+        return "3b82f6"
 
 
 class Submission(Base):
