@@ -21,6 +21,7 @@
 
     <!-- Settings Form -->
     <form hx-put="/projects/{{form.project_id}}/forms/{{form.id}}/settings" hx-target="#settings-tab-panel"
+        hx-disabled-elt="find button[type=submit]" hx-indicator="#settings-loader"
         hx-swap="outerHTML" x-data="{
             isActive: {{ form.is_active | tojson }},
             duplicateBlocked: {{ (not form.duplicate_allowed) | tojson }},
@@ -374,10 +375,15 @@
         <!-- Save Bar -->
         <div class="bg-gray-50 border border-gray-100 rounded-xl px-5 py-3.5 flex items-center justify-between">
             <p class="text-xs text-gray-400">Changes apply as soon as you save.</p>
-            <button type="submit"
-                class="bg-brand text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition-opacity">
-                Save Changes
-            </button>
+            <div class="flex items-center gap-2.5">
+                <button type="submit"
+                    class="bg-brand text-white text-xs font-semibold px-4 py-2 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed">
+                    Save Changes
+                </button>
+                {% with id="settings-loader", size="h-5 w-5", text=false, overlay=false %}
+                {% include 'partials/loading.html' %}
+                {% endwith %}
+            </div>
         </div>
     </form>
 
