@@ -21,13 +21,13 @@ def setup_logger():
     #   DEBUG and above
     #
     # Production:
-    #   INFO and above
+    #   WARNING and above
     #
-    # Production INFO/WARNING logs can be collected by
+    # Production WARNING logs can be collected by
     # Docker/systemd/Gunicorn/etc. without filling app.log.
     # ---------------------------------------------------------
 
-    console_level = "DEBUG" if is_development else "INFO"
+    console_level = "DEBUG" if is_development else "WARNING"
 
     logger.add(
         sink=lambda message: print(message, end=""),
