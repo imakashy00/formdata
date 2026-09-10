@@ -107,6 +107,12 @@ class FormSettingsPayload(BaseModel):
                 raise ValueError(
                     "A redirect URL is required when redirection is enabled."
                 )
+            if not (
+                url_val.startswith("http://")
+                or url_val.startswith("https://")
+                or url_val.startswith("/")
+            ):
+                url_val = f"https://{url_val}"
             self.redirect_url = url_val
         else:
             self.redirect_url = None

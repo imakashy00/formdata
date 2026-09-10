@@ -53,35 +53,70 @@ def _split_form_data(
     return fields, files
 
 
+def _clean_url(url: str | None) -> str | None:
+    if not url or not isinstance(url, str):
+        return None
+    cleaned = url.strip()
+    if not cleaned:
+        return None
+    lower = cleaned.lower()
+    if lower.startswith(("javascript:", "data:", "vbscript:")):
+        return None
+    if not (cleaned.startswith("/") or lower.startswith(("http://", "https://"))):
+        cleaned = f"https://{cleaned}"
+    parsed = urlparse(cleaned)
+    if parsed.scheme and parsed.scheme.lower() not in ("http", "https"):
+        return None
+    return cleaned
+
+
 def _safe_redirect_target(
     candidate: str | None, request: Request, form: FormDB
 ) -> str | None:
-
-    if not isinstance(candidate, str) or not candidate:
+    cleaned = _clean_url(candidate)
+    if not cleaned:
         return None
-    parsed = urlparse(candidate)
+
+    parsed = urlparse(cleaned)
     if not parsed.netloc:
-        if candidate.startswith("/"):
-            return candidate
+        if cleaned.startswith("/"):
+            return cleaned
         return None
 
-    referer = request.headers.get("referer")
-    referer_host = urlparse(referer).netloc if referer else None
-    allowed_host = form.allowed_domains[0] if form.allowed_domains else None
-    if parsed.netloc in {allowed_host, referer_host}:
-        return candidate
+    allowed_domains = form.allowed_domains or []
+    if allowed_domains:
+        referer = request.headers.get("referer")
+        referer_host = urlparse(referer).netloc if referer else None
+        valid_hosts = set(allowed_domains)
+        if referer_host:
+            valid_hosts.add(referer_host)
+        if parsed.netloc not in valid_hosts:
+            log.warning(f"Ignoring untrusted redirect target: {candidate!r}")
+            return None
 
-    log.warning(f"Ignoring untrusted redirect target: {candidate!r}")
-    return None
+    return cleaned
 
 
 def _resolve_redirect_target(
     form_data: dict, request: Request, form: FormDB
 ) -> str | None:
     """Where to send the visitor's browser after a plain (non-AJAX) form
-    POST. Mirrors Formspree's `_next` convention."""
-    target = _safe_redirect_target(form.redirect_url, request, form)
-    return target or request.headers.get("referer")
+    POST. Mirrors Formspree's `_next` convention and honors form redirect settings."""
+    # 1. Configured redirect URL in form settings takes precedence when enabled
+    if getattr(form, "redirect", False) and getattr(form, "redirect_url", None):
+        target = _clean_url(form.redirect_url)
+        if target:
+            return target
+
+    # 2. Check for form-level custom parameter (_next)
+    if isinstance(form_data, dict):
+        next_candidate = form_data.get("_next")
+        if next_candidate and isinstance(next_candidate, str):
+            target = _safe_redirect_target(next_candidate, request, form)
+            if target:
+                return target
+
+    return None
 
 
 def _finish(
@@ -100,9 +135,18 @@ def _finish(
     Plain <form> posts get a 303 redirect back to the customer's custom URL
     or fall back to our application's template thank-you route.
     """
+    has_next = isinstance(form_data, dict) and bool(form_data.get("_next"))
+    target_url: str | None = None
+    if redirect_ok or has_next:
+        target_url = _resolve_redirect_target(form_data, request, form)
+
     wants_json = "application/json" in request.headers.get("accept", "")
     if wants_json:
-        return JSONResponse(json_body, status_code=status_code)
+        payload = dict(json_body)
+        if target_url:
+            payload["redirect"] = target_url
+            payload["redirect_url"] = target_url
+        return JSONResponse(payload, status_code=status_code)
 
     # Reconstruct the absolute path to your platform's default thank-you template page
     base_url = str(settings.BASE_URL).rstrip("/")
@@ -110,22 +154,10 @@ def _finish(
         f"{base_url}/f/{form.public_id}/thank-you/{token}" if token else None
     )
 
-    target_url = internal_thank_you_url
-    log.debug(f"target _url = {target_url}")
+    final_target = target_url or internal_thank_you_url or request.headers.get("referer") or "/"
+    log.debug(f"target_url = {final_target}")
 
-    if redirect_ok:
-        # Check if the user specified a custom redirect target (_next URL)
-        target_url = _resolve_redirect_target(form_data, request, form)
-
-        if not target_url:
-            target_url = internal_thank_you_url
-
-        if target_url:
-            return RedirectResponse(
-                url=f"{target_url}", status_code=status.HTTP_303_SEE_OTHER
-            )
-
-    return RedirectResponse(url=f"{target_url}", status_code=status.HTTP_303_SEE_OTHER)
+    return RedirectResponse(url=final_target, status_code=status.HTTP_303_SEE_OTHER)
 
 
 @lru_cache(maxsize=256)
