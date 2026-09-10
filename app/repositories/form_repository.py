@@ -316,6 +316,14 @@ class FormRepository:
         await self.db.refresh(submission)
         return submission
 
+    async def update_submission_note(
+        self, submission: Submission, note: str | None
+    ) -> Submission:
+        submission.note = note
+        await self.db.commit()
+        await self.db.refresh(submission)
+        return submission
+
     async def delete_submission(self, submission: Submission) -> None:
         await self.db.delete(submission)
         await self.db.commit()

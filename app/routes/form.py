@@ -228,6 +228,74 @@ async def handle_get_form_submission_by_id(
 
 
 @form_router.post(
+    "/{project_id}/forms/{form_id}/submissions/{submission_id}/note",
+    response_class=HTMLResponse,
+)
+@form_router.put(
+    "/{project_id}/forms/{form_id}/submissions/{submission_id}/note",
+    response_class=HTMLResponse,
+)
+async def handle_update_submission_note(
+    request: Request,
+    form_id: str,
+    project_id: str,
+    submission_id: str,
+    htmx_req: Annotated[bool, Depends(is_htmx_dep)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    user: Annotated[User, Depends(current_user)],
+    note: Annotated[str | None, Form()] = None,
+):
+    try:
+        submission_uuid = uuid.UUID(submission_id)
+    except ValueError:
+        raise TypeCoversionError("Invalid submission ID")
+
+    repository = FormRepository(db)
+    submission = await repository.get_submission(form_id, str(submission_uuid))
+
+    if not submission:
+        raise NotFoundError("Submission not found.")
+
+    form = await repository.get_by_id_and_project(form_id, project_id)
+    if not form:
+        raise NotFoundError("Form not found.")
+
+    clean_note = note.strip() if note and note.strip() else None
+    if clean_note and len(clean_note) > 500:
+        clean_note = clean_note[:500]
+
+    submission = await repository.update_submission_note(submission, clean_note)
+
+    context = {
+        "request": request,
+        "project_id": project_id,
+        "form_id": form_id,
+        "form": form,
+        "user": user,
+        "active_tab": "submissions",
+        "active_tab_template": TAB_TEMPLATES[FormTab.submissions],
+        "tab_labels": TAB_LABELS,
+        "submission": submission,
+    }
+
+    if not htmx_req or request.headers.get("HX-History-Restore-Request"):
+        return RedirectResponse(
+            url=f"/projects/{project_id}/forms/{form_id}/submissions/{submission_id}",
+            status_code=status.HTTP_303_SEE_OTHER,
+        )
+
+    return temp.TemplateResponse(
+        request,
+        "partials/submission_details_card.html",
+        context,
+        headers=hx_toast_headers(
+            "Note saved successfully!" if clean_note else "Note removed successfully!",
+            type_=ToastType.SUCCESS,
+        ),
+    )
+
+
+@form_router.post(
     "/{project_id}/forms/{form_id}/submissions/{submission_id}/toggle-status",
     response_class=HTMLResponse,
 )
