@@ -1,45 +1,46 @@
 {% from 'partials/setup/macros.html' import code_card, framework_header, recommended_pkg %}
 <section x-show="framework==='next'" x-cloak>
-    {{ framework_header('Next.js', 'Next.js App Router component with "use client" directive.') }}
-    {{ recommended_pkg('@marsidev/react-turnstile') }}
+  {{ framework_header('Next.js', 'Next.js App Router component with "use client" directive.') }}
+  {{ recommended_pkg('@marsidev/react-turnstile') }}
 
-    <div x-show="mode==='basic'">
-        {% set next_basic %}export default function ContactForm() {
-  return (
+  <div x-show="mode==='basic'">
+    {% set next_basic %}export default function ContactForm() {
+    return (
     <form action="https://formdata.cloud/f/{{ form.public_id }}" method="POST">
       <input type="text" name="name" placeholder="Your Name" required />
       <input type="email" name="email" placeholder="Your Email" required />
       <textarea name="message" placeholder="Your Message" required />
 
       {/* Invisible anti-spam honeypot */}
-      <input type="text" name="{{ form.honeypot or '_gotcha' }}" tabIndex={-1} autoComplete="off"
-        style={{ '{{' }} position: "absolute", left: "-9999px" {{ '}}' }} />
+      <input type="text" name="{{ form.honeypot or '_gotcha' }}" tabIndex={-1} autoComplete="off" style={{ '{{' }}
+        position: "absolute" , left: "-9999px" {{ '}}' }} />
       <button type="submit">Send Message</button>
     </form>
-  );
-}{% endset %}
-        {{ code_card(next_basic, 'Next.js') }}
-    </div>
+    );
+    }{% endset %}
+    {{ code_card(next_basic, 'Next.js') }}
+  </div>
 
-    <div x-show="mode==='turnstile'" x-cloak>
-        {% set next_turnstile %}// npm install @marsidev/react-turnstile
-"use client";
+  <div x-show="mode==='turnstile'" x-cloak>
+    {% set next_turnstile %}// npm install @marsidev/react-turnstile
+    "use client";
 
-import { Turnstile } from "@marsidev/react-turnstile";
+    import { Turnstile } from "@marsidev/react-turnstile";
 
-export default function ContactForm() {
-  return (
+    export default function ContactForm() {
+    return (
     <form action="https://formdata.cloud/f/{{ form.public_id }}" method="POST">
       <input type="text" name="name" placeholder="Your Name" required />
       <input type="email" name="email" placeholder="Your Email" required />
       <textarea name="message" placeholder="Your Message" required />
 
-      <Turnstile siteKey="YOUR_TURNSTILE_SITE_KEY" options={{ '{{' }} responseField: true, responseFieldName: "cf-turnstile-response" {{ '}}' }} />
+      <Turnstile siteKey="YOUR_TURNSTILE_SITE_KEY" options={{ '{{' }} responseField: true,
+        responseFieldName: "cf-turnstile-response" {{ '}}' }} />
 
       <button type="submit">Send Message</button>
     </form>
-  );
-}{% endset %}
-        {{ code_card(next_turnstile, 'Next.js + Turnstile') }}
-    </div>
+    );
+    }{% endset %}
+    {{ code_card(next_turnstile, 'Next.js + Turnstile') }}
+  </div>
 </section>

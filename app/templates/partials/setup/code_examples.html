@@ -16,7 +16,8 @@
             class="whitespace-nowrap rounded-lg px-3.5 py-2 text-xs sm:text-sm font-semibold transition cursor-pointer">Next.js</button>
         <button type="button" @click="framework='vue'"
             :class="framework==='vue' ? 'bg-brand-dark text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200/70'"
-            class="whitespace-nowrap rounded-lg px-3.5 py-2 text-xs sm:text-sm font-semibold transition cursor-pointer">Vue 3</button>
+            class="whitespace-nowrap rounded-lg px-3.5 py-2 text-xs sm:text-sm font-semibold transition cursor-pointer">Vue
+            3</button>
         <button type="button" @click="framework='svelte'"
             :class="framework==='svelte' ? 'bg-brand-dark text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200/70'"
             class="whitespace-nowrap rounded-lg px-3.5 py-2 text-xs sm:text-sm font-semibold transition cursor-pointer">Svelte</button>
@@ -25,7 +26,7 @@
             class="whitespace-nowrap rounded-lg px-3.5 py-2 text-xs sm:text-sm font-semibold transition cursor-pointer">Angular</button>
     </nav>
 
-    <div class="p-5 sm:p-7">
+    <div class="p-5 sm:p-7 text-white">
         {% include 'partials/setup/frameworks/html.html' %}
         {% include 'partials/setup/frameworks/wordpress.html' %}
         {% include 'partials/setup/frameworks/react.html' %}

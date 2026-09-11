@@ -1,53 +1,53 @@
 {% from 'partials/setup/macros.html' import code_card, framework_header, recommended_pkg %}
 <section x-show="framework==='angular'" x-cloak>
-    {{ framework_header('Angular', 'Modern standalone Angular component example.') }}
-    {{ recommended_pkg('ngx-turnstile') }}
+  {{ framework_header('Angular', 'Modern standalone Angular component example.') }}
+  {{ recommended_pkg('ngx-turnstile') }}
 
-    <div x-show="mode==='basic'">
-        {% set angular_basic %}<!-- contact-form.component.html -->
-<form action="https://formdata.cloud/f/{{ form.public_id }}" method="POST">
-  <input type="text" name="name" placeholder="Your Name" required>
-  <input type="email" name="email" placeholder="Your Email" required>
-  <textarea name="message" placeholder="Your Message" required></textarea>
+  <div x-show="mode==='basic'">
+    {% set angular_basic %}<!-- contact-form.component.html -->
+    <form action="https://formdata.cloud/f/{{ form.public_id }}" method="POST">
+      <input type="text" name="name" placeholder="Your Name" required>
+      <input type="email" name="email" placeholder="Your Email" required>
+      <textarea name="message" placeholder="Your Message" required></textarea>
 
-  <!-- Invisible anti-spam honeypot -->
-  <input type="text" name="{{ form.honeypot or '_gotcha' }}" tabindex="-1" autocomplete="off"
-    style="position: absolute; left: -9999px">
+      <!-- Invisible anti-spam honeypot -->
+      <input type="text" name="{{ form.honeypot or '_gotcha' }}" tabindex="-1" autocomplete="off"
+        style="position: absolute; left: -9999px">
 
-  <button type="submit">Send Message</button>
-</form>{% endset %}
-        {{ code_card(angular_basic, 'Angular') }}
-    </div>
+      <button type="submit">Send Message</button>
+    </form>{% endset %}
+    {{ code_card(angular_basic, 'Angular') }}
+  </div>
 
-    <div x-show="mode==='turnstile'" x-cloak>
-        {% set angular_turnstile %}// npm install ngx-turnstile
-// contact-form.component.ts
-import { Component } from "@angular/core";
-import { NgxTurnstileComponent } from "ngx-turnstile";
+  <div x-show="mode==='turnstile'" x-cloak>
+    {% set angular_turnstile %}// npm install ngx-turnstile
+    // contact-form.component.ts
+    import { Component } from "@angular/core";
+    import { NgxTurnstileComponent } from "ngx-turnstile";
 
-@Component({
-  selector: "app-contact-form",
-  standalone: true,
-  imports: [NgxTurnstileComponent],
-  templateUrl: "./contact-form.component.html"
-})
-export class ContactFormComponent {
-  siteKey = "YOUR_TURNSTILE_SITE_KEY";
-  token = "";
-  resolved(value: string | null) { this.token = value ?? ""; }
-}
+    @Component({
+    selector: "app-contact-form",
+    standalone: true,
+    imports: [NgxTurnstileComponent],
+    templateUrl: "./contact-form.component.html"
+    })
+    export class ContactFormComponent {
+    siteKey = "YOUR_TURNSTILE_SITE_KEY";
+    token = "";
+    resolved(value: string | null) { this.token = value ?? ""; }
+    }
 
-<!-- contact-form.component.html -->
-<form action="https://formdata.cloud/f/{{ form.public_id }}" method="POST">
-  <input type="text" name="name" placeholder="Your Name" required>
-  <input type="email" name="email" placeholder="Your Email" required>
-  <textarea name="message" placeholder="Your Message" required></textarea>
+    <!-- contact-form.component.html -->
+    <form action="https://formdata.cloud/f/{{ form.public_id }}" method="POST">
+      <input type="text" name="name" placeholder="Your Name" required>
+      <input type="email" name="email" placeholder="Your Email" required>
+      <textarea name="message" placeholder="Your Message" required></textarea>
 
-  <ngx-turnstile [siteKey]="siteKey" (resolved)="resolved($event)"></ngx-turnstile>
-  <input type="hidden" name="cf-turnstile-response" [value]="token">
+      <ngx-turnstile [siteKey]="siteKey" (resolved)="resolved($event)"></ngx-turnstile>
+      <input type="hidden" name="cf-turnstile-response" [value]="token">
 
-  <button type="submit" [disabled]="!token">Send Message</button>
-</form>{% endset %}
-        {{ code_card(angular_turnstile, 'Angular + Turnstile') }}
-    </div>
+      <button type="submit" [disabled]="!token">Send Message</button>
+    </form>{% endset %}
+    {{ code_card(angular_turnstile, 'Angular + Turnstile') }}
+  </div>
 </section>
