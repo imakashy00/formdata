@@ -1,0 +1,58 @@
+{% from 'partials/setup/macros.html' import code_card, framework_header %}
+<section x-show="framework==='wordpress'" x-cloak>
+    {{ framework_header('WordPress', 'Paste directly into a WordPress Custom HTML block on any page or post.') }}
+
+    <div x-show="mode==='basic'">
+        {% set wp_basic %}<!-- Paste this into a WordPress "Custom HTML" block -->
+<form action="https://formdata.cloud/f/{{ form.public_id }}" method="POST">
+  <p>
+    <label>Your Name</label><br>
+    <input type="text" name="name" placeholder="John Doe" required>
+  </p>
+  <p>
+    <label>Your Email</label><br>
+    <input type="email" name="email" placeholder="john@example.com" required>
+  </p>
+  <p>
+    <label>Your Message</label><br>
+    <textarea name="message" placeholder="Write your message here..." rows="4" required></textarea>
+  </p>
+
+  <!-- Anti-spam protection: Invisible honeypot field -->
+  <input type="text" name="{{ form.honeypot or '_gotcha' }}" tabindex="-1" autocomplete="off"
+    style="position: absolute; left: -9999px;">
+
+  <p>
+    <button type="submit">Send Message</button>
+  </p>
+</form>{% endset %}
+        {{ code_card(wp_basic, 'WordPress (Custom HTML Block)') }}
+    </div>
+
+    <div x-show="mode==='turnstile'" x-cloak>
+        {% set wp_turnstile %}<!-- Paste this into a WordPress "Custom HTML" block -->
+<form action="https://formdata.cloud/f/{{ form.public_id }}" method="POST">
+  <p>
+    <label>Your Name</label><br>
+    <input type="text" name="name" placeholder="John Doe" required>
+  </p>
+  <p>
+    <label>Your Email</label><br>
+    <input type="email" name="email" placeholder="john@example.com" required>
+  </p>
+  <p>
+    <label>Your Message</label><br>
+    <textarea name="message" placeholder="Write your message here..." rows="4" required></textarea>
+  </p>
+
+  <div class="cf-turnstile" data-sitekey="YOUR_TURNSTILE_SITE_KEY"></div>
+
+  <p>
+    <button type="submit">Send Message</button>
+  </p>
+</form>
+
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>{% endset %}
+        {{ code_card(wp_turnstile, 'WordPress + Turnstile') }}
+    </div>
+</section>

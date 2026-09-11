@@ -1,0 +1,46 @@
+{% from 'partials/setup/macros.html' import code_card, framework_header, recommended_pkg %}
+<section x-show="framework==='vue'" x-cloak>
+    {{ framework_header('Vue 3', 'Single File Component using Vue 3 Composition API.') }}
+    {{ recommended_pkg('vue-turnstile') }}
+
+    <div x-show="mode==='basic'">
+        {% set vue_basic %}<template>
+  <form action="https://formdata.cloud/f/{{ form.public_id }}" method="POST">
+    <input type="text" name="name" placeholder="Your Name" required>
+    <input type="email" name="email" placeholder="Your Email" required>
+    <textarea name="message" placeholder="Your Message" required></textarea>
+
+    <!-- Invisible anti-spam honeypot -->
+    <input type="text" name="{{ form.honeypot or '_gotcha' }}" tabindex="-1" autocomplete="off"
+      style="position: absolute; left: -9999px">
+
+    <button type="submit">Send Message</button>
+  </form>
+</template>{% endset %}
+        {{ code_card(vue_basic, 'Vue 3 (SFC)') }}
+    </div>
+
+    <div x-show="mode==='turnstile'" x-cloak>
+        {% set vue_turnstile %}<!-- npm install vue-turnstile -->
+<script setup>
+import { ref } from "vue";
+import VueTurnstile from "vue-turnstile";
+
+const token = ref("");
+</script>
+
+<template>
+  <form action="https://formdata.cloud/f/{{ form.public_id }}" method="POST">
+    <input type="text" name="name" placeholder="Your Name" required>
+    <input type="email" name="email" placeholder="Your Email" required>
+    <textarea name="message" placeholder="Your Message" required></textarea>
+
+    <VueTurnstile site-key="YOUR_TURNSTILE_SITE_KEY" v-model="token" />
+    <input type="hidden" name="cf-turnstile-response" :value="token">
+
+    <button type="submit" :disabled="!token">Send Message</button>
+  </form>
+</template>{% endset %}
+        {{ code_card(vue_turnstile, 'Vue 3 + Turnstile') }}
+    </div>
+</section>

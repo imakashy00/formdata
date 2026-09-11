@@ -1,0 +1,37 @@
+<div class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+    <!-- Framework Navigation Tabs -->
+    <nav class="flex gap-1 overflow-x-auto border-b border-slate-100 p-3 bg-slate-50/70"
+        aria-label="Framework selection">
+        <button type="button" @click="framework='html'"
+            :class="framework==='html' ? 'bg-brand-dark text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200/70'"
+            class="whitespace-nowrap rounded-lg px-3.5 py-2 text-xs sm:text-sm font-semibold transition cursor-pointer">HTML</button>
+        <button type="button" @click="framework='wordpress'"
+            :class="framework==='wordpress' ? 'bg-brand-dark text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200/70'"
+            class="whitespace-nowrap rounded-lg px-3.5 py-2 text-xs sm:text-sm font-semibold transition cursor-pointer">WordPress</button>
+        <button type="button" @click="framework='react'"
+            :class="framework==='react' ? 'bg-brand-dark text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200/70'"
+            class="whitespace-nowrap rounded-lg px-3.5 py-2 text-xs sm:text-sm font-semibold transition cursor-pointer">React</button>
+        <button type="button" @click="framework='next'"
+            :class="framework==='next' ? 'bg-brand-dark text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200/70'"
+            class="whitespace-nowrap rounded-lg px-3.5 py-2 text-xs sm:text-sm font-semibold transition cursor-pointer">Next.js</button>
+        <button type="button" @click="framework='vue'"
+            :class="framework==='vue' ? 'bg-brand-dark text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200/70'"
+            class="whitespace-nowrap rounded-lg px-3.5 py-2 text-xs sm:text-sm font-semibold transition cursor-pointer">Vue 3</button>
+        <button type="button" @click="framework='svelte'"
+            :class="framework==='svelte' ? 'bg-brand-dark text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200/70'"
+            class="whitespace-nowrap rounded-lg px-3.5 py-2 text-xs sm:text-sm font-semibold transition cursor-pointer">Svelte</button>
+        <button type="button" @click="framework='angular'"
+            :class="framework==='angular' ? 'bg-brand-dark text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200/70'"
+            class="whitespace-nowrap rounded-lg px-3.5 py-2 text-xs sm:text-sm font-semibold transition cursor-pointer">Angular</button>
+    </nav>
+
+    <div class="p-5 sm:p-7">
+        {% include 'partials/setup/frameworks/html.html' %}
+        {% include 'partials/setup/frameworks/wordpress.html' %}
+        {% include 'partials/setup/frameworks/react.html' %}
+        {% include 'partials/setup/frameworks/nextjs.html' %}
+        {% include 'partials/setup/frameworks/vue.html' %}
+        {% include 'partials/setup/frameworks/svelte.html' %}
+        {% include 'partials/setup/frameworks/angular.html' %}
+    </div>
+</div>

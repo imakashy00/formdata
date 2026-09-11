@@ -1,0 +1,50 @@
+{% from 'partials/setup/macros.html' import code_card, framework_header %}
+<section x-show="framework==='html'" x-cloak>
+    {{ framework_header('HTML', 'Works on any regular HTML website, static page, or template.') }}
+
+    <div x-show="mode==='basic'">
+        {% set html_basic %}<form action="https://formdata.cloud/f/{{ form.public_id }}" method="POST">
+  <!-- Visitor name -->
+  <input type="text" name="name" placeholder="Your Name" required>
+
+  <!-- Visitor email -->
+  <input type="email" name="email" placeholder="Your Email" required>
+
+  <!-- Message content -->
+  <textarea name="message" placeholder="Your Message" required></textarea>
+
+  <!-- Anti-spam protection: Invisible honeypot field (bots fill it, humans do not) -->
+  <input type="text" name="{{ form.honeypot or '_gotcha' }}" tabindex="-1" autocomplete="off"
+    style="position: absolute; left: -9999px;">
+
+  <button type="submit">Send Message</button>
+</form>{% endset %}
+        {{ code_card(html_basic, 'HTML') }}
+    </div>
+
+    <div x-show="mode==='turnstile'" x-cloak>
+        {% set html_turnstile %}<form action="https://formdata.cloud/f/{{ form.public_id }}" method="POST">
+  <input type="text" name="name" placeholder="Your Name" required>
+  <input type="email" name="email" placeholder="Your Email" required>
+  <textarea name="message" placeholder="Your Message" required></textarea>
+
+  <!-- Cloudflare Turnstile anti-bot widget -->
+  <div class="cf-turnstile" data-sitekey="YOUR_TURNSTILE_SITE_KEY"></div>
+
+  <button type="submit">Send Message</button>
+</form>
+
+<!-- Turnstile script (include once in your page) -->
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>{% endset %}
+        {{ code_card(html_turnstile, 'HTML + Turnstile') }}
+    </div>
+
+    <div class="mt-4 rounded-xl bg-slate-50 p-4 text-xs text-slate-600 space-y-1.5 border border-slate-100">
+        <p class="font-semibold text-slate-800">HTML form explanation for beginners:</p>
+        <ul class="list-disc list-inside space-y-1">
+            <li><strong>action:</strong> Points to your unique Formdata endpoint where messages are saved securely.</li>
+            <li><strong>name attributes:</strong> Each input must have a <code class="rounded bg-slate-200 px-1 font-mono text-[11px]">name="..."</code> (e.g. name, email, message). This becomes the column title in your Submissions table.</li>
+            <li><strong>honeypot:</strong> The hidden input (<code class="rounded bg-slate-200 px-1 font-mono text-[11px]">{{ form.honeypot or '_gotcha' }}</code>) is invisible to people, but tricks spam bots into filling it out so we can automatically reject spam.</li>
+        </ul>
+    </div>
+</section>

@@ -1,0 +1,39 @@
+{% from 'partials/setup/macros.html' import code_card, framework_header, recommended_pkg %}
+<section x-show="framework==='svelte'" x-cloak>
+    {{ framework_header('Svelte', 'Clean Svelte component template.') }}
+    {{ recommended_pkg('svelte-turnstile') }}
+
+    <div x-show="mode==='basic'">
+        {% set svelte_basic %}<form action="https://formdata.cloud/f/{{ form.public_id }}" method="POST">
+  <input type="text" name="name" placeholder="Your Name" required>
+  <input type="email" name="email" placeholder="Your Email" required>
+  <textarea name="message" placeholder="Your Message" required></textarea>
+
+  <!-- Invisible anti-spam honeypot -->
+  <input type="text" name="{{ form.honeypot or '_gotcha' }}" tabindex="-1" autocomplete="off"
+    style="position: absolute; left: -9999px">
+
+  <button type="submit">Send Message</button>
+</form>{% endset %}
+        {{ code_card(svelte_basic, 'Svelte') }}
+    </div>
+
+    <div x-show="mode==='turnstile'" x-cloak>
+        {% set svelte_turnstile %}<!-- npm install svelte-turnstile -->
+<script>
+  import { Turnstile } from "svelte-turnstile";
+</script>
+
+<form action="https://formdata.cloud/f/{{ form.public_id }}" method="POST">
+  <input type="text" name="name" placeholder="Your Name" required>
+  <input type="email" name="email" placeholder="Your Email" required>
+  <textarea name="message" placeholder="Your Message" required></textarea>
+
+  <Turnstile siteKey="YOUR_TURNSTILE_SITE_KEY" responseField={true}
+    responseFieldName="cf-turnstile-response" />
+
+  <button type="submit">Send Message</button>
+</form>{% endset %}
+        {{ code_card(svelte_turnstile, 'Svelte + Turnstile') }}
+    </div>
+</section>
