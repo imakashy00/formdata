@@ -21,8 +21,8 @@
             </button>
         </div>
         <pre
-            class="overflow-x-auto p-4 sm:p-5 font-mono text-xs leading-relaxed text-slate-100"><code x-html="highlighted"></code></pre>
-        <div class="raw-code-snippet hidden">{{ snippet_content | e }}</div>
+            class="overflow-x-auto p-4 sm:p-5 font-mono text-xs leading-relaxed text-slate-100"><code x-html="highlighted">{{ snippet_content | forceescape }}</code></pre>
+        <div class="raw-code-snippet hidden">{{ snippet_content | forceescape }}</div>
     </div>
 </div>
 {%- endmacro %}
