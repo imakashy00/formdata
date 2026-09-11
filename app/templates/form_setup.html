@@ -6,10 +6,9 @@
             display: none !important;
         }
 
-        /* Small, local syntax palette. Token spans are created by the script below;
-           no highlighting library is loaded. */
+        /* Syntax highlighting palette */
         .setup-panel {
-            --code-comment: #64748b;
+            --code-comment: #94a3b8;
             --code-string: #86efac;
             --code-number: #fbbf24;
             --code-tag: #7dd3fc;
@@ -56,65 +55,183 @@
         }
     </style>
 
-    <header class="mb-7">
-        <div
-            class="mb-3 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
-            <span>●</span> Ready to receive submissions
+    <!-- Header Section -->
+    <header class="space-y-3">
+        <div class="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+            <span class="inline-block h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            Ready to receive submissions
         </div>
         <h1 class="text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">Connect your form</h1>
-        <p class="mt-3 max-w-2xl text-base text-slate-500">Select your framework, copy the example and replace the
-            fields as needed. Your endpoint and honeypot are already included.</p>
+        <p class="max-w-2xl text-base text-slate-600">
+            Connect any website, landing page builder, or custom app to this form. Copy your unique endpoint URL or use the ready-made code examples below.
+        </p>
     </header>
 
-    <div class="mb-6 grid gap-3 sm:grid-cols-3">
-        <div class="rounded-xl border border-slate-200 bg-white p-4">
-            <span
-                class="mb-2 flex h-7 w-7 items-center justify-center rounded-full bg-brand-light text-xs font-bold text-brand-dark">1</span>
-            <p class="text-sm font-semibold text-slate-900">Choose a framework</p>
-        </div>
-        <div class="rounded-xl border border-slate-200 bg-white p-4">
-            <span
-                class="mb-2 flex h-7 w-7 items-center justify-center rounded-full bg-brand-light text-xs font-bold text-brand-dark">2</span>
-            <p class="text-sm font-semibold text-slate-900">Paste the form code</p>
-        </div>
-        <div class="rounded-xl border border-slate-200 bg-white p-4">
-            <span
-                class="mb-2 flex h-7 w-7 items-center justify-center rounded-full bg-brand-light text-xs font-bold text-brand-dark">3</span>
-            <p class="text-sm font-semibold text-slate-900">Submit a test message</p>
+    <!-- Quick Form Endpoint URL Card (Easy 1-Click Copy for Everyone) -->
+    <div class="rounded-2xl border-2 border-brand/20 bg-gradient-to-br from-blue-50/70 via-white to-slate-50 p-5 sm:p-6 shadow-sm">
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div class="space-y-1">
+                <div class="flex items-center gap-2">
+                    <span class="rounded-md bg-brand-dark px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-white">Your Endpoint</span>
+                    <span class="text-xs text-slate-500">Method: <strong class="text-slate-800">POST</strong></span>
+                </div>
+                <h2 class="text-lg font-bold text-slate-900">Form Submission URL</h2>
+                <p class="text-xs sm:text-sm text-slate-600 max-w-xl">
+                    Paste this destination URL into your website builder (Webflow, Framer, Squarespace, Wix, Carrd) or your custom HTML form's <code class="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-xs text-slate-800">action</code> attribute.
+                </p>
+            </div>
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                <div class="flex items-center rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 shadow-inner">
+                    <svg class="mr-2 h-4 w-4 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                    </svg>
+                    <span class="font-mono text-xs sm:text-sm font-semibold text-slate-900 select-all break-all">https://formdata.cloud/f/{{ form.public_id }}</span>
+                </div>
+                <button type="button" @click="copyEndpoint()"
+                    class="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-dark px-4 py-2.5 text-xs sm:text-sm font-semibold text-white shadow transition hover:bg-brand hover:shadow-md active:scale-95 cursor-pointer">
+                    <svg x-show="!endpointCopied" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    <svg x-show="endpointCopied" x-cloak class="h-4 w-4 text-emerald-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span x-text="endpointCopied ? 'Copied URL!' : 'Copy URL'"></span>
+                </button>
+            </div>
         </div>
     </div>
 
-    <div class="rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <nav class="flex gap-1 overflow-x-auto border-b border-slate-100 p-3">
-            <button @click="framework='html'"
-                :class="framework==='html' ? 'bg-brand-dark text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'"
-                class="whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition">HTML</button>
-            <button @click="framework='react'"
-                :class="framework==='react' ? 'bg-brand-dark text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'"
-                class="whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition">React</button>
-            <button @click="framework='vue'"
-                :class="framework==='vue' ? 'bg-brand-dark text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'"
-                class="whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition">Vue 3</button>
-            <button @click="framework='svelte'"
-                :class="framework==='svelte' ? 'bg-brand-dark text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'"
-                class="whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition">Svelte</button>
-            <button @click="framework='angular'"
-                :class="framework==='angular' ? 'bg-brand-dark text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'"
-                class="whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition">Angular</button>
-            <button @click="framework='wordpress'"
-                :class="framework==='wordpress' ? 'bg-brand-dark text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'"
-                class="whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition">WordPress</button>
-            <button @click="framework='next'"
-                :class="framework==='next' ? 'bg-brand-dark text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'"
-                class="whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition">Next.js</button>
+    <!-- 3-Step Simple Guide for Non-Technical Users -->
+    <div class="grid gap-3 sm:grid-cols-3">
+        <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div class="mb-2 flex h-7 w-7 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-brand-dark">1</div>
+            <p class="text-sm font-semibold text-slate-900">Copy your endpoint URL</p>
+            <p class="mt-1 text-xs text-slate-500">Use your unique URL above or pick a ready-made code snippet below.</p>
+        </div>
+        <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div class="mb-2 flex h-7 w-7 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-brand-dark">2</div>
+            <p class="text-sm font-semibold text-slate-900">Paste into your site</p>
+            <p class="mt-1 text-xs text-slate-500">Paste the URL into your form settings or paste the code into your website.</p>
+        </div>
+        <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div class="mb-2 flex h-7 w-7 items-center justify-center rounded-full bg-blue-100 text-xs font-bold text-brand-dark">3</div>
+            <p class="text-sm font-semibold text-slate-900">Submit a test message</p>
+            <p class="mt-1 text-xs text-slate-500">Submit the form once and see it appear immediately in your Submissions tab.</p>
+        </div>
+    </div>
+
+    <!-- Website Builders Guide (No-Code Accordion) -->
+    <div x-data="{ openNoCode: false }" class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+        <button type="button" @click="openNoCode = !openNoCode"
+            class="flex w-full items-center justify-between p-4 sm:px-6 text-left hover:bg-slate-50 transition cursor-pointer">
+            <div class="flex items-center gap-3">
+                <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
+                </span>
+                <div>
+                    <h3 class="text-sm font-bold text-slate-900">Using Webflow, Framer, Carrd, Wix, or Squarespace?</h3>
+                    <p class="text-xs text-slate-500">Click to view quick no-code setup instructions without touching custom code.</p>
+                </div>
+            </div>
+            <svg class="h-5 w-5 text-slate-400 transition-transform duration-200" :class="{ 'rotate-180': openNoCode }" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+        </button>
+
+        <div x-show="openNoCode" x-cloak class="border-t border-slate-100 bg-slate-50/60 p-5 sm:p-6 space-y-4">
+            <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div class="rounded-xl border border-slate-200 bg-white p-4">
+                    <h4 class="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+                        <span class="h-2 w-2 rounded-full bg-blue-500"></span> Webflow &amp; Framer
+                    </h4>
+                    <ol class="mt-2 space-y-1.5 text-xs text-slate-600 list-decimal list-inside">
+                        <li>Click on your Form block on your page.</li>
+                        <li>In Form Settings, find <strong>Action / URL</strong>.</li>
+                        <li>Paste your <strong>Endpoint URL</strong>.</li>
+                        <li>Set the HTTP Method to <strong>POST</strong>.</li>
+                        <li>Make sure each input field has a <strong>Name</strong>.</li>
+                    </ol>
+                </div>
+
+                <div class="rounded-xl border border-slate-200 bg-white p-4">
+                    <h4 class="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+                        <span class="h-2 w-2 rounded-full bg-purple-500"></span> Carrd &amp; Squarespace
+                    </h4>
+                    <ol class="mt-2 space-y-1.5 text-xs text-slate-600 list-decimal list-inside">
+                        <li>Select your Form element.</li>
+                        <li>Set Type/Destination to <strong>Custom URL</strong>.</li>
+                        <li>Paste your <strong>Endpoint URL</strong>.</li>
+                        <li>Set Method to <strong>POST</strong>.</li>
+                        <li>Publish your site and send a test message.</li>
+                    </ol>
+                </div>
+
+                <div class="rounded-xl border border-slate-200 bg-white p-4">
+                    <h4 class="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+                        <span class="h-2 w-2 rounded-full bg-indigo-500"></span> WordPress
+                    </h4>
+                    <ol class="mt-2 space-y-1.5 text-xs text-slate-600 list-decimal list-inside">
+                        <li>Edit your page or post in WordPress.</li>
+                        <li>Add a <strong>Custom HTML</strong> block.</li>
+                        <li>Select the <strong>WordPress</strong> tab below and click <strong>Copy code</strong>.</li>
+                        <li>Paste into the block and click <strong>Publish</strong>!</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Code Examples Section -->
+    <div class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+        <!-- Framework Tabs -->
+        <nav class="flex gap-1 overflow-x-auto border-b border-slate-100 p-3 bg-slate-50/70" aria-label="Framework selection">
+            <button type="button" @click="framework='html'"
+                :class="framework==='html' ? 'bg-brand-dark text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200/70'"
+                class="whitespace-nowrap rounded-lg px-3.5 py-2 text-xs sm:text-sm font-semibold transition cursor-pointer">HTML</button>
+            <button type="button" @click="framework='wordpress'"
+                :class="framework==='wordpress' ? 'bg-brand-dark text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200/70'"
+                class="whitespace-nowrap rounded-lg px-3.5 py-2 text-xs sm:text-sm font-semibold transition cursor-pointer">WordPress</button>
+            <button type="button" @click="framework='react'"
+                :class="framework==='react' ? 'bg-brand-dark text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200/70'"
+                class="whitespace-nowrap rounded-lg px-3.5 py-2 text-xs sm:text-sm font-semibold transition cursor-pointer">React</button>
+            <button type="button" @click="framework='next'"
+                :class="framework==='next' ? 'bg-brand-dark text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200/70'"
+                class="whitespace-nowrap rounded-lg px-3.5 py-2 text-xs sm:text-sm font-semibold transition cursor-pointer">Next.js</button>
+            <button type="button" @click="framework='vue'"
+                :class="framework==='vue' ? 'bg-brand-dark text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200/70'"
+                class="whitespace-nowrap rounded-lg px-3.5 py-2 text-xs sm:text-sm font-semibold transition cursor-pointer">Vue 3</button>
+            <button type="button" @click="framework='svelte'"
+                :class="framework==='svelte' ? 'bg-brand-dark text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200/70'"
+                class="whitespace-nowrap rounded-lg px-3.5 py-2 text-xs sm:text-sm font-semibold transition cursor-pointer">Svelte</button>
+            <button type="button" @click="framework='angular'"
+                :class="framework==='angular' ? 'bg-brand-dark text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200/70'"
+                class="whitespace-nowrap rounded-lg px-3.5 py-2 text-xs sm:text-sm font-semibold transition cursor-pointer">Angular</button>
         </nav>
-        {% macro code_card(code_data) -%}
-        <div x-data="codeBlock" data-code='{{ code_data }}'>
-            <div class="relative overflow-hidden rounded-xl bg-slate-900 shadow-lg shadow-slate-900/10">
-                <button @click="copy()"
-                    class="absolute right-3 top-3 z-10 rounded-md border border-white/10 bg-white/10 px-2.5 py-1 text-[10px] font-semibold text-slate-300 transition-colors hover:bg-white/20 hover:text-white"
-                    x-text="copied ? 'Copied!' : 'Copy'"></button>
-                <pre class="overflow-x-auto p-5 pr-20 font-mono text-xs leading-relaxed text-slate-200"><code x-html="highlighted"></code></pre>
+
+        <!-- Clean Code Card Macro: Flawless copying with zero extra characters or quotes -->
+        {% macro code_card(snippet_content, lang_name='Code') -%}
+        <div x-data="codeBlock" class="relative group my-3">
+            <div class="relative overflow-hidden rounded-xl bg-slate-900 border border-slate-800 shadow-md">
+                <div class="flex items-center justify-between px-4 py-2.5 border-b border-slate-800 bg-slate-950/80">
+                    <div class="flex items-center gap-2">
+                        <span class="inline-block h-2.5 w-2.5 rounded-full bg-emerald-400"></span>
+                        <span class="text-xs font-mono font-medium text-slate-300">{{ lang_name }}</span>
+                    </div>
+                    <button @click="copy()" type="button"
+                        class="inline-flex items-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:bg-slate-700 hover:text-white active:scale-95 cursor-pointer">
+                        <svg x-show="!copied" class="h-3.5 w-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        <svg x-show="copied" x-cloak class="h-3.5 w-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span x-text="copied ? 'Copied to clipboard!' : 'Copy code'"></span>
+                    </button>
+                </div>
+                <pre class="overflow-x-auto p-4 sm:p-5 font-mono text-xs leading-relaxed text-slate-100"><code x-html="highlighted"></code></pre>
+                <div class="raw-code-snippet hidden">{{ snippet_content | e }}</div>
             </div>
         </div>
         {%- endmacro %}
@@ -123,148 +240,499 @@
         <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
                 <h2 class="text-xl font-bold text-slate-950">{{ title }}</h2>
-                <p class="mt-1 text-sm text-slate-500">{{ desc }}</p>
+                <p class="mt-1 text-xs sm:text-sm text-slate-500">{{ desc }}</p>
             </div>
             <div class="inline-flex self-start rounded-xl bg-slate-100 p-1">
-                <button @click="mode='basic'"
-                    :class="mode==='basic' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'"
-                    class="rounded-lg px-3 py-2 text-xs font-semibold">Simple</button>
-                <button @click="mode='turnstile'"
-                    :class="mode==='turnstile' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'"
-                    class="rounded-lg px-3 py-2 text-xs font-semibold">With Turnstile</button>
+                <button type="button" @click="mode='basic'"
+                    :class="mode==='basic' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'"
+                    class="rounded-lg px-3 py-1.5 text-xs font-semibold transition cursor-pointer">Simple (Recommended)</button>
+                <button type="button" @click="mode='turnstile'"
+                    :class="mode==='turnstile' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'"
+                    class="rounded-lg px-3 py-1.5 text-xs font-semibold transition cursor-pointer">With Turnstile</button>
             </div>
         </div>
         <div x-show="mode==='basic'"
-            class="mb-4 rounded-xl border border-emerald-100 bg-emerald-50 p-4 text-sm text-emerald-900">
-            <strong>Default setup:</strong> Turnstile is off. This example works without a site key or secret key.
+            class="mb-4 rounded-xl border border-emerald-200 bg-emerald-50/80 p-4 text-xs sm:text-sm text-emerald-900">
+            <div class="flex items-start gap-2">
+                <svg class="h-4 w-4 text-emerald-600 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div>
+                    <strong>Ready right away:</strong> This example works immediately without needing any API keys. Built-in honeypot spam protection is already included!
+                </div>
+            </div>
         </div>
-        <div x-show="mode==='turnstile'"
-            class="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
-            <strong>Before copying:</strong> Open <b>Settings → Spam protection</b>, enable Turnstile and save the secret key. Put only the public site key in this code.
+        <div x-show="mode==='turnstile'" x-cloak
+            class="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs sm:text-sm text-amber-950">
+            <div class="flex items-start gap-2">
+                <svg class="h-4 w-4 text-amber-600 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <div>
+                    <strong>Before copying:</strong> Go to <b>Settings &rarr; Spam protection</b> in the tabs above, enable Turnstile, and save your Cloudflare Secret Key. Put only your public Site Key in your code below.
+                </div>
+            </div>
         </div>
         {%- endmacro %}
 
         {% macro recommended_pkg(pkg_name) -%}
-        <div x-show="mode==='turnstile'" class="mb-4 rounded-xl border border-brand-mid bg-brand-light p-4">
-            <p class="text-xs font-semibold uppercase tracking-wide text-brand-dark">Recommended integration</p>
-            <p class="mt-1 text-sm text-brand-dark">
-                <code class="rounded bg-white px-1.5 py-0.5">{{ pkg_name }}</code>
+        <div x-show="mode==='turnstile'" x-cloak class="mb-4 rounded-xl border border-brand-mid bg-brand-light p-3.5">
+            <p class="text-[11px] font-bold uppercase tracking-wider text-brand-dark">Recommended package</p>
+            <p class="mt-1 text-xs sm:text-sm text-slate-800">
+                Install via terminal: <code class="rounded bg-white px-2 py-0.5 font-mono font-semibold text-brand-dark border border-brand-mid">{{ pkg_name }}</code>
             </p>
         </div>
         {%- endmacro %}
 
         <div class="p-5 sm:p-7">
-            <!-- HTML -->
-            <section x-show="framework==='html'" x-cloak data-language="html">
-                {{ framework_header('HTML') }}
+            <!-- 1. HTML -->
+            <section x-show="framework==='html'" x-cloak>
+                {{ framework_header('HTML', 'Works on any regular HTML website, static page, or template.') }}
+                
                 <div x-show="mode==='basic'">
-                    {{ code_card('&quot;&lt;form action=\&quot;https://formdata.cloud/f/' ~ form.public_id ~ '\&quot; method=\&quot;POST\&quot;&gt;\n  &lt;input type=\&quot;email\&quot; name=\&quot;email\&quot; placeholder=\&quot;Email\&quot; required /&gt;\n  &lt;textarea name=\&quot;message\&quot; placeholder=\&quot;Message\&quot; required&gt;&lt;/textarea&gt;\n\n  &lt;!-- Optional honeypot generated for this form --&gt;\n  &lt;input type=\&quot;text\&quot; name=\&quot;' ~ form.honeypot ~ '\&quot; tabindex=\&quot;-1\&quot;\n         autocomplete=\&quot;off\&quot; aria-hidden=\&quot;true\&quot;\n         style=\&quot;position:absolute;left:-9999px\&quot; /&gt;\n\n  &lt;button type=\&quot;submit\&quot;&gt;Send message&lt;/button&gt;\n&lt;/form&gt;&quot;') }}
+{% set html_basic %}<form action="https://formdata.cloud/f/{{ form.public_id }}" method="POST">
+  <!-- Visitor name -->
+  <input type="text" name="name" placeholder="Your Name" required>
+
+  <!-- Visitor email -->
+  <input type="email" name="email" placeholder="Your Email" required>
+
+  <!-- Message content -->
+  <textarea name="message" placeholder="Your Message" required></textarea>
+
+  <!-- Anti-spam protection: Invisible honeypot field (bots fill it, humans do not) -->
+  <input type="text" name="{{ form.honeypot or '_gotcha' }}" tabindex="-1" autocomplete="off" style="position: absolute; left: -9999px;">
+
+  <button type="submit">Send Message</button>
+</form>{% endset %}
+                    {{ code_card(html_basic, 'HTML') }}
                 </div>
-                <div x-show="mode==='turnstile'">
-                    {{ code_card('&quot;&lt;form action=\&quot;https://formdata.cloud/f/' ~ form.public_id ~ '\&quot; method=\&quot;POST\&quot;&gt;\n  &lt;input type=\&quot;email\&quot; name=\&quot;email\&quot; placeholder=\&quot;Email\&quot; required /&gt;\n  &lt;textarea name=\&quot;message\&quot; placeholder=\&quot;Message\&quot; required&gt;&lt;/textarea&gt;\n\n  &lt;div class=\&quot;cf-turnstile\&quot;\n       data-sitekey=\&quot;YOUR_TURNSTILE_SITE_KEY\&quot;&gt;&lt;/div&gt;\n\n  &lt;button type=\&quot;submit\&quot;&gt;Send message&lt;/button&gt;\n&lt;/form&gt;\n\n&lt;script src=\&quot;https://challenges.cloudflare.com/turnstile/v0/api.js\&quot;\n        async defer&gt;&lt;/script&gt;&quot;') }}
+
+                <div x-show="mode==='turnstile'" x-cloak>
+{% set html_turnstile %}<form action="https://formdata.cloud/f/{{ form.public_id }}" method="POST">
+  <input type="text" name="name" placeholder="Your Name" required>
+  <input type="email" name="email" placeholder="Your Email" required>
+  <textarea name="message" placeholder="Your Message" required></textarea>
+
+  <!-- Cloudflare Turnstile anti-bot widget -->
+  <div class="cf-turnstile" data-sitekey="YOUR_TURNSTILE_SITE_KEY"></div>
+
+  <button type="submit">Send Message</button>
+</form>
+
+<!-- Turnstile script (include once in your page) -->
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>{% endset %}
+                    {{ code_card(html_turnstile, 'HTML + Turnstile') }}
+                </div>
+
+                <div class="mt-4 rounded-xl bg-slate-50 p-4 text-xs text-slate-600 space-y-1.5 border border-slate-100">
+                    <p class="font-semibold text-slate-800">HTML form explanation for beginners:</p>
+                    <ul class="list-disc list-inside space-y-1">
+                        <li><strong>action:</strong> Points to your unique Formdata endpoint where messages are saved securely.</li>
+                        <li><strong>name attributes:</strong> Each input must have a <code class="rounded bg-slate-200 px-1 font-mono text-[11px]">name="..."</code> (e.g. name, email, message). This becomes the column title in your Submissions table.</li>
+                        <li><strong>honeypot:</strong> The hidden input (<code class="rounded bg-slate-200 px-1 font-mono text-[11px]">{{ form.honeypot or '_gotcha' }}</code>) is invisible to people, but tricks spam bots into filling it out so we can automatically reject spam.</li>
+                    </ul>
                 </div>
             </section>
 
-            <!-- React -->
-            <section x-show="framework==='react'" x-cloak data-language="react">
-                {{ framework_header('React') }}
+            <!-- 2. WordPress -->
+            <section x-show="framework==='wordpress'" x-cloak>
+                {{ framework_header('WordPress', 'Paste directly into a WordPress Custom HTML block on any page or post.') }}
+                
+                <div x-show="mode==='basic'">
+{% set wp_basic %}<!-- Paste this into a WordPress "Custom HTML" block -->
+<form action="https://formdata.cloud/f/{{ form.public_id }}" method="POST">
+  <p>
+    <label>Your Name</label><br>
+    <input type="text" name="name" placeholder="John Doe" required>
+  </p>
+  <p>
+    <label>Your Email</label><br>
+    <input type="email" name="email" placeholder="john@example.com" required>
+  </p>
+  <p>
+    <label>Your Message</label><br>
+    <textarea name="message" placeholder="Write your message here..." rows="4" required></textarea>
+  </p>
+
+  <!-- Anti-spam protection: Invisible honeypot field -->
+  <input type="text" name="{{ form.honeypot or '_gotcha' }}" tabindex="-1" autocomplete="off" style="position: absolute; left: -9999px;">
+
+  <p>
+    <button type="submit">Send Message</button>
+  </p>
+</form>{% endset %}
+                    {{ code_card(wp_basic, 'WordPress (Custom HTML Block)') }}
+                </div>
+
+                <div x-show="mode==='turnstile'" x-cloak>
+{% set wp_turnstile %}<!-- Paste this into a WordPress "Custom HTML" block -->
+<form action="https://formdata.cloud/f/{{ form.public_id }}" method="POST">
+  <p>
+    <label>Your Name</label><br>
+    <input type="text" name="name" placeholder="John Doe" required>
+  </p>
+  <p>
+    <label>Your Email</label><br>
+    <input type="email" name="email" placeholder="john@example.com" required>
+  </p>
+  <p>
+    <label>Your Message</label><br>
+    <textarea name="message" placeholder="Write your message here..." rows="4" required></textarea>
+  </p>
+
+  <div class="cf-turnstile" data-sitekey="YOUR_TURNSTILE_SITE_KEY"></div>
+
+  <p>
+    <button type="submit">Send Message</button>
+  </p>
+</form>
+
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>{% endset %}
+                    {{ code_card(wp_turnstile, 'WordPress + Turnstile') }}
+                </div>
+            </section>
+
+            <!-- 3. React -->
+            <section x-show="framework==='react'" x-cloak>
+                {{ framework_header('React', 'Standard React functional component for React apps, Vite, or Create React App.') }}
                 {{ recommended_pkg('@marsidev/react-turnstile') }}
+
                 <div x-show="mode==='basic'">
-                    {{ code_card('&quot;export default function ContactForm() {\n  return (\n    &lt;form action=\&quot;https://formdata.cloud/f/' ~ form.public_id ~ '\&quot; method=\&quot;POST\&quot;&gt;\n      &lt;input type=\&quot;email\&quot; name=\&quot;email\&quot; placeholder=\&quot;Email\&quot; required /&gt;\n      &lt;textarea name=\&quot;message\&quot; placeholder=\&quot;Message\&quot; required /&gt;\n      &lt;button type=\&quot;submit\&quot;&gt;Send message&lt;/button&gt;\n    &lt;/form&gt;\n  );\n}&quot;') }}
+{% set react_basic %}export default function ContactForm() {
+  return (
+    <form action="https://formdata.cloud/f/{{ form.public_id }}" method="POST">
+      <input type="text" name="name" placeholder="Your Name" required />
+      <input type="email" name="email" placeholder="Your Email" required />
+      <textarea name="message" placeholder="Your Message" required />
+
+      {/* Invisible anti-spam honeypot */}
+      <input
+        type="text"
+        name="{{ form.honeypot or '_gotcha' }}"
+        tabIndex={-1}
+        autoComplete="off"
+        style={{ position: "absolute", left: "-9999px" }}
+      />
+
+      <button type="submit">Send Message</button>
+    </form>
+  );
+}{% endset %}
+                    {{ code_card(react_basic, 'React (JSX)') }}
                 </div>
-                <div x-show="mode==='turnstile'">
-                    {{ code_card('&quot;// npm install @marsidev/react-turnstile\nimport { Turnstile } from \&quot;@marsidev/react-turnstile\&quot;;\n\nexport default function ContactForm() {\n  return (\n    &lt;form action=\&quot;https://formdata.cloud/f/' ~ form.public_id ~ '\&quot; method=\&quot;POST\&quot;&gt;\n      &lt;input type=\&quot;email\&quot; name=\&quot;email\&quot; placeholder=\&quot;Email\&quot; required /&gt;\n      &lt;textarea name=\&quot;message\&quot; placeholder=\&quot;Message\&quot; required /&gt;\n\n      &lt;Turnstile\n        siteKey=\&quot;YOUR_TURNSTILE_SITE_KEY\&quot;\n        options={ {\n          responseField: true,\n          responseFieldName: \&quot;cf-turnstile-response\&quot;\n        } }\n      /&gt;\n\n      &lt;button type=\&quot;submit\&quot;&gt;Send message&lt;/button&gt;\n    &lt;/form&gt;\n  );\n}&quot;') }}
+
+                <div x-show="mode==='turnstile'" x-cloak>
+{% set react_turnstile %}// npm install @marsidev/react-turnstile
+import { Turnstile } from "@marsidev/react-turnstile";
+
+export default function ContactForm() {
+  return (
+    <form action="https://formdata.cloud/f/{{ form.public_id }}" method="POST">
+      <input type="text" name="name" placeholder="Your Name" required />
+      <input type="email" name="email" placeholder="Your Email" required />
+      <textarea name="message" placeholder="Your Message" required />
+
+      <Turnstile
+        siteKey="YOUR_TURNSTILE_SITE_KEY"
+        options={{
+          responseField: true,
+          responseFieldName: "cf-turnstile-response"
+        }}
+      />
+
+      <button type="submit">Send Message</button>
+    </form>
+  );
+}{% endset %}
+                    {{ code_card(react_turnstile, 'React + Turnstile') }}
                 </div>
             </section>
 
-            <!-- Vue 3 -->
-            <section x-show="framework==='vue'" x-cloak data-language="vue">
-                {{ framework_header('Vue 3') }}
+            <!-- 4. Next.js -->
+            <section x-show="framework==='next'" x-cloak>
+                {{ framework_header('Next.js', 'Next.js App Router component with "use client" directive.') }}
+                {{ recommended_pkg('@marsidev/react-turnstile') }}
+
+                <div x-show="mode==='basic'">
+{% set next_basic %}export default function ContactForm() {
+  return (
+    <form action="https://formdata.cloud/f/{{ form.public_id }}" method="POST">
+      <input type="text" name="name" placeholder="Your Name" required />
+      <input type="email" name="email" placeholder="Your Email" required />
+      <textarea name="message" placeholder="Your Message" required />
+
+      {/* Invisible anti-spam honeypot */}
+      <input
+        type="text"
+        name="{{ form.honeypot or '_gotcha' }}"
+        tabIndex={-1}
+        autoComplete="off"
+        style={{ position: "absolute", left: "-9999px" }}
+      />
+
+      <button type="submit">Send Message</button>
+    </form>
+  );
+}{% endset %}
+                    {{ code_card(next_basic, 'Next.js') }}
+                </div>
+
+                <div x-show="mode==='turnstile'" x-cloak>
+{% set next_turnstile %}// npm install @marsidev/react-turnstile
+"use client";
+
+import { Turnstile } from "@marsidev/react-turnstile";
+
+export default function ContactForm() {
+  return (
+    <form action="https://formdata.cloud/f/{{ form.public_id }}" method="POST">
+      <input type="text" name="name" placeholder="Your Name" required />
+      <input type="email" name="email" placeholder="Your Email" required />
+      <textarea name="message" placeholder="Your Message" required />
+
+      <Turnstile
+        siteKey="YOUR_TURNSTILE_SITE_KEY"
+        options={{
+          responseField: true,
+          responseFieldName: "cf-turnstile-response"
+        }}
+      />
+
+      <button type="submit">Send Message</button>
+    </form>
+  );
+}{% endset %}
+                    {{ code_card(next_turnstile, 'Next.js + Turnstile') }}
+                </div>
+            </section>
+
+            <!-- 5. Vue 3 -->
+            <section x-show="framework==='vue'" x-cloak>
+                {{ framework_header('Vue 3', 'Single File Component using Vue 3 Composition API.') }}
                 {{ recommended_pkg('vue-turnstile') }}
+
                 <div x-show="mode==='basic'">
-                    {{ code_card('&quot;&lt;template&gt;\n  &lt;form action=\&quot;https://formdata.cloud/f/' ~ form.public_id ~ '\&quot; method=\&quot;POST\&quot;&gt;\n    &lt;input type=\&quot;email\&quot; name=\&quot;email\&quot; placeholder=\&quot;Email\&quot; required /&gt;\n    &lt;textarea name=\&quot;message\&quot; placeholder=\&quot;Message\&quot; required&gt;&lt;/textarea&gt;\n    &lt;button type=\&quot;submit\&quot;&gt;Send message&lt;/button&gt;\n  &lt;/form&gt;\n&lt;/template&gt;&quot;') }}
+{% set vue_basic %}<template>
+  <form action="https://formdata.cloud/f/{{ form.public_id }}" method="POST">
+    <input type="text" name="name" placeholder="Your Name" required>
+    <input type="email" name="email" placeholder="Your Email" required>
+    <textarea name="message" placeholder="Your Message" required></textarea>
+
+    <!-- Invisible anti-spam honeypot -->
+    <input
+      type="text"
+      name="{{ form.honeypot or '_gotcha' }}"
+      tabindex="-1"
+      autocomplete="off"
+      style="position: absolute; left: -9999px"
+    >
+
+    <button type="submit">Send Message</button>
+  </form>
+</template>{% endset %}
+                    {{ code_card(vue_basic, 'Vue 3 (SFC)') }}
                 </div>
-                <div x-show="mode==='turnstile'">
-                    {{ code_card('&quot;&lt;!-- npm install vue-turnstile --&gt;\n&lt;script setup&gt;\nimport { ref } from \&quot;vue\&quot;;\nimport VueTurnstile from \&quot;vue-turnstile\&quot;;\nconst token = ref(\&quot;\&quot;);\n&lt;/script&gt;\n\n&lt;template&gt;\n  &lt;form action=\&quot;https://formdata.cloud/f/' ~ form.public_id ~ '\&quot; method=\&quot;POST\&quot;&gt;\n    &lt;input type=\&quot;email\&quot; name=\&quot;email\&quot; placeholder=\&quot;Email\&quot; required /&gt;\n    &lt;textarea name=\&quot;message\&quot; placeholder=\&quot;Message\&quot; required&gt;&lt;/textarea&gt;\n\n    &lt;VueTurnstile site-key=\&quot;YOUR_TURNSTILE_SITE_KEY\&quot; v-model=\&quot;token\&quot; /&gt;\n    &lt;input type=\&quot;hidden\&quot; name=\&quot;cf-turnstile-response\&quot; :value=\&quot;token\&quot; /&gt;\n\n    &lt;button type=\&quot;submit\&quot; :disabled=\&quot;!token\&quot;&gt;Send message&lt;/button&gt;\n  &lt;/form&gt;\n&lt;/template&gt;&quot;') }}
+
+                <div x-show="mode==='turnstile'" x-cloak>
+{% set vue_turnstile %}<!-- npm install vue-turnstile -->
+<script setup>
+import { ref } from "vue";
+import VueTurnstile from "vue-turnstile";
+
+const token = ref("");
+</script>
+
+<template>
+  <form action="https://formdata.cloud/f/{{ form.public_id }}" method="POST">
+    <input type="text" name="name" placeholder="Your Name" required>
+    <input type="email" name="email" placeholder="Your Email" required>
+    <textarea name="message" placeholder="Your Message" required></textarea>
+
+    <VueTurnstile site-key="YOUR_TURNSTILE_SITE_KEY" v-model="token" />
+    <input type="hidden" name="cf-turnstile-response" :value="token">
+
+    <button type="submit" :disabled="!token">Send Message</button>
+  </form>
+</template>{% endset %}
+                    {{ code_card(vue_turnstile, 'Vue 3 + Turnstile') }}
                 </div>
             </section>
 
-            <!-- Svelte -->
-            <section x-show="framework==='svelte'" x-cloak data-language="svelte">
-                {{ framework_header('Svelte') }}
+            <!-- 6. Svelte -->
+            <section x-show="framework==='svelte'" x-cloak>
+                {{ framework_header('Svelte', 'Clean Svelte component template.') }}
                 {{ recommended_pkg('svelte-turnstile') }}
+
                 <div x-show="mode==='basic'">
-                    {{ code_card('&quot;&lt;form action=\&quot;https://formdata.cloud/f/' ~ form.public_id ~ '\&quot; method=\&quot;POST\&quot;&gt;\n  &lt;input type=\&quot;email\&quot; name=\&quot;email\&quot; placeholder=\&quot;Email\&quot; required /&gt;\n  &lt;textarea name=\&quot;message\&quot; placeholder=\&quot;Message\&quot; required&gt;&lt;/textarea&gt;\n  &lt;button type=\&quot;submit\&quot;&gt;Send message&lt;/button&gt;\n&lt;/form&gt;&quot;') }}
+{% set svelte_basic %}<form action="https://formdata.cloud/f/{{ form.public_id }}" method="POST">
+  <input type="text" name="name" placeholder="Your Name" required>
+  <input type="email" name="email" placeholder="Your Email" required>
+  <textarea name="message" placeholder="Your Message" required></textarea>
+
+  <!-- Invisible anti-spam honeypot -->
+  <input
+    type="text"
+    name="{{ form.honeypot or '_gotcha' }}"
+    tabindex="-1"
+    autocomplete="off"
+    style="position: absolute; left: -9999px"
+  >
+
+  <button type="submit">Send Message</button>
+</form>{% endset %}
+                    {{ code_card(svelte_basic, 'Svelte') }}
                 </div>
-                <div x-show="mode==='turnstile'">
-                    {{ code_card('&quot;&lt;!-- npm install svelte-turnstile --&gt;\n&lt;script&gt;\n  import { Turnstile } from \&quot;svelte-turnstile\&quot;;\n&lt;/script&gt;\n\n&lt;form action=\&quot;https://formdata.cloud/f/' ~ form.public_id ~ '\&quot; method=\&quot;POST\&quot;&gt;\n  &lt;input type=\&quot;email\&quot; name=\&quot;email\&quot; placeholder=\&quot;Email\&quot; required /&gt;\n  &lt;textarea name=\&quot;message\&quot; placeholder=\&quot;Message\&quot; required&gt;&lt;/textarea&gt;\n\n  &lt;Turnstile siteKey=\&quot;YOUR_TURNSTILE_SITE_KEY\&quot;\n    responseField={true}\n    responseFieldName=\&quot;cf-turnstile-response\&quot; /&gt;\n\n  &lt;button type=\&quot;submit\&quot;&gt;Send message&lt;/button&gt;\n&lt;/form&gt;&quot;') }}
+
+                <div x-show="mode==='turnstile'" x-cloak>
+{% set svelte_turnstile %}<!-- npm install svelte-turnstile -->
+<script>
+  import { Turnstile } from "svelte-turnstile";
+</script>
+
+<form action="https://formdata.cloud/f/{{ form.public_id }}" method="POST">
+  <input type="text" name="name" placeholder="Your Name" required>
+  <input type="email" name="email" placeholder="Your Email" required>
+  <textarea name="message" placeholder="Your Message" required></textarea>
+
+  <Turnstile
+    siteKey="YOUR_TURNSTILE_SITE_KEY"
+    responseField={true}
+    responseFieldName="cf-turnstile-response"
+  />
+
+  <button type="submit">Send Message</button>
+</form>{% endset %}
+                    {{ code_card(svelte_turnstile, 'Svelte + Turnstile') }}
                 </div>
             </section>
 
-            <!-- Angular -->
-            <section x-show="framework==='angular'" x-cloak data-language="angular">
-                {{ framework_header('Angular') }}
+            <!-- 7. Angular -->
+            <section x-show="framework==='angular'" x-cloak>
+                {{ framework_header('Angular', 'Modern standalone Angular component example.') }}
                 {{ recommended_pkg('ngx-turnstile') }}
-                <div x-show="mode==='basic'">
-                    {{ code_card('&quot;&lt;!-- contact-form.component.html --&gt;\n&lt;form action=\&quot;https://formdata.cloud/f/' ~ form.public_id ~ '\&quot; method=\&quot;POST\&quot;&gt;\n  &lt;input type=\&quot;email\&quot; name=\&quot;email\&quot; placeholder=\&quot;Email\&quot; required /&gt;\n  &lt;textarea name=\&quot;message\&quot; placeholder=\&quot;Message\&quot; required&gt;&lt;/textarea&gt;\n  &lt;button type=\&quot;submit\&quot;&gt;Send message&lt;/button&gt;\n&lt;/form&gt;&quot;') }}
-                </div>
-                <div x-show="mode==='turnstile'">
-                    {{ code_card('&quot;// npm install ngx-turnstile\n// contact-form.component.ts\nimport { Component } from \&quot;@angular/core\&quot;;\nimport { NgxTurnstileComponent } from \&quot;ngx-turnstile\&quot;;\n\n@Component({\n  selector: \&quot;app-contact-form\&quot;,\n  standalone: true,\n  imports: [NgxTurnstileComponent],\n  templateUrl: \&quot;./contact-form.component.html\&quot;\n})\nexport class ContactFormComponent {\n  siteKey = \&quot;YOUR_TURNSTILE_SITE_KEY\&quot;;\n  token = \&quot;\&quot;;\n  resolved(value: string | null) { this.token = value ?? \&quot;\&quot;; }\n}\n\n&lt;!-- contact-form.component.html --&gt;\n&lt;form action=\&quot;https://formdata.cloud/f/' ~ form.public_id ~ '\&quot; method=\&quot;POST\&quot;&gt;\n  &lt;input type=\&quot;email\&quot; name=\&quot;email\&quot; placeholder=\&quot;Email\&quot; required /&gt;\n  &lt;textarea name=\&quot;message\&quot; placeholder=\&quot;Message\&quot; required&gt;&lt;/textarea&gt;\n\n  &lt;ngx-turnstile [siteKey]=\&quot;siteKey\&quot;\n    (resolved)=\&quot;resolved($event)\&quot;&gt;&lt;/ngx-turnstile&gt;\n  &lt;input type=\&quot;hidden\&quot; name=\&quot;cf-turnstile-response\&quot; [value]=\&quot;token\&quot; /&gt;\n\n  &lt;button type=\&quot;submit\&quot; [disabled]=\&quot;!token\&quot;&gt;Send message&lt;/button&gt;\n&lt;/form&gt;&quot;') }}
-                </div>
-            </section>
 
-            <!-- WordPress -->
-            <section x-show="framework==='wordpress'" x-cloak data-language="wordpress">
-                {{ framework_header('WordPress') }}
                 <div x-show="mode==='basic'">
-                    {{ code_card('&quot;&lt;!-- Paste into a WordPress Custom HTML block --&gt;\n&lt;form action=\&quot;https://formdata.cloud/f/' ~ form.public_id ~ '\&quot; method=\&quot;POST\&quot;&gt;\n  &lt;p&gt;&lt;input type=\&quot;email\&quot; name=\&quot;email\&quot; placeholder=\&quot;Email\&quot; required /&gt;&lt;/p&gt;\n  &lt;p&gt;&lt;textarea name=\&quot;message\&quot; placeholder=\&quot;Message\&quot; required&gt;&lt;/textarea&gt;&lt;/p&gt;\n  &lt;p&gt;&lt;button type=\&quot;submit\&quot;&gt;Send message&lt;/button&gt;&lt;/p&gt;\n&lt;/form&gt;&quot;') }}
-                </div>
-                <div x-show="mode==='turnstile'">
-                    {{ code_card('&quot;&lt;!-- Paste into a WordPress Custom HTML block --&gt;\n&lt;form action=\&quot;https://formdata.cloud/f/' ~ form.public_id ~ '\&quot; method=\&quot;POST\&quot;&gt;\n  &lt;p&gt;&lt;input type=\&quot;email\&quot; name=\&quot;email\&quot; placeholder=\&quot;Email\&quot; required /&gt;&lt;/p&gt;\n  &lt;p&gt;&lt;textarea name=\&quot;message\&quot; placeholder=\&quot;Message\&quot; required&gt;&lt;/textarea&gt;&lt;/p&gt;\n\n  &lt;div class=\&quot;cf-turnstile\&quot;\n       data-sitekey=\&quot;YOUR_TURNSTILE_SITE_KEY\&quot;&gt;&lt;/div&gt;\n\n  &lt;p&gt;&lt;button type=\&quot;submit\&quot;&gt;Send message&lt;/button&gt;&lt;/p&gt;\n&lt;/form&gt;\n\n&lt;script src=\&quot;https://challenges.cloudflare.com/turnstile/v0/api.js\&quot;\n        async defer&gt;&lt;/script&gt;&quot;') }}
-                </div>
-            </section>
+{% set angular_basic %}<!-- contact-form.component.html -->
+<form action="https://formdata.cloud/f/{{ form.public_id }}" method="POST">
+  <input type="text" name="name" placeholder="Your Name" required>
+  <input type="email" name="email" placeholder="Your Email" required>
+  <textarea name="message" placeholder="Your Message" required></textarea>
 
-            <!-- Next.js -->
-            <section x-show="framework==='next'" x-cloak data-language="nextjs">
-                {{ framework_header('Next.js') }}
-                {{ recommended_pkg('@marsidev/react-turnstile') }}
-                <div x-show="mode==='basic'">
-                    {{ code_card('&quot;export default function ContactForm() {\n  return (\n    &lt;form action=\&quot;https://formdata.cloud/f/' ~ form.public_id ~ '\&quot; method=\&quot;POST\&quot;&gt;\n      &lt;input type=\&quot;email\&quot; name=\&quot;email\&quot; placeholder=\&quot;Email\&quot; required /&gt;\n      &lt;textarea name=\&quot;message\&quot; placeholder=\&quot;Message\&quot; required /&gt;\n      &lt;button type=\&quot;submit\&quot;&gt;Send message&lt;/button&gt;\n    &lt;/form&gt;\n  );\n}&quot;') }}
+  <!-- Invisible anti-spam honeypot -->
+  <input
+    type="text"
+    name="{{ form.honeypot or '_gotcha' }}"
+    tabindex="-1"
+    autocomplete="off"
+    style="position: absolute; left: -9999px"
+  >
+
+  <button type="submit">Send Message</button>
+</form>{% endset %}
+                    {{ code_card(angular_basic, 'Angular') }}
                 </div>
-                <div x-show="mode==='turnstile'">
-                    {{ code_card('&quot;// npm install @marsidev/react-turnstile\n\&quot;use client\&quot;;\n\nimport { Turnstile } from \&quot;@marsidev/react-turnstile\&quot;;\n\nexport default function ContactForm() {\n  return (\n    &lt;form action=\&quot;https://formdata.cloud/f/' ~ form.public_id ~ '\&quot; method=\&quot;POST\&quot;&gt;\n      &lt;input type=\&quot;email\&quot; name=\&quot;email\&quot; placeholder=\&quot;Email\&quot; required /&gt;\n      &lt;textarea name=\&quot;message\&quot; placeholder=\&quot;Message\&quot; required /&gt;\n\n      &lt;Turnstile\n        siteKey=\&quot;YOUR_TURNSTILE_SITE_KEY\&quot;\n        options={ {\n          responseField: true,\n          responseFieldName: \&quot;cf-turnstile-response\&quot;\n        } }\n      /&gt;\n\n      &lt;button type=\&quot;submit\&quot;&gt;Send message&lt;/button&gt;\n    &lt;/form&gt;\n  );\n}&quot;') }}
+
+                <div x-show="mode==='turnstile'" x-cloak>
+{% set angular_turnstile %}// npm install ngx-turnstile
+// contact-form.component.ts
+import { Component } from "@angular/core";
+import { NgxTurnstileComponent } from "ngx-turnstile";
+
+@Component({
+  selector: "app-contact-form",
+  standalone: true,
+  imports: [NgxTurnstileComponent],
+  templateUrl: "./contact-form.component.html"
+})
+export class ContactFormComponent {
+  siteKey = "YOUR_TURNSTILE_SITE_KEY";
+  token = "";
+  resolved(value: string | null) { this.token = value ?? ""; }
+}
+
+<!-- contact-form.component.html -->
+<form action="https://formdata.cloud/f/{{ form.public_id }}" method="POST">
+  <input type="text" name="name" placeholder="Your Name" required>
+  <input type="email" name="email" placeholder="Your Email" required>
+  <textarea name="message" placeholder="Your Message" required></textarea>
+
+  <ngx-turnstile [siteKey]="siteKey" (resolved)="resolved($event)"></ngx-turnstile>
+  <input type="hidden" name="cf-turnstile-response" [value]="token">
+
+  <button type="submit" [disabled]="!token">Send Message</button>
+</form>{% endset %}
+                    {{ code_card(angular_turnstile, 'Angular + Turnstile') }}
                 </div>
             </section>
         </div>
     </div>
 
-    <section class="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-        <h2 class="text-lg font-bold text-slate-950">How Turnstile works</h2>
-        <p class="mt-1 text-sm text-slate-500">Optional security, disabled by default.</p>
-        <div class="mt-5 grid gap-3 md:grid-cols-3">
+    <!-- Spam Protection Explained in Plain English -->
+    <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7 space-y-4">
+        <div>
+            <h2 class="text-lg font-bold text-slate-950">How Spam Protection Works</h2>
+            <p class="mt-0.5 text-xs sm:text-sm text-slate-500">Keep your form safe from bots without bothering your visitors.</p>
+        </div>
+
+        <div class="grid gap-4 md:grid-cols-2">
+            <!-- Honeypot -->
+            <div class="rounded-xl border border-emerald-100 bg-emerald-50/50 p-4 space-y-2">
+                <div class="flex items-center gap-2">
+                    <span class="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold">&check;</span>
+                    <h3 class="text-sm font-bold text-emerald-950">Automatic Honeypot (Zero Setup)</h3>
+                </div>
+                <p class="text-xs text-slate-600 leading-relaxed">
+                    A hidden form field (<code class="rounded bg-white px-1 py-0.5 font-mono text-[11px] text-emerald-800 border border-emerald-200">{{ form.honeypot or '_gotcha' }}</code>) is included in your code. Real human visitors cannot see it, but automatic spam bots always fill it in. When Formdata detects a value in this field, the submission is rejected instantly.
+                </p>
+                <div class="text-[11px] font-semibold text-emerald-700">
+                    Active by default &bull; 100% free &bull; Invisible to humans
+                </div>
+            </div>
+
+            <!-- Turnstile -->
+            <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-2">
+                <div class="flex items-center gap-2">
+                    <span class="flex h-6 w-6 items-center justify-center rounded-full bg-slate-200 text-slate-700 text-xs font-bold">&infin;</span>
+                    <h3 class="text-sm font-bold text-slate-900">Cloudflare Turnstile (Optional)</h3>
+                </div>
+                <p class="text-xs text-slate-600 leading-relaxed">
+                    Cloudflare Turnstile provides smart, invisible bot challenges without asking visitors to solve annoying puzzles. Enable it anytime in your <strong>Settings &rarr; Spam protection</strong> tab by adding your free Cloudflare credentials.
+                </p>
+                <div class="text-[11px] font-semibold text-slate-500">
+                    Optional &bull; Great for high-traffic sites
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Frequently Asked Questions / Tips -->
+    <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7 space-y-4">
+        <h2 class="text-lg font-bold text-slate-950">Helpful Tips &amp; FAQ</h2>
+        <div class="grid gap-3 sm:grid-cols-3">
             <div class="rounded-xl bg-slate-50 p-4">
-                <p class="text-xs font-bold uppercase tracking-wide text-slate-400">Frontend</p>
-                <p class="mt-2 text-sm font-semibold text-slate-900">Public site key</p>
-                <p class="mt-1 text-xs text-slate-500">Add it to the widget in your website code.</p>
+                <h4 class="text-xs font-bold uppercase tracking-wide text-brand-dark">Input Field Names</h4>
+                <p class="mt-1 text-xs text-slate-600">
+                    Always include a <code class="rounded bg-slate-200 px-1 font-mono text-[11px]">name="..."</code> on your inputs (e.g. <code class="font-mono">name="email"</code>). This allows Formdata to organize your columns.
+                </p>
             </div>
             <div class="rounded-xl bg-slate-50 p-4">
-                <p class="text-xs font-bold uppercase tracking-wide text-slate-400">Submission</p>
-                <p class="mt-2 text-sm font-semibold text-slate-900">cf-turnstile-response</p>
-                <p class="mt-1 text-xs text-slate-500">The generated token is submitted with the form.</p>
+                <h4 class="text-xs font-bold uppercase tracking-wide text-brand-dark">File Uploads</h4>
+                <p class="mt-1 text-xs text-slate-600">
+                    To receive resume or photo attachments, simply add <code class="rounded bg-slate-200 px-1 font-mono text-[11px]">enctype="multipart/form-data"</code> to your <code class="font-mono">&lt;form&gt;</code> tag.
+                </p>
             </div>
             <div class="rounded-xl bg-slate-50 p-4">
-                <p class="text-xs font-bold uppercase tracking-wide text-slate-400">Form settings</p>
-                <p class="mt-2 text-sm font-semibold text-slate-900">Private secret key</p>
-                <p class="mt-1 text-xs text-slate-500">Save it in Settings. Never expose it in frontend code.</p>
+                <h4 class="text-xs font-bold uppercase tracking-wide text-brand-dark">Custom Thank You Page</h4>
+                <p class="mt-1 text-xs text-slate-600">
+                    Want to redirect visitors to your own custom thank you page after submitting? Configure your redirect URL under <strong>Settings &rarr; Redirects</strong>.
+                </p>
             </div>
         </div>
     </section>
 
     <script>
-        // --- Minimal dependency-free syntax highlighter ---------------------------
-        // Not a full parser — just enough token recognition (tags, attributes,
-        // strings, comments, keywords/decorators, numbers) to color the code
-        // samples without pulling in highlight.js or another library.
+        // --- Dependency-free syntax highlighter ---
         function highlightCode(code) {
             const escapeHtml = (s) => s
                 .replace(/&/g, '&amp;')
@@ -273,16 +741,17 @@
 
             const tokenRegex = new RegExp([
                 /<!--[\s\S]*?-->/,                                      // 1 html comment
-                /\/\*[\s\S]*?\*\//,                                     // 2 block comment
-                /\/\/[^\n]*/,                                           // 3 line comment
-                /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`/, // 4 string
-                /@[A-Za-z_]\w*/,                                        // 5 decorator (e.g. @Component)
-                /<\/?[A-Z][\w.-]*/,                                     // 6 JSX/Vue/Svelte component
-                /<\/?[a-z][\w.-]*/,                                     // 7 HTML tag
-                /(?:v-[\w-]+|:[\w-]+|@[\w-]+|bind:[\w-]+|on:[\w-]+|\[\(?[\w-]+\)?\])(?=\s*=|\s|>)/, // 8 framework binding
-                /\b[a-zA-Z_][\w:.-]*(?=[\]\)]?\s*=(?!=))/,             // 9 attribute / prop name
-                /\b(?:import|export|from|default|function|return|const|let|var|class|extends|implements|interface|type|new|this|async|await|if|else|for|of|in|while|npm|install|public|private|readonly|standalone|selector|templateUrl|imports|string|number|boolean|void|null|undefined|any)\b/, // 10 keyword
-                /\b\d+(?:\.\d+)?\b/                                    // 11 number
+                /{\/\*[\s\S]*?\*\/}/,                                   // 2 jsx comment
+                /\/\*[\s\S]*?\*\//,                                     // 3 block comment
+                /\/\/[^\n]*/,                                           // 4 line comment
+                /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`/, // 5 string
+                /@[A-Za-z_]\w*/,                                        // 6 decorator (e.g. @Component)
+                /<\/?[A-Z][\w.-]*/,                                     // 7 JSX/Vue/Svelte component
+                /<\/?[a-z][\w.-]*/,                                     // 8 HTML tag
+                /(?:v-[\w-]+|:[\w-]+|@[\w-]+|bind:[\w-]+|on:[\w-]+|\[\(?[\w-]+\)?\])(?=\s*=|\s|>)/, // 9 framework binding
+                /\b[a-zA-Z_][\w:.-]*(?=[\]\)]?\s*=(?!=))/,             // 10 attribute / prop name
+                /\b(?:import|export|from|default|function|return|const|let|var|class|extends|implements|interface|type|new|this|async|await|if|else|for|of|in|while|npm|install|public|private|readonly|standalone|selector|templateUrl|imports|string|number|boolean|void|null|undefined|any)\b/, // 11 keyword
+                /\b\d+(?:\.\d+)?\b/                                     // 12 number
             ].map((r) => `(${r.source})`).join('|'), 'g');
 
             let out = '';
@@ -294,15 +763,15 @@
                 out += escapeHtml(code.slice(last, match.index));
 
                 let cls = null;
-                if (match[1] || match[2] || match[3]) cls = 'tok-comment';
-                else if (match[4]) cls = 'tok-string';
-                else if (match[5]) cls = 'tok-keyword';
-                else if (match[6]) cls = 'tok-component';
-                else if (match[7]) cls = 'tok-tag';
-                else if (match[8]) cls = 'tok-directive';
-                else if (match[9]) cls = 'tok-attr';
-                else if (match[10]) cls = 'tok-keyword';
-                else if (match[11]) cls = 'tok-number';
+                if (match[1] || match[2] || match[3] || match[4]) cls = 'tok-comment';
+                else if (match[5]) cls = 'tok-string';
+                else if (match[6]) cls = 'tok-keyword';
+                else if (match[7]) cls = 'tok-component';
+                else if (match[8]) cls = 'tok-tag';
+                else if (match[9]) cls = 'tok-directive';
+                else if (match[10]) cls = 'tok-attr';
+                else if (match[11]) cls = 'tok-keyword';
+                else if (match[12]) cls = 'tok-number';
 
                 out += cls ? `<span class="${cls}">${escapeHtml(full)}</span>` : escapeHtml(full);
                 last = match.index + full.length;
@@ -311,11 +780,40 @@
             return out;
         }
 
-        // --- Alpine component registration -----------------------------------------
+        // --- Alpine component registration ---
         function registerAlpineComponents() {
             Alpine.data('integrationSetup', () => ({
                 framework: 'html',
-                mode: 'basic'
+                mode: 'basic',
+                endpointUrl: 'https://formdata.cloud/f/{{ form.public_id }}',
+                endpointCopied: false,
+
+                async copyEndpoint() {
+                    const text = this.endpointUrl;
+                    try {
+                        if (navigator.clipboard && window.isSecureContext) {
+                            await navigator.clipboard.writeText(text);
+                        } else {
+                            throw new Error('Clipboard fallback');
+                        }
+                    } catch (err) {
+                        const ta = document.createElement('textarea');
+                        ta.value = text;
+                        ta.setAttribute('readonly', '');
+                        ta.style.position = 'fixed';
+                        ta.style.left = '-9999px';
+                        ta.style.top = '0';
+                        document.body.appendChild(ta);
+                        ta.select();
+                        document.execCommand('copy');
+                        ta.remove();
+                    }
+
+                    this.endpointCopied = true;
+                    setTimeout(() => {
+                        this.endpointCopied = false;
+                    }, 2000);
+                }
             }));
 
             Alpine.data('codeBlock', () => ({
@@ -324,41 +822,40 @@
                 copied: false,
 
                 init() {
-                    const raw = this.decodeCode(this.$el.dataset.code || '');
-                    this.$el.dataset.language = this.$el.closest('[data-language]')?.dataset.language || 'code';
-
-                    // The Jinja-generated value is the original JavaScript
-                    // string literal, e.g. &quot;line 1\\nline 2&quot;.
-                    // Parse it so \\n becomes a real newline and escaped
-                    // quotes become normal quotes.
-                    try {
-                        this.code = JSON.parse(raw);
-                    } catch {
-                        // Fallback for already-decoded/plain text.
-                        this.code = raw
-                            .replace(/^&quot;|&quot;$/g, '')
-                            .replace(/\\n/g, '\n')
-                            .replace(/\\&quot;/g, '&quot;')
-                            .replace(/\\\\/g, '\\\\');
+                    let raw = '';
+                    const snippetEl = this.$el.querySelector('.raw-code-snippet');
+                    if (snippetEl) {
+                        raw = snippetEl.textContent || '';
                     }
 
+                    // Clean and sanitize string
+                    raw = raw.trim();
+                    // Remove wrapping quotes if present
+                    if ((raw.startsWith('"') && raw.endsWith('"')) || (raw.startsWith("'") && raw.endsWith("'"))) {
+                        raw = raw.slice(1, -1).trim();
+                    }
+                    // Strip accidental escaped quotes or backslashes before quotes
+                    raw = raw.replace(/\\"/g, '"').replace(/\\'/g, "'");
+
+                    this.code = raw;
                     this.highlighted = highlightCode(this.code);
                 },
 
-                decodeCode(value) {
-                    const textarea = document.createElement('textarea');
-                    textarea.innerHTML = value;
-                    return textarea.value;
-                },
-
                 async copy() {
+                    const textToCopy = this.code;
                     try {
-                        await navigator.clipboard.writeText(this.code);
-                    } catch (error) {
+                        if (navigator.clipboard && window.isSecureContext) {
+                            await navigator.clipboard.writeText(textToCopy);
+                        } else {
+                            throw new Error('Clipboard fallback');
+                        }
+                    } catch (e) {
                         const textarea = document.createElement('textarea');
-                        textarea.value = this.code;
+                        textarea.value = textToCopy;
                         textarea.setAttribute('readonly', '');
-                        textarea.className = 'fixed left-[-9999px] top-0';
+                        textarea.style.position = 'fixed';
+                        textarea.style.left = '-9999px';
+                        textarea.style.top = '0';
                         document.body.appendChild(textarea);
                         textarea.select();
                         document.execCommand('copy');
@@ -366,28 +863,14 @@
                     }
 
                     this.copied = true;
-
                     setTimeout(() => {
                         this.copied = false;
-                    }, 1500);
+                    }, 2000);
                 }
             }));
         }
 
-        // --- HTMX + Alpine timing fix ------------------------------------------------
-        // `alpine:init` fires exactly once, the moment Alpine.js itself boots.
-        // The previous version always registered the components inside that
-        // listener. That's correct on the very first, full page load — but this
-        // whole "setup" panel (this <script> included) gets re-fetched and
-        // swapped in by htmx every time the tab is switched. On that second and
-        // later run, `alpine:init` has already fired once and for all, so
-        // `Alpine.data(...)` was silently never (re)called: the freshly
-        // swapped-in `x-data="codeBlock"` elements had no matching component to
-        // bind to, which is exactly why they rendered as blank/black boxes —
-        // and why a full reload "fixed" it, since that always goes through the
-        // normal first-boot sequence.
-        // Fix: if Alpine has already started, register right away; otherwise
-        // wait for the one-time boot event like before.
+        // Support both initial load and htmx tab swaps
         if (window.Alpine) {
             registerAlpineComponents();
         } else {
