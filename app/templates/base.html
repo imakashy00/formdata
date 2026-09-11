@@ -191,6 +191,146 @@
             window.showToast("Couldn't reach the server. Check your connection.", 'error');
         });
     </script>
+    <!--
+      Place this ONCE in your base/layout template — anywhere outside #tab-content
+      (e.g. right next to the nav, or before </body>). It must NOT live inside any
+      file that htmx swaps in, or the race condition comes right back.
+    
+      Load order needed: this script before Alpine core, OR Alpine core with `defer`
+      and this listening on `alpine:init` (already handled below).
+    -->
+    <script>
+        // --- Dependency-free syntax highlighter (used by the codeBlock component) ---
+        function highlightCode(code) {
+            const escapeHtml = (s) => s
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+
+            const tokenRegex = new RegExp([
+                /<!--[\s\S]*?-->/,                                      // 1 html comment
+                /{\/\*[\s\S]*?\*\/}/,                                   // 2 jsx comment
+                /\/\*[\s\S]*?\*\//,                                     // 3 block comment
+                /\/\/[^\n]*/,                                           // 4 line comment
+                /"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`/, // 5 string
+                /@[A-Za-z_]\w*/,                                        // 6 decorator
+                /<\/?[A-Z][\w.-]*/,                                     // 7 JSX/Vue/Svelte component
+                /<\/?[a-z][\w.-]*/,                                     // 8 HTML tag
+                /(?:v-[\w-]+|:[\w-]+|@[\w-]+|bind:[\w-]+|on:[\w-]+|\[\(?[\w-]+\)?\])(?=\s*=|\s|>)/, // 9 framework binding
+                /\b[a-zA-Z_][\w:.-]*(?=[\]\)]?\s*=(?!=))/,             // 10 attribute / prop name
+                /\b(?:import|export|from|default|function|return|const|let|var|class|extends|implements|interface|type|new|this|async|await|if|else|for|of|in|while|npm|install|public|private|readonly|standalone|selector|templateUrl|imports|string|number|boolean|void|null|undefined|any)\b/, // 11 keyword
+                /\b\d+(?:\.\d+)?\b/                                     // 12 number
+            ].map((r) => `(${r.source})`).join('|'), 'g');
+
+            let out = '';
+            let last = 0;
+            let match;
+
+            while ((match = tokenRegex.exec(code)) !== null) {
+                const full = match[0];
+                out += escapeHtml(code.slice(last, match.index));
+
+                let cls = null;
+                if (match[1] || match[2] || match[3] || match[4]) cls = 'tok-comment';
+                else if (match[5]) cls = 'tok-string';
+                else if (match[6]) cls = 'tok-keyword';
+                else if (match[7]) cls = 'tok-component';
+                else if (match[8]) cls = 'tok-tag';
+                else if (match[9]) cls = 'tok-directive';
+                else if (match[10]) cls = 'tok-attr';
+                else if (match[11]) cls = 'tok-keyword';
+                else if (match[12]) cls = 'tok-number';
+
+                out += cls ? `<span class="${cls}">${escapeHtml(full)}</span>` : escapeHtml(full);
+                last = match.index + full.length;
+            }
+            out += escapeHtml(code.slice(last));
+            return out;
+        }
+
+        // Registered exactly once, before Alpine.start() ever runs, so every
+        // future htmx swap that inserts x-data="integrationSetup" / "codeBlock"
+        // finds the component already defined — no race.
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('codeBlock', () => ({
+                code: '',
+                highlighted: '',
+                copied: false,
+
+                init() {
+                    let raw = '';
+                    const snippetEl = this.$el.querySelector('.raw-code-snippet');
+                    if (snippetEl) {
+                        raw = snippetEl.textContent || '';
+                    }
+                    raw = raw.trim();
+                    if ((raw.startsWith('"') && raw.endsWith('"')) || (raw.startsWith("'") && raw.endsWith("'"))) {
+                        raw = raw.slice(1, -1).trim();
+                    }
+                    raw = raw.replace(/\\"/g, '"').replace(/\\'/g, "'");
+
+                    this.code = raw;
+                    this.highlighted = highlightCode(this.code);
+                },
+
+                async copy() {
+                    const textToCopy = this.code;
+                    try {
+                        if (navigator.clipboard && window.isSecureContext) {
+                            await navigator.clipboard.writeText(textToCopy);
+                        } else {
+                            throw new Error('Clipboard fallback');
+                        }
+                    } catch (e) {
+                        const textarea = document.createElement('textarea');
+                        textarea.value = textToCopy;
+                        textarea.setAttribute('readonly', '');
+                        textarea.style.position = 'fixed';
+                        textarea.style.left = '-9999px';
+                        document.body.appendChild(textarea);
+                        textarea.select();
+                        document.execCommand('copy');
+                        textarea.remove();
+                    }
+                    this.copied = true;
+                    setTimeout(() => { this.copied = false; }, 2000);
+                }
+            }));
+
+            // Takes the form's public_id as a param instead of baking a URL in at
+            // registration time, so it stays correct even when htmx (with
+            // hx-push-url) navigates to a *different* form without a full reload.
+            Alpine.data('integrationSetup', (publicId) => ({
+                framework: 'html',
+                mode: 'basic',
+                endpointUrl: `https://formdata.cloud/f/${publicId}`,
+                endpointCopied: false,
+
+                async copyEndpoint() {
+                    const text = this.endpointUrl;
+                    try {
+                        if (navigator.clipboard && window.isSecureContext) {
+                            await navigator.clipboard.writeText(text);
+                        } else {
+                            throw new Error('Clipboard fallback');
+                        }
+                    } catch (err) {
+                        const ta = document.createElement('textarea');
+                        ta.value = text;
+                        ta.setAttribute('readonly', '');
+                        ta.style.position = 'fixed';
+                        ta.style.left = '-9999px';
+                        document.body.appendChild(ta);
+                        ta.select();
+                        document.execCommand('copy');
+                        ta.remove();
+                    }
+                    this.endpointCopied = true;
+                    setTimeout(() => { this.endpointCopied = false; }, 2000);
+                }
+            }));
+        });
+    </script>
     <!-- Placeholder if specific pages need script elements right before </body> closure -->
     {% block script %}{% endblock %}
 </body>
