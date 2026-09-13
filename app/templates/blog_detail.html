@@ -67,7 +67,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', path='/css/output.css') }}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
 
     <style>
         :root {
@@ -80,7 +79,7 @@
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: #ffffff;
             color: #1e293b;
-            line-height: 1.7;
+            line-height: 1.75;
         }
 
         code, pre {
@@ -88,12 +87,12 @@
         }
 
         .prose h2 {
-            font-size: 1.5rem;
+            font-size: 1.625rem;
             font-weight: 700;
             color: #0f172a;
-            margin-top: 2.5rem;
-            margin-bottom: 1rem;
-            padding-bottom: 0.5rem;
+            margin-top: 3rem;
+            margin-bottom: 1.25rem;
+            padding-bottom: 0.65rem;
             border-bottom: 1px solid #f1f5f9;
             scroll-margin-top: 5.5rem;
         }
@@ -102,24 +101,24 @@
             font-size: 1.25rem;
             font-weight: 600;
             color: #1e293b;
-            margin-top: 1.75rem;
+            margin-top: 2rem;
             margin-bottom: 0.75rem;
             scroll-margin-top: 5.5rem;
         }
 
         .prose p {
-            margin-bottom: 1.25rem;
+            margin-bottom: 1.35rem;
             color: #334155;
             font-size: 1.05rem;
         }
 
         .prose ul, .prose ol {
-            margin-bottom: 1.25rem;
+            margin-bottom: 1.35rem;
             padding-left: 1.5rem;
         }
 
         .prose li {
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.6rem;
             color: #334155;
         }
 
@@ -131,7 +130,7 @@
         .prose code:not(pre code) {
             background-color: #f1f5f9;
             color: #0f172a;
-            padding: 0.2rem 0.4rem;
+            padding: 0.2rem 0.45rem;
             border-radius: 0.375rem;
             font-size: 0.875em;
             font-weight: 500;
@@ -142,7 +141,8 @@
             position: relative;
             background: #0f172a;
             border-radius: 0.75rem;
-            margin-bottom: 1.5rem;
+            margin-top: 1.5rem;
+            margin-bottom: 2rem;
             overflow: hidden;
             border: 1px solid #1e293b;
         }
@@ -151,7 +151,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0.5rem 1rem;
+            padding: 0.6rem 1rem;
             background: #1e293b;
             color: #94a3b8;
             font-size: 0.75rem;
@@ -165,19 +165,19 @@
             overflow-x: auto;
             color: #e2e8f0;
             font-size: 0.875rem;
-            line-height: 1.6;
+            line-height: 1.65;
         }
 
         .copy-btn {
             background: #334155;
             border: 1px solid #475569;
             color: #e2e8f0;
-            padding: 0.25rem 0.6rem;
+            padding: 0.25rem 0.65rem;
             border-radius: 0.375rem;
             cursor: pointer;
             font-size: 0.75rem;
             transition: all 0.15s ease;
-            display: flex;
+            display: inline-flex;
             align-items: center;
             gap: 0.35rem;
         }
@@ -196,25 +196,19 @@
         .highlight-box {
             background-color: #f8fafc;
             border-left: 4px solid #2563eb;
-            padding: 1.25rem;
-            border-radius: 0 0.5rem 0.5rem 0;
-            margin-bottom: 1.5rem;
-        }
-
-        .warning-box {
-            background-color: #fffbeb;
-            border-left: 4px solid #f59e0b;
-            padding: 1.25rem;
-            border-radius: 0 0.5rem 0.5rem 0;
-            margin-bottom: 1.5rem;
+            padding: 1.25rem 1.5rem;
+            border-radius: 0 0.75rem 0.75rem 0;
+            margin-top: 1.5rem;
+            margin-bottom: 1.75rem;
         }
 
         .cta-callout-box {
             background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-            border: 2px solid #bfdbfe;
+            border: 1.5px solid #bfdbfe;
             border-radius: 1rem;
-            padding: 1.75rem;
-            margin: 2.5rem 0;
+            padding: 1.75rem sm:padding: 2rem;
+            margin-top: 2.5rem;
+            margin-bottom: 2.5rem;
         }
 
         /* Reading Progress Bar */
@@ -253,27 +247,42 @@
     <!-- Main Navigation -->
     {% include 'partials/navbar.html' %}
 
-    <main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 w-full">
+    <!-- Main Container: exactly matching navbar max-width container with generous padding -->
+    <main class="flex-1 container px-4 md:px-6 pt-8 sm:pt-12 pb-20 sm:pb-28 w-full">
         
-        <!-- Breadcrumbs -->
-        <nav aria-label="Breadcrumb" class="mb-6 flex items-center gap-2 text-xs sm:text-sm text-slate-500">
-            <a href="/" class="hover:text-blue-600 transition-colors">Home</a>
-            <i class="fa-solid fa-chevron-right text-[10px] text-slate-400"></i>
-            <a href="/blogs" class="hover:text-blue-600 transition-colors">Blog</a>
-            <i class="fa-solid fa-chevron-right text-[10px] text-slate-400"></i>
+        <!-- Breadcrumbs with guaranteed SVG arrows -->
+        <nav aria-label="Breadcrumb" class="mb-8 flex items-center gap-2 text-xs sm:text-sm text-slate-500">
+            <a href="/" class="hover:text-blue-600 transition-colors font-medium">Home</a>
+            <svg class="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+            <a href="/blogs" class="hover:text-blue-600 transition-colors font-medium">Blog</a>
+            <svg class="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
             <span class="text-slate-800 font-medium truncate max-w-xs sm:max-w-md">How to Add a Contact Form to a Static HTML Website</span>
         </nav>
 
         <!-- Article Header -->
-        <header class="max-w-4xl mb-12">
+        <header class="mb-12 sm:mb-16">
             <div class="flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-slate-500 mb-4">
                 <span class="px-2.5 py-1 rounded-full font-semibold bg-blue-50 text-blue-700">
                     Form Architecture &amp; Fundamentals
                 </span>
                 <span>•</span>
-                <span class="flex items-center gap-1.5"><i class="fa-regular fa-calendar"></i> September 13, 2026</span>
+                <span class="inline-flex items-center gap-1.5">
+                    <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                    September 13, 2026
+                </span>
                 <span>•</span>
-                <span class="flex items-center gap-1.5"><i class="fa-regular fa-clock"></i> 8 min read</span>
+                <span class="inline-flex items-center gap-1.5">
+                    <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    8 min read
+                </span>
             </div>
 
             <h1 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-950 tracking-tight leading-[1.15] mb-6">
@@ -297,36 +306,41 @@
 
                 <!-- Quick Jump to Practical Guide -->
                 <a href="/blogs/how-to-use-formdata-in-a-static-html-website" 
-                   class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-50 text-blue-700 text-xs sm:text-sm font-semibold hover:bg-blue-100 transition-colors">
-                    <i class="fa-solid fa-bolt text-blue-600"></i>
-                    Looking for the Formdata Setup Tutorial? Read it here &rarr;
+                   class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-blue-50 text-blue-700 text-xs sm:text-sm font-semibold hover:bg-blue-100 transition-colors">
+                    <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                    </svg>
+                    Looking for the Formdata Tutorial? Read it here &rarr;
                 </a>
             </div>
         </header>
 
-        <!-- Main Layout with Sticky Sidebar -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 sm:gap-14">
+        <!-- Main Layout with Golden Ratio Grid: 4 cols for TOC, 8 cols for reading body -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
             
             <!-- Table of Contents (Sticky Sidebar) -->
-            <aside class="hidden lg:block lg:col-span-3">
-                <div class="sticky top-20 p-5 rounded-xl bg-slate-50 border border-slate-200/80 text-sm">
+            <aside class="hidden lg:block lg:col-span-4">
+                <div class="sticky top-24 p-5 sm:p-6 rounded-xl bg-slate-50 border border-slate-200/80 text-sm">
                     <div class="font-bold text-slate-900 uppercase text-xs tracking-wider mb-4 flex items-center gap-2">
-                        <i class="fa-solid fa-list-ul text-blue-600"></i> Table of Contents
+                        <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+                        </svg>
+                        Table of Contents
                     </div>
                     <nav class="space-y-2 font-medium text-slate-600 text-xs">
-                        <a href="#the-dilemma" class="toc-link block py-1 pl-2 border-l-2 border-transparent hover:text-blue-600 hover:border-blue-600 transition-all">1. The Static Site Form Dilemma</a>
-                        <a href="#how-forms-work" class="toc-link block py-1 pl-2 border-l-2 border-transparent hover:text-blue-600 hover:border-blue-600 transition-all">2. How HTML Forms Work Under the Hood</a>
-                        <a href="#form-anatomy" class="toc-link block py-1 pl-2 border-l-2 border-transparent hover:text-blue-600 hover:border-blue-600 transition-all">3. Anatomy of a Clean HTML Form</a>
-                        <a href="#backend-pipeline" class="toc-link block py-1 pl-2 border-l-2 border-transparent hover:text-blue-600 hover:border-blue-600 transition-all">4. What Must Be Implemented to Receive Submissions</a>
-                        <a href="#the-struggles" class="toc-link block py-1 pl-2 border-l-2 border-transparent hover:text-blue-600 hover:border-blue-600 transition-all">5. The Hidden Struggles of Building It Yourself</a>
-                        <a href="#hosted-solution" class="toc-link block py-1 pl-2 border-l-2 border-transparent hover:text-blue-600 hover:border-blue-600 transition-all">6. How Form Backends Eliminate the Struggle</a>
-                        <a href="#formdata-walkthrough" class="toc-link block py-1 pl-2 border-l-2 border-transparent hover:text-blue-600 hover:border-blue-600 transition-all">7. Formdata in Action</a>
-                        <a href="#next-step-guide" class="toc-link block py-1 pl-2 border-l-2 border-transparent hover:text-blue-600 hover:border-blue-600 transition-all">8. Step-by-Step Implementation Guide</a>
+                        <a href="#the-dilemma" class="toc-link block py-1.5 pl-2 border-l-2 border-transparent hover:text-blue-600 hover:border-blue-600 transition-all">1. The Static Site Form Dilemma</a>
+                        <a href="#how-forms-work" class="toc-link block py-1.5 pl-2 border-l-2 border-transparent hover:text-blue-600 hover:border-blue-600 transition-all">2. How HTML Forms Work Under the Hood</a>
+                        <a href="#form-anatomy" class="toc-link block py-1.5 pl-2 border-l-2 border-transparent hover:text-blue-600 hover:border-blue-600 transition-all">3. Anatomy of a Clean HTML Form</a>
+                        <a href="#backend-pipeline" class="toc-link block py-1.5 pl-2 border-l-2 border-transparent hover:text-blue-600 hover:border-blue-600 transition-all">4. What Must Be Implemented to Receive Submissions</a>
+                        <a href="#the-struggles" class="toc-link block py-1.5 pl-2 border-l-2 border-transparent hover:text-blue-600 hover:border-blue-600 transition-all">5. The Hidden Struggles of Building It Yourself</a>
+                        <a href="#hosted-solution" class="toc-link block py-1.5 pl-2 border-l-2 border-transparent hover:text-blue-600 hover:border-blue-600 transition-all">6. How Form Backends Eliminate the Struggle</a>
+                        <a href="#formdata-walkthrough" class="toc-link block py-1.5 pl-2 border-l-2 border-transparent hover:text-blue-600 hover:border-blue-600 transition-all">7. Formdata in Action</a>
+                        <a href="#next-step-guide" class="toc-link block py-1.5 pl-2 border-l-2 border-transparent hover:text-blue-600 hover:border-blue-600 transition-all">8. Step-by-Step Implementation Guide</a>
                     </nav>
 
                     <div class="mt-6 pt-5 border-t border-slate-200">
                         <div class="text-xs font-semibold text-slate-800 mb-2">Need a form endpoint now?</div>
-                        <a href="/" class="block w-full text-center py-2 px-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition-colors">
+                        <a href="/" class="block w-full text-center py-2.5 px-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition-colors shadow-sm">
                             Get Free Endpoint URL
                         </a>
                     </div>
@@ -334,7 +348,7 @@
             </aside>
 
             <!-- Article Body -->
-            <div class="lg:col-span-9 prose max-w-none">
+            <div class="lg:col-span-8 prose max-w-none">
 
                 <!-- Section 1 -->
                 <section id="the-dilemma">
@@ -364,9 +378,13 @@
                         At its foundation, an HTML form is an engine that translates user inputs into an HTTP request. When a user fills in a form and triggers a submit event, the browser orchestrates several automated steps:
                     </p>
                     
-                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-6 my-6">
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl p-5 sm:p-6 my-6">
                         <h4 class="font-bold text-slate-900 text-sm mb-3 flex items-center gap-2">
-                            <i class="fa-solid fa-gears text-blue-600"></i> The Form Lifecycle Step-by-Step:
+                            <svg class="w-4 h-4 text-blue-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                            The Form Lifecycle Step-by-Step:
                         </h4>
                         <ol class="list-decimal pl-5 space-y-2 text-sm text-slate-700">
                             <li><strong>Client-Side Constraint Validation:</strong> The browser evaluates HTML5 attributes such as <code>required</code>, <code>type="email"</code>, <code>minlength</code>, and <code>pattern</code>. If any rule fails, submission is blocked and browser tooltips are rendered.</li>
@@ -396,7 +414,12 @@
                     <div class="code-container">
                         <div class="code-header">
                             <span>contact-form.html</span>
-                            <button class="copy-btn" onclick="copyCode(this)"><i class="fa-regular fa-copy"></i> Copy</button>
+                            <button class="copy-btn" onclick="copyCode(this)">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                                </svg>
+                                Copy
+                            </button>
                         </div>
                         <pre><code>&lt;!-- Basic Static HTML Contact Form --&gt;
 &lt;form action="https://your-endpoint-url.com/submit" method="POST"&gt;
@@ -462,7 +485,7 @@
                     </p>
 
                     <!-- Pipeline Component Cards -->
-                    <div class="space-y-5 my-6">
+                    <div class="space-y-4 my-6">
                         <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
                             <div class="flex items-center gap-3 mb-2">
                                 <span class="w-7 h-7 rounded-md bg-blue-100 text-blue-700 font-bold text-xs flex items-center justify-center">1</span>
@@ -503,7 +526,7 @@
                             </p>
                             <ul class="list-disc pl-5 mt-2 space-y-1 text-xs text-slate-600">
                                 <li><strong>Honeypot verification:</strong> Checking that hidden decoy fields remain empty.</li>
-                                <li><strong>CAPTCHA / Turnstile server-side verification:</strong> Making a secondary out-of-band HTTPS request to Cloudflare or Google with your private secret key to validate the client's token.</li>
+                                <li><strong>CAPTCHA / Turnstile server-side verification:</strong> Making an out-of-band HTTPS request to Cloudflare or Google with your private secret key to validate the client's token.</li>
                                 <li><strong>Rate limiting:</strong> Throttling repeated requests by IP address (using Redis or in-memory caches) to stop mailbombing.</li>
                             </ul>
                         </div>
@@ -550,7 +573,10 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 my-6">
                         <div class="p-4 rounded-xl bg-rose-50/70 border border-rose-200/80">
                             <div class="font-bold text-rose-900 text-sm mb-1 flex items-center gap-2">
-                                <i class="fa-solid fa-server"></i> Server Maintenance Overhead
+                                <svg class="w-4 h-4 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"/>
+                                </svg>
+                                Server Maintenance Overhead
                             </div>
                             <p class="text-xs text-rose-800 leading-relaxed">
                                 You picked static hosting to avoid server updates, security patches, and SSH key management. Maintaining a custom server brings all that overhead back.
@@ -559,7 +585,10 @@
 
                         <div class="p-4 rounded-xl bg-amber-50/70 border border-amber-200/80">
                             <div class="font-bold text-amber-900 text-sm mb-1 flex items-center gap-2">
-                                <i class="fa-solid fa-shield-virus"></i> Constant Spam Evolution
+                                <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                                </svg>
+                                Constant Spam Evolution
                             </div>
                             <p class="text-xs text-amber-800 leading-relaxed">
                                 Simple honeypots stop basic bots, but modern AI scrapers execute headless browsers. Keeping your spam defenses effective requires ongoing maintenance.
@@ -568,7 +597,10 @@
 
                         <div class="p-4 rounded-xl bg-indigo-50/70 border border-indigo-200/80">
                             <div class="font-bold text-indigo-900 text-sm mb-1 flex items-center gap-2">
-                                <i class="fa-solid fa-envelope-circle-check"></i> Email Deliverability Failures
+                                <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                                </svg>
+                                Email Deliverability Failures
                             </div>
                             <p class="text-xs text-indigo-800 leading-relaxed">
                                 Transactional email APIs change, SMTP credentials expire, or missing DNS DKIM records cause customer inquiries to silently disappear into junk folders.
@@ -577,7 +609,10 @@
 
                         <div class="p-4 rounded-xl bg-slate-100 border border-slate-200">
                             <div class="font-bold text-slate-900 text-sm mb-1 flex items-center gap-2">
-                                <i class="fa-solid fa-receipt"></i> Monthly Subscription Stacking
+                                <svg class="w-4 h-4 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z"/>
+                                </svg>
+                                Monthly Subscription Stacking
                             </div>
                             <p class="text-xs text-slate-700 leading-relaxed">
                                 Paying $5/mo for a database, $7/mo for a VPS, and $15/mo for an email delivery service adds up quickly for a portfolio or small business website.
@@ -620,15 +655,30 @@
                         
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs sm:text-sm text-slate-300 mb-6">
                             <div class="p-3 bg-slate-800 rounded-lg border border-slate-700">
-                                <div class="font-bold text-white mb-1"><i class="fa-solid fa-bolt text-amber-400"></i> 1. Plug in Endpoint</div>
+                                <div class="font-bold text-white mb-1 flex items-center gap-1.5">
+                                    <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                    </svg>
+                                    1. Plug in Endpoint
+                                </div>
                                 Set <code>action="https://formdata.cloud/f/{id}"</code> in your static HTML.
                             </div>
                             <div class="p-3 bg-slate-800 rounded-lg border border-slate-700">
-                                <div class="font-bold text-white mb-1"><i class="fa-solid fa-table text-emerald-400"></i> 2. Auto Google Sheets</div>
+                                <div class="font-bold text-white mb-1 flex items-center gap-1.5">
+                                    <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 4h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                    </svg>
+                                    2. Auto Google Sheets
+                                </div>
                                 Every submission appends as a new row in your connected spreadsheet in real time.
                             </div>
                             <div class="p-3 bg-slate-800 rounded-lg border border-slate-700">
-                                <div class="font-bold text-white mb-1"><i class="fa-solid fa-shield-halved text-blue-400"></i> 3. Turnstile &amp; Honeypot</div>
+                                <div class="font-bold text-white mb-1 flex items-center gap-1.5">
+                                    <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                                    </svg>
+                                    3. Turnstile &amp; Honeypot
+                                </div>
                                 Built-in bot protection rejects spam before it reaches your inbox or spreadsheet.
                             </div>
                         </div>
@@ -636,7 +686,12 @@
                         <div class="code-container !mb-0 border-slate-700">
                             <div class="code-header bg-slate-950">
                                 <span>Static Form with Formdata</span>
-                                <button class="copy-btn" onclick="copyCode(this)"><i class="fa-regular fa-copy"></i> Copy</button>
+                                <button class="copy-btn" onclick="copyCode(this)">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                                    </svg>
+                                    Copy
+                                </button>
                             </div>
                             <pre class="bg-slate-950"><code>&lt;!-- Plug and play with Formdata --&gt;
 &lt;form action="https://formdata.cloud/f/YOUR_FORM_ID" method="POST"&gt;
@@ -658,7 +713,9 @@
                     <div class="cta-callout-box">
                         <div class="flex items-start gap-4">
                             <div class="w-12 h-12 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 text-xl shadow-md">
-                                <i class="fa-solid fa-book-open"></i>
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                                </svg>
                             </div>
                             <div class="flex-1">
                                 <div class="text-xs font-bold uppercase tracking-wider text-blue-700 mb-1">
@@ -725,7 +782,7 @@
             const code = pre.innerText;
             navigator.clipboard.writeText(code).then(() => {
                 const originalHtml = btn.innerHTML;
-                btn.innerHTML = '<i class="fa-solid fa-check"></i> Copied!';
+                btn.innerHTML = `<svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Copied!`;
                 btn.classList.add('copied');
                 setTimeout(() => {
                     btn.innerHTML = originalHtml;
