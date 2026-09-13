@@ -17,6 +17,7 @@ Formdata provides a backend for websites and applications that need to receive, 
 ## Website
 
 - [Formdata](https://formdata.cloud/): Official website and product overview.
+- [Blog](https://formdata.cloud/blogs): Developer guides and tutorials for HTML and static forms.
 - [Privacy Policy](https://formdata.cloud/privacy-policy): Formdata privacy policy.
 - [Terms of Service](https://formdata.cloud/terms-of-service): Formdata terms of service.
 

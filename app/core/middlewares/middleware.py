@@ -9,9 +9,10 @@ from app.core.db import AsyncSessionLocal
 from app.services.auth import decode, try_refresh, validate_access
 from app.services.cookies import clear_auth_cookies, set_auth_cookies
 
-PUBLIC_PREFIXES = ("/static", "/blogs")
+PUBLIC_PREFIXES = ("/static", "/blogs", "/blog")
 PUBLIC_PATHS = {
     "/",
+    "/health",
     "/auth",
     "/auth/callback",
     "/webhook/paddle",

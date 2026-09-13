@@ -1,7 +1,7 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Request
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse
 from loguru import logger as log
 
 from app.core.templates import temp
@@ -9,6 +9,14 @@ from app.models.user import User
 from app.services.dependencies import current_user
 
 page_router = APIRouter()
+
+BLOG_ARTICLES = {
+    "how-to-add-a-contact-form-to-a-static-html-website": {
+        "slug": "how-to-add-a-contact-form-to-a-static-html-website",
+        "title": "How to Add a Contact Form to a Static HTML Website",
+        "template": "blog_detail.html",
+    }
+}
 
 
 @page_router.get("/billing", response_class=HTMLResponse)
@@ -38,12 +46,48 @@ def robots_txt():
 
 @page_router.get("/blogs", response_class=HTMLResponse)
 async def blogs(request: Request):
-    log.info("Blogs")
+    """Blog index page listing articles."""
+    return temp.TemplateResponse(
+        request=request,
+        name="blogs.html",
+        context={"request": request},
+    )
 
 
 @page_router.get("/blogs/{blog_id}", response_class=HTMLResponse)
-async def blog(req: Request, blog_id: str):
-    log.info(f"Blog with id {blog_id}")
+async def blog(request: Request, blog_id: str):
+    """Individual blog article page."""
+    normalized_slug = blog_id.strip().lower()
+    if normalized_slug in BLOG_ARTICLES or normalized_slug in ("1", "how-to-add-a-contact-form"):
+        article_key = (
+            "how-to-add-a-contact-form-to-a-static-html-website"
+            if normalized_slug in ("1", "how-to-add-a-contact-form")
+            else normalized_slug
+        )
+        return temp.TemplateResponse(
+            request=request,
+            name=BLOG_ARTICLES[article_key]["template"],
+            context={
+                "request": request,
+                "article": BLOG_ARTICLES[article_key],
+            },
+        )
+    return temp.TemplateResponse(
+        request=request,
+        name="404.html",
+        context={"request": request},
+        status_code=404,
+    )
+
+
+@page_router.get("/blog", include_in_schema=False)
+async def blog_redirect():
+    return RedirectResponse(url="/blogs", status_code=301)
+
+
+@page_router.get("/blog/{blog_id}", include_in_schema=False)
+async def blog_detail_redirect(blog_id: str):
+    return RedirectResponse(url=f"/blogs/{blog_id}", status_code=301)
 
 
 @page_router.get("/privacy-policy", response_class=HTMLResponse)
