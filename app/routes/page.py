@@ -15,7 +15,12 @@ BLOG_ARTICLES = {
         "slug": "how-to-add-a-contact-form-to-a-static-html-website",
         "title": "How to Add a Contact Form to a Static HTML Website",
         "template": "blog_detail.html",
-    }
+    },
+    "how-to-use-formdata-in-a-static-html-website": {
+        "slug": "how-to-use-formdata-in-a-static-html-website",
+        "title": "How to Use Formdata in a Static HTML Website (Step-by-Step Guide)",
+        "template": "blog_formdata_guide.html",
+    },
 }
 
 
@@ -58,18 +63,23 @@ async def blogs(request: Request):
 async def blog(request: Request, blog_id: str):
     """Individual blog article page."""
     normalized_slug = blog_id.strip().lower()
-    if normalized_slug in BLOG_ARTICLES or normalized_slug in ("1", "how-to-add-a-contact-form"):
-        article_key = (
-            "how-to-add-a-contact-form-to-a-static-html-website"
-            if normalized_slug in ("1", "how-to-add-a-contact-form")
-            else normalized_slug
-        )
+    slug_aliases = {
+        "1": "how-to-add-a-contact-form-to-a-static-html-website",
+        "how-to-add-a-contact-form": "how-to-add-a-contact-form-to-a-static-html-website",
+        "2": "how-to-use-formdata-in-a-static-html-website",
+        "how-to-use-formdata": "how-to-use-formdata-in-a-static-html-website",
+        "formdata-guide": "how-to-use-formdata-in-a-static-html-website",
+    }
+    resolved_key = slug_aliases.get(normalized_slug, normalized_slug)
+
+    if resolved_key in BLOG_ARTICLES:
+        article = BLOG_ARTICLES[resolved_key]
         return temp.TemplateResponse(
             request=request,
-            name=BLOG_ARTICLES[article_key]["template"],
+            name=article["template"],
             context={
                 "request": request,
-                "article": BLOG_ARTICLES[article_key],
+                "article": article,
             },
         )
     return temp.TemplateResponse(

@@ -7,14 +7,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Blog &amp; Guides — Formdata</title>
     <meta name="description"
-        content="Developer guides, tutorials, and deep dives on building static website forms, spam prevention, Google Sheets synchronization, and modern form backends.">
+        content="Developer guides, step-by-step tutorials, and architectural deep dives on building static website forms, spam prevention, Google Sheets synchronization, and modern form backends.">
     <link rel="canonical" href="https://formdata.cloud/blogs">
 
     <!-- Open Graph -->
     <meta property="og:type" content="website">
     <meta property="og:title" content="Blog &amp; Guides — Formdata">
     <meta property="og:description"
-        content="Developer guides, tutorials, and deep dives on building static website forms, spam prevention, and hosted backends.">
+        content="Developer guides, step-by-step tutorials, and architectural deep dives on building static website forms and hosted backends.">
     <meta property="og:url" content="https://formdata.cloud/blogs">
     <meta property="og:site_name" content="Formdata">
 
@@ -22,7 +22,7 @@
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Blog &amp; Guides — Formdata">
     <meta name="twitter:description"
-        content="Developer guides, tutorials, and deep dives on building static website forms, spam prevention, and hosted backends.">
+        content="Developer guides, step-by-step tutorials, and architectural deep dives on building static website forms and hosted backends.">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -61,37 +61,91 @@
                 Developer Guides &amp; Form Architecture
             </h1>
             <p class="mt-4 text-base sm:text-lg text-slate-600 leading-relaxed">
-                Practical guides, step-by-step tutorials, and production best practices for collecting form submissions on static sites, SPAs, and JAMstack apps.
+                Practical tutorials, architectural breakdowns, and best practices for collecting form submissions on static sites, SPAs, and JAMstack apps.
             </p>
         </div>
 
-        <!-- Featured Article Card -->
-        <div class="mb-14">
-            <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4 flex items-center gap-2">
-                <i class="fa-solid fa-star text-amber-500"></i> Featured Guide
-            </h2>
+        <!-- Articles Grid / List -->
+        <div class="space-y-8 mb-16">
 
+            <!-- Article 1: Step-by-Step Hands-On Guide -->
+            <article class="group bg-white rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden flex flex-col md:flex-row">
+                <div class="p-6 sm:p-8 flex-1 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center gap-3 text-xs text-slate-500 mb-3">
+                            <span class="px-2.5 py-0.5 rounded-full font-semibold bg-emerald-50 text-emerald-700">
+                                Step-by-Step Tutorial
+                            </span>
+                            <span>•</span>
+                            <span>September 13, 2026</span>
+                            <span>•</span>
+                            <span class="flex items-center gap-1"><i class="fa-regular fa-clock"></i> 6 min read</span>
+                        </div>
+
+                        <h2 class="text-xl sm:text-2xl font-bold text-slate-900 group-hover:text-blue-600 transition-colors leading-snug mb-3">
+                            <a href="/blogs/how-to-use-formdata-in-a-static-html-website">
+                                How to Use Formdata in a Static HTML Website (Step-by-Step Guide)
+                            </a>
+                        </h2>
+
+                        <p class="text-sm sm:text-base text-slate-600 leading-relaxed line-clamp-3 mb-6">
+                            A complete hands-on tutorial on collecting contact form submissions from any static HTML website using Formdata. Learn how to plug in your endpoint, set up honeypot and Turnstile spam defense, and automatically sync submissions to Google Sheets in real-time.
+                        </p>
+                    </div>
+
+                    <div class="flex items-center justify-between pt-4 border-t border-slate-100">
+                        <div class="flex items-center gap-2.5 text-xs text-slate-600">
+                            <div class="w-7 h-7 rounded-full bg-emerald-600 text-white font-bold flex items-center justify-center text-[10px]">
+                                FD
+                            </div>
+                            <span class="font-medium text-slate-900">Formdata Engineering Team</span>
+                        </div>
+
+                        <a href="/blogs/how-to-use-formdata-in-a-static-html-website" class="inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-700 group-hover:text-emerald-900 transition-colors">
+                            Read Tutorial <i class="fa-solid fa-arrow-right text-xs group-hover:translate-x-0.5 transition-transform"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Code Accent Panel -->
+                <div class="md:w-72 bg-gradient-to-br from-slate-900 to-slate-800 p-6 flex flex-col justify-center text-white border-t md:border-t-0 md:border-l border-slate-800">
+                    <div class="font-mono text-xs text-emerald-400 mb-2">// Formdata snippet</div>
+                    <pre class="font-mono text-xs text-slate-300 bg-slate-950/60 p-3 rounded-lg overflow-hidden leading-relaxed"><code>&lt;form action="https://
+formdata.cloud/f/..."
+method="POST"&gt;
+  &lt;input name="email"&gt;
+  &lt;input name="_gotcha"
+    style="display:none"&gt;
+  &lt;button&gt;Submit&lt;/button&gt;
+&lt;/form&gt;</code></pre>
+                    <div class="mt-4 flex items-center gap-2 text-xs text-slate-400">
+                        <i class="fa-solid fa-table text-emerald-400"></i> Syncs with Google Sheets
+                    </div>
+                </div>
+            </article>
+
+            <!-- Article 2: General Architecture Deep Dive -->
             <article class="group bg-white rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden flex flex-col md:flex-row">
                 <div class="p-6 sm:p-8 flex-1 flex flex-col justify-between">
                     <div>
                         <div class="flex items-center gap-3 text-xs text-slate-500 mb-3">
                             <span class="px-2.5 py-0.5 rounded-full font-semibold bg-blue-50 text-blue-700">
-                                HTML Forms
+                                Form Architecture &amp; Fundamentals
                             </span>
                             <span>•</span>
                             <span>September 13, 2026</span>
                             <span>•</span>
-                            <span class="flex items-center gap-1"><i class="fa-regular fa-clock"></i> 7 min read</span>
+                            <span class="flex items-center gap-1"><i class="fa-regular fa-clock"></i> 8 min read</span>
                         </div>
 
-                        <h3 class="text-xl sm:text-2xl font-bold text-slate-900 group-hover:text-blue-600 transition-colors leading-snug mb-3">
+                        <h2 class="text-xl sm:text-2xl font-bold text-slate-900 group-hover:text-blue-600 transition-colors leading-snug mb-3">
                             <a href="/blogs/how-to-add-a-contact-form-to-a-static-html-website">
                                 How to Add a Contact Form to a Static HTML Website
                             </a>
-                        </h3>
+                        </h2>
 
                         <p class="text-sm sm:text-base text-slate-600 leading-relaxed line-clamp-3 mb-6">
-                            A static HTML website can be fast, secure, and inexpensive to host, but HTML alone cannot receive or save form submissions. Learn how to build an accessible contact form with validation, honeypot spam protection, Cloudflare Turnstile, and connect it to a hosted backend.
+                            Understand how HTML forms work under the hood, what backend infrastructure is required to process submissions (parsing, validation, spam defense, database storage, transactional email), and why hosted form backends eliminate the server struggle.
                         </p>
                     </div>
 
@@ -104,34 +158,34 @@
                         </div>
 
                         <a href="/blogs/how-to-add-a-contact-form-to-a-static-html-website" class="inline-flex items-center gap-1.5 text-sm font-semibold text-blue-600 group-hover:text-blue-800 transition-colors">
-                            Read Guide <i class="fa-solid fa-arrow-right text-xs group-hover:translate-x-0.5 transition-transform"></i>
+                            Read Architecture Guide <i class="fa-solid fa-arrow-right text-xs group-hover:translate-x-0.5 transition-transform"></i>
                         </a>
                     </div>
                 </div>
 
                 <!-- Visual Card Accent Panel -->
                 <div class="md:w-72 bg-gradient-to-br from-slate-900 to-slate-800 p-6 flex flex-col justify-center text-white border-t md:border-t-0 md:border-l border-slate-800">
-                    <div class="font-mono text-xs text-blue-400 mb-2">// Quick snippet</div>
-                    <pre class="font-mono text-xs text-slate-300 bg-slate-950/60 p-3 rounded-lg overflow-hidden leading-relaxed"><code>&lt;form action="https://
-formdata.cloud/f/..."
-method="POST"&gt;
-  &lt;input name="email"&gt;
-  &lt;input name="_gotcha"
-    style="display:none"&gt;
-  &lt;button&gt;Send&lt;/button&gt;
-&lt;/form&gt;</code></pre>
+                    <div class="font-mono text-xs text-blue-400 mb-2">// The Backend Pipeline</div>
+                    <ul class="font-mono text-xs text-slate-300 space-y-1.5 bg-slate-950/60 p-3 rounded-lg">
+                        <li><span class="text-emerald-400">✓</span> HTTP POST Route</li>
+                        <li><span class="text-emerald-400">✓</span> Request Sanitizer</li>
+                        <li><span class="text-emerald-400">✓</span> Honeypot / Bot Filter</li>
+                        <li><span class="text-emerald-400">✓</span> DB Persistence</li>
+                        <li><span class="text-emerald-400">✓</span> SMTP Dispatch</li>
+                    </ul>
                     <div class="mt-4 flex items-center gap-2 text-xs text-slate-400">
-                        <i class="fa-solid fa-check text-emerald-400"></i> No server required
+                        <i class="fa-solid fa-check text-blue-400"></i> Or use a hosted endpoint
                     </div>
                 </div>
             </article>
+
         </div>
 
         <!-- Topics & Features Section -->
         <section class="mb-14">
-            <h2 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4 flex items-center gap-2">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4 flex items-center gap-2">
                 <i class="fa-solid fa-tag"></i> Popular Topics
-            </h2>
+            </h3>
 
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div class="bg-white p-5 rounded-xl border border-slate-200/70 shadow-sm">

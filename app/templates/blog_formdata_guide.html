@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    {% include 'partials/head_shim.html' %}
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>How to Use Formdata in a Static HTML Website (Step-by-Step Guide) | Formdata</title>
+    <meta name="description"
+        content="Learn how to collect form submissions from any static HTML website using Formdata. Step-by-step tutorial covering endpoint setup, honeypot spam protection, Cloudflare Turnstile, and instant Google Sheets sync.">
+    <link rel="canonical" href="https://formdata.cloud/blogs/how-to-use-formdata-in-a-static-html-website">
+    
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:title" content="How to Use Formdata in a Static HTML Website (Step-by-Step Guide)">
+    <meta property="og:description"
+        content="Step-by-step tutorial on connecting static HTML forms to Formdata. Zero server setup, instant Google Sheets sync, email notifications, and turnstile bot protection.">
+    <meta property="og:url" content="https://formdata.cloud/blogs/how-to-use-formdata-in-a-static-html-website">
+    <meta property="og:site_name" content="Formdata">
+    <meta property="article:published_time" content="2026-09-13T00:00:00Z">
+    <meta property="article:modified_time" content="2026-09-13T00:00:00Z">
+    <meta property="article:author" content="Formdata">
+    <meta property="article:section" content="Tutorials">
+    <meta property="article:tag" content="Formdata">
+    <meta property="article:tag" content="HTML Forms">
+    <meta property="article:tag" content="Static Sites">
+    <meta property="article:tag" content="Google Sheets">
+    <meta property="article:tag" content="Spam Protection">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="How to Use Formdata in a Static HTML Website (Step-by-Step Guide)">
+    <meta name="twitter:description"
+        content="Learn how to collect form submissions from any static HTML website using Formdata. Zero server code required.">
+    <meta name="twitter:site" content="@imakashy00">
+
+    <!-- Schema.org JSON-LD -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Article",
+      "headline": "How to Use Formdata in a Static HTML Website (Step-by-Step Guide)",
+      "description": "Learn how to collect form submissions from any static HTML website using Formdata. Step-by-step tutorial covering endpoint setup, honeypot spam protection, Cloudflare Turnstile, and instant Google Sheets sync.",
+      "datePublished": "2026-09-13",
+      "dateModified": "2026-09-13",
+      "author": {
+        "@type": "Organization",
+        "name": "Formdata",
+        "url": "https://formdata.cloud/"
+      },
+      "publisher": {
+        "@type": "Organization",
+        "name": "Formdata",
+        "url": "https://formdata.cloud/",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://formdata.cloud/static/favicon.svg"
+        }
+      },
+      "mainEntityOfPage": {
+        "@type": "WebPage",
+        "@id": "https://formdata.cloud/blogs/how-to-use-formdata-in-a-static-html-website"
+      }
+    }
+    </script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/output.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+    <style>
+        :root {
+            --color-brand: #2563eb;
+            --color-brand-dark: #1d4ed8;
+            --color-brand-light: #eff6ff;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #ffffff;
+            color: #1e293b;
+            line-height: 1.7;
+        }
+
+        code, pre {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .prose h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin-top: 2.5rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #f1f5f9;
+            scroll-margin-top: 5.5rem;
+        }
+
+        .prose h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-top: 1.75rem;
+            margin-bottom: 0.75rem;
+            scroll-margin-top: 5.5rem;
+        }
+
+        .prose p {
+            margin-bottom: 1.25rem;
+            color: #334155;
+            font-size: 1.05rem;
+        }
+
+        .prose ul, .prose ol {
+            margin-bottom: 1.25rem;
+            padding-left: 1.5rem;
+        }
+
+        .prose li {
+            margin-bottom: 0.5rem;
+            color: #334155;
+        }
+
+        .prose strong {
+            color: #0f172a;
+            font-weight: 600;
+        }
+
+        .prose code:not(pre code) {
+            background-color: #f1f5f9;
+            color: #0f172a;
+            padding: 0.2rem 0.4rem;
+            border-radius: 0.375rem;
+            font-size: 0.875em;
+            font-weight: 500;
+            border: 1px solid #e2e8f0;
+        }
+
+        .code-container {
+            position: relative;
+            background: #0f172a;
+            border-radius: 0.75rem;
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+            border: 1px solid #1e293b;
+        }
+
+        .code-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            background: #1e293b;
+            color: #94a3b8;
+            font-size: 0.75rem;
+            font-family: 'JetBrains Mono', monospace;
+            border-bottom: 1px solid #334155;
+        }
+
+        .code-container pre {
+            margin: 0;
+            padding: 1.25rem;
+            overflow-x: auto;
+            color: #e2e8f0;
+            font-size: 0.875rem;
+            line-height: 1.6;
+        }
+
+        .copy-btn {
+            background: #334155;
+            border: 1px solid #475569;
+            color: #e2e8f0;
+            padding: 0.25rem 0.6rem;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            font-size: 0.75rem;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .copy-btn:hover {
+            background: #475569;
+            color: #ffffff;
+        }
+
+        .copy-btn.copied {
+            background: #16a34a;
+            border-color: #16a34a;
+            color: #ffffff;
+        }
+
+        .step-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 2rem;
+            height: 2rem;
+            border-radius: 9999px;
+            background-color: #2563eb;
+            color: #ffffff;
+            font-weight: 700;
+            font-size: 0.875rem;
+            margin-right: 0.5rem;
+        }
+
+        .tip-box {
+            background-color: #f0fdf4;
+            border-left: 4px solid #16a34a;
+            padding: 1.25rem;
+            border-radius: 0 0.5rem 0.5rem 0;
+            margin-bottom: 1.5rem;
+        }
+
+        .backlink-box {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+            margin: 2rem 0;
+        }
+
+        /* Reading Progress Bar */
+        #progress-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: transparent;
+            z-index: 100;
+        }
+        #progress-bar {
+            height: 100%;
+            background: #2563eb;
+            width: 0%;
+            transition: width 0.1s ease;
+        }
+
+        .toc-link.active {
+            color: #2563eb;
+            font-weight: 600;
+            border-left-color: #2563eb;
+        }
+    </style>
+</head>
+
+<body class="bg-white text-slate-800 antialiased min-h-screen flex flex-col justify-between">
+
+    <!-- Reading Progress Bar -->
+    <div id="progress-container">
+        <div id="progress-bar"></div>
+    </div>
+
+    <!-- Main Navigation -->
+    {% include 'partials/navbar.html' %}
+
+    <main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 w-full">
+        
+        <!-- Breadcrumbs -->
+        <nav aria-label="Breadcrumb" class="mb-6 flex items-center gap-2 text-xs sm:text-sm text-slate-500">
+            <a href="/" class="hover:text-blue-600 transition-colors">Home</a>
+            <i class="fa-solid fa-chevron-right text-[10px] text-slate-400"></i>
+            <a href="/blogs" class="hover:text-blue-600 transition-colors">Blog</a>
+            <i class="fa-solid fa-chevron-right text-[10px] text-slate-400"></i>
+            <span class="text-slate-800 font-medium truncate max-w-xs sm:max-w-md">How to Use Formdata in a Static HTML Website</span>
+        </nav>
+
+        <!-- Article Header -->
+        <header class="max-w-4xl mb-12">
+            <div class="flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-slate-500 mb-4">
+                <span class="px-2.5 py-1 rounded-full font-semibold bg-emerald-50 text-emerald-700">
+                    Step-by-Step Tutorial
+                </span>
+                <span>•</span>
+                <span class="flex items-center gap-1.5"><i class="fa-regular fa-calendar"></i> September 13, 2026</span>
+                <span>•</span>
+                <span class="flex items-center gap-1.5"><i class="fa-regular fa-clock"></i> 6 min read</span>
+            </div>
+
+            <h1 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-slate-950 tracking-tight leading-[1.15] mb-6">
+                How to Use Formdata in a Static HTML Website (Step-by-Step Guide)
+            </h1>
+
+            <p class="text-lg sm:text-xl text-slate-600 leading-relaxed font-normal">
+                Looking to collect contact inquiries, feedback, or leads from your static HTML website without maintaining servers, databases, or mail configurations? This hands-on guide walks you through setting up Formdata in under 2 minutes.
+            </p>
+
+            <div class="mt-8 pt-6 border-t border-slate-100 flex items-center justify-between flex-wrap gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-blue-600 text-white font-bold flex items-center justify-center text-sm shadow-sm">
+                        FD
+                    </div>
+                    <div>
+                        <div class="text-sm font-bold text-slate-900">Formdata Engineering Team</div>
+                        <div class="text-xs text-slate-500">Developer Education &amp; Cloud Architecture</div>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <span class="px-3 py-1 rounded-md bg-slate-100 text-slate-700 text-xs font-semibold">
+                        <i class="fa-solid fa-code text-blue-600"></i> No PHP / Node.js Required
+                    </span>
+                    <span class="px-3 py-1 rounded-md bg-slate-100 text-slate-700 text-xs font-semibold">
+                        <i class="fa-solid fa-table text-emerald-600"></i> Live Google Sheets Sync
+                    </span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Layout with Sticky Sidebar -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 sm:gap-14">
+            
+            <!-- Table of Contents (Sticky Sidebar) -->
+            <aside class="hidden lg:block lg:col-span-3">
+                <div class="sticky top-20 p-5 rounded-xl bg-slate-50 border border-slate-200/80 text-sm">
+                    <div class="font-bold text-slate-900 uppercase text-xs tracking-wider mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-list-ol text-blue-600"></i> Tutorial Steps
+                    </div>
+                    <nav class="space-y-2 font-medium text-slate-600 text-xs">
+                        <a href="#step-1" class="toc-link block py-1 pl-2 border-l-2 border-transparent hover:text-blue-600 hover:border-blue-600 transition-all">Step 1: Get Your Form Endpoint</a>
+                        <a href="#step-2" class="toc-link block py-1 pl-2 border-l-2 border-transparent hover:text-blue-600 hover:border-blue-600 transition-all">Step 2: Add Endpoint to HTML</a>
+                        <a href="#step-3" class="toc-link block py-1 pl-2 border-l-2 border-transparent hover:text-blue-600 hover:border-blue-600 transition-all">Step 3: Define Field Names</a>
+                        <a href="#step-4" class="toc-link block py-1 pl-2 border-l-2 border-transparent hover:text-blue-600 hover:border-blue-600 transition-all">Step 4: Add Invisible Honeypot</a>
+                        <a href="#step-5" class="toc-link block py-1 pl-2 border-l-2 border-transparent hover:text-blue-600 hover:border-blue-600 transition-all">Step 5: Add Cloudflare Turnstile</a>
+                        <a href="#step-6" class="toc-link block py-1 pl-2 border-l-2 border-transparent hover:text-blue-600 hover:border-blue-600 transition-all">Step 6: Sync to Google Sheets</a>
+                        <a href="#step-7" class="toc-link block py-1 pl-2 border-l-2 border-transparent hover:text-blue-600 hover:border-blue-600 transition-all">Step 7: Configure Notifications</a>
+                        <a href="#step-8" class="toc-link block py-1 pl-2 border-l-2 border-transparent hover:text-blue-600 hover:border-blue-600 transition-all">Step 8: Deploy &amp; Test Live</a>
+                        <a href="#full-code" class="toc-link block py-1 pl-2 border-l-2 border-transparent hover:text-blue-600 hover:border-blue-600 transition-all">Complete Code Template</a>
+                    </nav>
+
+                    <div class="mt-6 pt-5 border-t border-slate-200">
+                        <div class="text-xs font-semibold text-slate-800 mb-2">Ready to create a form?</div>
+                        <a href="/" class="block w-full text-center py-2 px-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition-colors">
+                            Sign In to Formdata
+                        </a>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Article Body -->
+            <div class="lg:col-span-9 prose max-w-none">
+
+                <!-- Educational Backlink Banner -->
+                <div class="backlink-box flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div>
+                        <div class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Architecture Background</div>
+                        <p class="text-xs sm:text-sm text-slate-700 !mb-0">
+                            Want to understand how HTML forms communicate with servers and what backend code is normally required?
+                        </p>
+                    </div>
+                    <a href="/blogs/how-to-add-a-contact-form-to-a-static-html-website" 
+                       class="shrink-0 px-3.5 py-1.5 rounded-lg bg-white border border-slate-300 hover:border-blue-500 hover:text-blue-600 text-slate-800 font-semibold text-xs transition-all shadow-sm">
+                        Read Architecture Guide &rarr;
+                    </a>
+                </div>
+
+                <p>
+                    Static websites hosted on platforms like <strong>GitHub Pages, Netlify, Cloudflare Pages, Vercel, or AWS S3</strong> are fast and resilient. But because they do not have a server backend, you cannot run PHP scripts or database queries to process contact forms.
+                </p>
+                <p>
+                    <strong>Formdata</strong> provides a hosted endpoint for your HTML form. You simply create a form endpoint URL in Formdata, paste it into your HTML <code>&lt;form action="..."&gt;</code>, and Formdata handles everything: submission capture, spam filtering, email alerts, and live synchronization to Google Sheets.
+                </p>
+
+                <!-- Step 1 -->
+                <section id="step-1">
+                    <h2><span class="step-badge">1</span> Get Your Form Endpoint URL</h2>
+                    <p>
+                        Before writing any HTML, you need your unique Formdata endpoint:
+                    </p>
+                    <ol class="list-decimal pl-5 space-y-2">
+                        <li>Visit <a href="/" class="text-blue-600 font-semibold hover:underline">Formdata.cloud</a> and sign in with your Google account.</li>
+                        <li>Click <strong>New Form</strong> on your dashboard.</li>
+                        <li>Give your form a name (e.g., <em>"Portfolio Contact Form"</em> or <em>"Static Site Leads"</em>).</li>
+                        <li>Your form is created instantly with a dedicated public endpoint URL in this format:
+                            <code class="block my-2 text-sm font-bold text-blue-700 bg-blue-50 p-3 rounded-lg border border-blue-200">
+                                https://formdata.cloud/f/YOUR_FORM_ID
+                            </code>
+                        </li>
+                    </ol>
+                    <div class="tip-box">
+                        <strong>Pro Tip:</strong> You do not need to pre-define fields or configure database tables in Formdata. Formdata dynamically inspects and captures whatever inputs you send it!
+                    </div>
+                </section>
+
+                <!-- Step 2 -->
+                <section id="step-2">
+                    <h2><span class="step-badge">2</span> Connect the Endpoint to Your HTML Form</h2>
+                    <p>
+                        Open your static HTML file (e.g. <code>index.html</code> or <code>contact.html</code>). Locate or create your <code>&lt;form&gt;</code> tag, and set the following two mandatory attributes:
+                    </p>
+                    <ul class="list-disc">
+                        <li><code>action="https://formdata.cloud/f/YOUR_FORM_ID"</code> (replace with your real endpoint ID)</li>
+                        <li><code>method="POST"</code></li>
+                    </ul>
+
+                    <div class="code-container">
+                        <div class="code-header">
+                            <span>HTML</span>
+                            <button class="copy-btn" onclick="copyCode(this)"><i class="fa-regular fa-copy"></i> Copy</button>
+                        </div>
+                        <pre><code>&lt;form action="https://formdata.cloud/f/YOUR_FORM_ID" method="POST"&gt;
+  &lt;!-- Form inputs will go here --&gt;
+  &lt;button type="submit"&gt;Send Message&lt;/button&gt;
+&lt;/form&gt;</code></pre>
+                    </div>
+                </section>
+
+                <!-- Step 3 -->
+                <section id="step-3">
+                    <h2><span class="step-badge">3</span> Add Form Fields with Proper <code>name</code> Attributes</h2>
+                    <p>
+                        Formdata turns every input's <code>name</code> attribute into a column header in your submission logs and synced Google Sheets.
+                    </p>
+                    <p>
+                        Always choose clear, descriptive names such as <code>name="name"</code>, <code>name="email"</code>, <code>name="message"</code>, or <code>name="company"</code>:
+                    </p>
+
+                    <div class="code-container">
+                        <div class="code-header">
+                            <span>HTML</span>
+                            <button class="copy-btn" onclick="copyCode(this)"><i class="fa-regular fa-copy"></i> Copy</button>
+                        </div>
+                        <pre><code>&lt;!-- Full Name --&gt;
+&lt;label for="name"&gt;Your Name&lt;/label&gt;
+&lt;input type="text" id="name" name="name" placeholder="Alex Morgan" required&gt;
+
+&lt;!-- Email Address (used for autoresponders) --&gt;
+&lt;label for="email"&gt;Email Address&lt;/label&gt;
+&lt;input type="email" id="email" name="email" placeholder="alex@example.com" required&gt;
+
+&lt;!-- Custom Field: Inquiry Type --&gt;
+&lt;label for="subject"&gt;Subject&lt;/label&gt;
+&lt;select id="subject" name="subject"&gt;
+  &lt;option value="General Inquiry"&gt;General Inquiry&lt;/option&gt;
+  &lt;option value="Project Quote"&gt;Project Quote&lt;/option&gt;
+  &lt;option value="Support"&gt;Support&lt;/option&gt;
+&lt;/select&gt;
+
+&lt;!-- Message Box --&gt;
+&lt;label for="message"&gt;Message&lt;/label&gt;
+&lt;textarea id="message" name="message" rows="4" placeholder="Tell us about your project..." required&gt;&lt;/textarea&gt;</code></pre>
+                    </div>
+
+                    <div class="tip-box">
+                        <strong>Important:</strong> Ensure you include a field named <code>email</code>. Formdata automatically detects this field to power autoresponder emails and deliverability tracking.
+                    </div>
+                </section>
+
+                <!-- Step 4 -->
+                <section id="step-4">
+                    <h2><span class="step-badge">4</span> Add Zero-Friction Honeypot Spam Protection</h2>
+                    <p>
+                        Spam bots scan websites for forms and automatically fill out every single field they can find. Formdata features an integrated <strong>honeypot detector</strong> that rejects bots without showing annoying puzzle captchas to real humans.
+                    </p>
+                    <p>
+                        Simply add an invisible input field named <code>_gotcha</code> (or your custom configured honeypot name) inside your form:
+                    </p>
+
+                    <div class="code-container">
+                        <div class="code-header">
+                            <span>Invisible Honeypot</span>
+                            <button class="copy-btn" onclick="copyCode(this)"><i class="fa-regular fa-copy"></i> Copy</button>
+                        </div>
+                        <pre><code>&lt;!-- Formdata Honeypot Spam Protection --&gt;
+&lt;input type="text" name="_gotcha" tabindex="-1" autocomplete="off" 
+       style="position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0;"&gt;</code></pre>
+                    </div>
+
+                    <p>
+                        <strong>How this works:</strong> Real human users cannot see or tab into this field, so it remains empty. Automated spam scripts automatically populate it with junk values. When Formdata sees a value in <code>_gotcha</code>, it silently drops the spam submission, protecting your inbox.
+                    </p>
+                </section>
+
+                <!-- Step 5 -->
+                <section id="step-5">
+                    <h2><span class="step-badge">5</span> (Optional) Add Cloudflare Turnstile Bot Defense</h2>
+                    <p>
+                        If your website experiences high-traffic or aggressive bot campaigns, you can enable enterprise-grade <strong>Cloudflare Turnstile</strong> protection.
+                    </p>
+                    <ol class="list-decimal pl-5 space-y-2">
+                        <li>In your Formdata form settings, enable <strong>Turnstile Protection</strong> and enter your Cloudflare Turnstile Secret Key.</li>
+                        <li>Include Cloudflare's script once in your HTML <code>&lt;head&gt;</code> or right before your form:
+                            <div class="code-container my-2">
+                                <div class="code-header"><span>HTML</span></div>
+                                <pre><code>&lt;script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer&gt;&lt;/script&gt;</code></pre>
+                            </div>
+                        </li>
+                        <li>Add the Turnstile widget element inside your <code>&lt;form&gt;</code>:
+                            <div class="code-container my-2">
+                                <div class="code-header"><span>HTML</span></div>
+                                <pre><code>&lt;div class="cf-turnstile" data-sitekey="YOUR_TURNSTILE_SITE_KEY"&gt;&lt;/div&gt;</code></pre>
+                            </div>
+                        </li>
+                    </ol>
+                    <p>
+                        Formdata automatically verifies the submitted token with Cloudflare's servers, rejecting fraudulent requests with zero backend code on your end.
+                    </p>
+                </section>
+
+                <!-- Step 6 -->
+                <section id="step-6">
+                    <h2><span class="step-badge">6</span> Connect Real-Time Google Sheets Synchronization</h2>
+                    <p>
+                        One of Formdata's most popular superpowers is <strong>instant, real-time Google Sheets synchronization</strong>.
+                    </p>
+                    <p>
+                        Instead of paying for expensive Zapier or Make subscriptions to pipe data into a spreadsheet:
+                    </p>
+                    <ol class="list-decimal pl-5 space-y-2">
+                        <li>In your Formdata dashboard, navigate to your form's <strong>Integrations</strong> tab.</li>
+                        <li>Click <strong>Connect Google Sheets</strong> and authorize your Google account.</li>
+                        <li>Select an existing Google Sheet or let Formdata create a brand-new spreadsheet automatically.</li>
+                    </ol>
+                    <p>
+                        Every time a visitor clicks "Send Message" on your static HTML website, Formdata appends a new row to your Google Sheet with timestamp, name, email, and message within milliseconds.
+                    </p>
+                </section>
+
+                <!-- Step 7 -->
+                <section id="step-7">
+                    <h2><span class="step-badge">7</span> Configure Email Notifications &amp; Autoresponders</h2>
+                    <p>
+                        Keep your team and your visitors informed as soon as a form is submitted:
+                    </p>
+                    <ul class="list-disc">
+                        <li><strong>Instant Owner Notifications:</strong> By default, Formdata delivers clean email summaries of every submission to your account email address. You can add extra team notification emails in settings.</li>
+                        <li><strong>Automated Visitor Autoresponder:</strong> Enable the autoresponder in Formdata to send an instant, customized confirmation message back to the visitor's email address (e.g., <em>"Thanks for reaching out! We received your message and will reply within 24 hours."</em>).</li>
+                    </ul>
+                </section>
+
+                <!-- Step 8 -->
+                <section id="step-8">
+                    <h2><span class="step-badge">8</span> Deploy Your Static Website &amp; Test Live</h2>
+                    <p>
+                        Once your HTML file is ready, deploy it to your static web host:
+                    </p>
+                    <ul class="list-disc">
+                        <li><strong>GitHub Pages:</strong> Push your HTML file to a GitHub repository and turn on GitHub Pages in repository settings.</li>
+                        <li><strong>Netlify / Vercel:</strong> Drag and drop your folder or connect your Git repository for instant CDN deployment.</li>
+                        <li><strong>Cloudflare Pages:</strong> Connect your repository for fast worldwide edge distribution.</li>
+                    </ul>
+
+                    <h3>Testing Your Live Form</h3>
+                    <p>
+                        Visit your live deployed site, fill out your contact form with test data, and hit submit:
+                    </p>
+                    <ol class="list-decimal pl-5 space-y-1">
+                        <li>You will see Formdata's clean, branded confirmation page (or your custom configured redirect URL).</li>
+                        <li>Check your email inbox for the instant notification.</li>
+                        <li>Open your Google Sheet—your test submission is already there!</li>
+                        <li>Open your Formdata dashboard to inspect submission details, user-agent data, and CSV export options.</li>
+                    </ol>
+                </section>
+
+                <!-- Full Code Section -->
+                <section id="full-code">
+                    <h2>Complete Copy-Paste HTML Template</h2>
+                    <p>
+                        Here is the complete, accessible, and responsive static HTML contact form ready to drop into any website:
+                    </p>
+
+                    <div class="code-container">
+                        <div class="code-header">
+                            <span>index.html</span>
+                            <button class="copy-btn" onclick="copyCode(this)"><i class="fa-regular fa-copy"></i> Copy Template</button>
+                        </div>
+                        <pre><code>&lt;!DOCTYPE html&gt;
+&lt;html lang="en"&gt;
+&lt;head&gt;
+  &lt;meta charset="UTF-8"&gt;
+  &lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;
+  &lt;title&gt;Contact Us&lt;/title&gt;
+  &lt;style&gt;
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f8fafc; padding: 2rem 1rem; }
+    .contact-card { max-width: 500px; margin: 0 auto; background: #ffffff; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+    h2 { margin-top: 0; color: #0f172a; }
+    .form-group { margin-bottom: 1.25rem; }
+    label { display: block; font-weight: 600; font-size: 0.875rem; color: #334155; margin-bottom: 0.35rem; }
+    input[type="text"], input[type="email"], textarea, select {
+      width: 100%; padding: 0.75rem; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem; box-sizing: border-box;
+    }
+    input:focus, textarea:focus { outline: none; border-color: #2563eb; ring: 2px solid #93c5fd; }
+    button { width: 100%; background: #2563eb; color: white; border: none; padding: 0.85rem; border-radius: 8px; font-weight: 600; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    button:hover { background: #1d4ed8; }
+  &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+
+  &lt;div class="contact-card"&gt;
+    &lt;h2&gt;Get in Touch&lt;/h2&gt;
+    &lt;p style="color: #64748b; font-size: 0.9rem; margin-bottom: 1.5rem;"&gt;
+      Fill out the form below and we will get back to you shortly.
+    &lt;/p&gt;
+
+    &lt;!-- Formdata Endpoint Form --&gt;
+    &lt;form action="https://formdata.cloud/f/YOUR_FORM_ID" method="POST"&gt;
+      
+      &lt;div class="form-group"&gt;
+        &lt;label for="name"&gt;Full Name *&lt;/label&gt;
+        &lt;input type="text" id="name" name="name" placeholder="Jane Doe" required&gt;
+      &lt;/div&gt;
+
+      &lt;div class="form-group"&gt;
+        &lt;label for="email"&gt;Email Address *&lt;/label&gt;
+        &lt;input type="email" id="email" name="email" placeholder="jane@example.com" required&gt;
+      &lt;/div&gt;
+
+      &lt;div class="form-group"&gt;
+        &lt;label for="subject"&gt;Subject&lt;/label&gt;
+        &lt;input type="text" id="subject" name="subject" placeholder="Project Inquiry"&gt;
+      &lt;/div&gt;
+
+      &lt;div class="form-group"&gt;
+        &lt;label for="message"&gt;Your Message *&lt;/label&gt;
+        &lt;textarea id="message" name="message" rows="4" placeholder="How can we help you?" required&gt;&lt;/textarea&gt;
+      &lt;/div&gt;
+
+      &lt;!-- Invisible Honeypot Spam Protection (Bots fill it, humans do not) --&gt;
+      &lt;input type="text" name="_gotcha" tabindex="-1" autocomplete="off" 
+             style="position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0;"&gt;
+
+      &lt;button type="submit"&gt;Send Message&lt;/button&gt;
+    &lt;/form&gt;
+  &lt;/div&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+                    </div>
+                </section>
+
+                <!-- Call to Action Banner -->
+                <section class="my-12 bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl p-8 text-white shadow-lg flex flex-col sm:flex-row items-center justify-between gap-6">
+                    <div>
+                        <h3 class="text-2xl font-extrabold text-white mb-2">Build your form backend in seconds</h3>
+                        <p class="text-sm text-blue-100 max-w-xl">
+                            Stop wrestling with email servers, PHP scripts, and spam bots. Get your free Formdata endpoint and connect your Google Sheets today.
+                        </p>
+                    </div>
+                    <a href="/" class="shrink-0 px-6 py-3 rounded-xl bg-white text-blue-700 font-bold text-sm shadow hover:bg-blue-50 transition-colors">
+                        Create Free Form Endpoint &rarr;
+                    </a>
+                </section>
+
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    {% include 'partials/footer.html' %}
+
+    <!-- Interactive Scripts -->
+    <script>
+        // Reading Progress Bar
+        window.addEventListener('scroll', () => {
+            const winScroll = document.documentElement.scrollTop;
+            const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+            const scrolled = (winScroll / height) * 100;
+            document.getElementById('progress-bar').style.width = scrolled + '%';
+        });
+
+        // Copy Code Functionality
+        function copyCode(btn) {
+            const pre = btn.closest('.code-container').querySelector('pre');
+            const code = pre.innerText;
+            navigator.clipboard.writeText(code).then(() => {
+                const originalHtml = btn.innerHTML;
+                btn.innerHTML = '<i class="fa-solid fa-check"></i> Copied!';
+                btn.classList.add('copied');
+                setTimeout(() => {
+                    btn.innerHTML = originalHtml;
+                    btn.classList.remove('copied');
+                }, 2000);
+            });
+        }
+
+        // Active TOC tracking
+        const sections = document.querySelectorAll('section[id]');
+        const tocLinks = document.querySelectorAll('.toc-link');
+
+        window.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop - 120;
+                if (window.pageYOffset >= sectionTop) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            tocLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === `#${current}`) {
+                    link.classList.add('active');
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>
